@@ -4,11 +4,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Seguimiento Soka Gakkai Rosario</title>
-  ./styles.css
+  <title>Seguimiento Soka Gakkai</title>
+
+  <!-- 🔗 Hoja de estilos: usa ruta absoluta al subfolder publicado -->
+  /SokaRosario/styles.css?v=1
+
+  <!-- Modo de color: permite que el navegador gestione light/dark -->
   <meta name="color-scheme" content="light dark" />
 </head>
 <body>
+  <!-- Encabezado con login Google y badge de rol -->
   <header>
     <h1>Seguimiento Soka Gakkai</h1>
     <div id="auth">
@@ -24,7 +29,7 @@
   </header>
 
   <main>
-    <!-- PERFIL (visible para Admin y Usuario) -->
+    <!-- ========================= Mi Perfil (Admin y Usuario) ========================= -->
     <section class="panel">
       <h2>Mi Perfil</h2>
       <form id="miPerfilForm">
@@ -96,7 +101,7 @@
       </form>
     </section>
 
-    <!-- ADMIN: Gestión de Hanes -->
+    <!-- ========================= Admin: Hanes (CRUD) ========================= -->
     <section class="panel admin-only hidden">
       <h2>Administrar Hanes</h2>
       <form id="hanForm">
@@ -117,7 +122,7 @@
       <ul id="hanList"></ul>
     </section>
 
-    <!-- ADMIN: Gestión de Grupos -->
+    <!-- ========================= Admin: Grupos (CRUD) ========================= -->
     <section class="panel admin-only hidden">
       <h2>Grupos de Capacitación</h2>
       <form id="grupoForm">
@@ -135,7 +140,7 @@
       <ul id="grupoList"></ul>
     </section>
 
-    <!-- ADMIN: Personas, Filtros, Import/Export, Dashboard -->
+    <!-- ========================= Admin: Personas + Filtros + Import/Export + Dashboard ========================= -->
     <section class="panel admin-only hidden">
       <h2>Personas registradas (Admin)</h2>
 
@@ -184,6 +189,7 @@
         </label>
         <button type="button" id="exportCSVBtn" class="secondary">Exportar CSV (filtrado)</button>
       </div>
+
       <details class="hint">
         <summary>Formato esperado del CSV (click para ver)</summary>
         <pre>
@@ -191,7 +197,7 @@ firstName,lastName,birthDate,address,city,phone,email,status,hanName,hanCity,gru
 Juan,Perez,1990-04-12,Av. Siempre Viva 123,Rosario,3411234567,juan@ejemplo.com,Miembro,Han Centro,Rosario,Grupo A,Frecuentemente,Poco,true,false,
         </pre>
         <ul>
-          <li><strong>uid</strong> (opcional): si lo tenés, se guardará en <code>personas/{uid}</code>. Si no, ID aleatorio.</li>
+          <li><strong>uid</strong> (opcional): si lo tenés, se guardará en <code>personas/{uid}</code>. Si no, se genera ID aleatorio.</li>
           <li><strong>hanName / hanCity</strong> y <strong>grupoName</strong>: si no existen, se crean.</li>
         </ul>
       </details>
@@ -240,3 +246,108 @@ Juan,Perez,1990-04-12,Av. Siempre Viva 123,Rosario,3411234567,juan@ejemplo.com,M
               <input type="tel" id="p_phone" />
             </label>
             <label>Email
+              <input type="email" id="p_email" />
+            </label>
+            <label>Estado
+              <select id="p_status">
+                <option value="Miembro">Miembro</option>
+                <option value="Amigo Soka">Amigo Soka</option>
+                <option value="Sakubuku">Sakubuku</option>
+              </select>
+            </label>
+            <label>Han
+              <select id="p_hanSelect"></select>
+            </label>
+            <label>Grupo
+              <select id="p_grupoSelect"></select>
+            </label>
+            <label>Reuniones semanales
+              <select id="p_frecuenciaSemanal">
+                <option value="">Seleccionar...</option>
+                <option value="Frecuentemente">Frecuentemente</option>
+                <option value="Poco">Poco</option>
+                <option value="Nunca">Nunca</option>
+              </select>
+            </label>
+            <label>Zadankai
+              <select id="p_frecuenciaZadankai">
+                <option value="">Seleccionar...</option>
+                <option value="Frecuentemente">Frecuentemente</option>
+                <option value="Poco">Poco</option>
+                <option value="Nunca">Nunca</option>
+              </select>
+            </label>
+            <label><input type="checkbox" id="p_suscriptoHumanismoSoka" /> Suscripto a Humanismo Soka</label>
+            <label><input type="checkbox" id="p_realizaZaimu" /> Realiza Zaimu</label>
+          </div>
+          <div class="actions">
+            <button type="submit">Guardar cambios</button>
+            <button type="button" id="personaCancelBtn" class="secondary">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- KPIs -->
+      <div id="kpis" class="panel" style="margin-top:12px;">
+        <h3>KPIs rápidos</h3>
+        <div class="grid">
+          <div><strong>Total personas:</strong> <span id="kpiTotal">0</span></div>
+          <div><strong>Semanal Frecuente:</strong> <span id="kpiSemFre">0%</span></div>
+          <div><strong>Semanal Poco:</strong> <span id="kpiSemPoco">0%</span></div>
+          <div><strong>Semanal Nunca:</strong> <span id="kpiSemNunca">0%</span></div>
+          <div><strong>Zadankai Frecuente:</strong> <span id="kpiZadFre">0%</span></div>
+          <div><strong>Zadankai Poco:</strong> <span id="kpiZadPoco">0%</span></div>
+          <div><strong>Zadankai Nunca:</strong> <span id="kpiZadNunca">0%</span></div>
+          <div><strong>Humanismo Soka:</strong> <span id="kpiHumanismo">0%</span></div>
+          <div><strong>Zaimu:</strong> <span id="kpiZaimu">0%</span></div>
+        </div>
+      </div>
+
+      <!-- Dashboard -->
+      <div id="dashboard" class="panel">
+        <h3>Dashboard</h3>
+        <div class="grid">
+          <canvas id="chartFrecuencias"></canvas>
+          <canvas id="chartCompromisos"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================= Visitas ========================= -->
+    <section class="panel">
+      <h2>Visitas</h2>
+      <form id="visitaForm">
+        <div class="grid">
+          <label>Persona
+            <select id="visitaPersonaSelect" required></select>
+          </label>
+          <label>Fecha de visita
+            <input type="date" id="visitaFecha" required />
+          </label>
+          <label>Observaciones
+            <textarea id="visitaObs" rows="3" placeholder="Notas de la visita"></textarea>
+          </label>
+        </div>
+        <button type="submit">Registrar visita</button>
+      </form>
+
+      <table id="visitasTable">
+        <thead>
+          <tr><th>Persona</th><th>Fecha</th><th>Observaciones</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
+  </footer>
+
+  <!-- 📊 Librerías para Dashboard e Import CSV -->
+  https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js</script>
+  <  <ttps://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js</script>
+
+  <!-- 🔗 Lógica principal: usa ruta absoluta al subfolder publicado -->
+  /SokaRosario/app.js?v=1</script>
+</body>
