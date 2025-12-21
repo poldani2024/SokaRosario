@@ -1,4 +1,3 @@
-
 :root { --bg:#f7f7fb; --panel:#fff; --fg:#222; --muted:#666; --primary:#2563eb; --border:#e5e7eb; }
 * { box-sizing:border-box; }
 html, body { height:100%; }
