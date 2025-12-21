@@ -1,24 +1,242 @@
 
-<fieldset>
-  <legend>Participación</legend>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seguimiento Soka Gakkai</title>
+  styles.css
+  <meta name="color-scheme" content="light dark" />
+</head>
+<body>
+  <header>
+    <h1>Seguimiento Soka Gakkai</h1>
+    <div id="auth">
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn">Cerrar sesión</button>
+      </div>
+      <div id="login-form">
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+    </div>
+  </header>
 
-  <label>Reuniones semanales (general)
-    <select id="frecuenciaSemanal">
-      <option value="">Seleccionar...</option>
-      <option value="Frecuentemente">Frecuentemente</option>
-      <option value="Poco">Poco</option>
-      <option value="Nunca">Nunca</option>
-    </select>
-  </label>
+  <main>
+    <!-- PERFIL (visible para Admin y Usuario) -->
+    <section class="panel">
+      <h2>Mi Perfil</h2>
+      <form id="miPerfilForm">
+        <div class="grid">
+          <label>Nombre
+            <input type="text" id="firstName" required />
+          </label>
+          <label>Apellido
+            <input type="text" id="lastName" required />
+          </label>
+          <label>Fecha de Nacimiento
+            <input type="date" id="birthDate" />
+          </label>
+          <label>Domicilio
+            <input type="text" id="address" />
+          </label>
+          <label>Localidad
+            <input type="text" id="city" />
+          </label>
+          <label>Teléfono
+            <input type="tel" id="phone" />
+          </label>
+          <label>Email (solo lectura)
+            <input type="email" id="email" disabled />
+          </label>
+          <label>Estado
+            <select id="status">
+              <option value="Miembro">Miembro</option>
+              <option value="Amigo Soka">Amigo Soka</option>
+              <option value="Sakubuku">Sakubuku</option>
+            </select>
+          </label>
+          <label>Han
+            <select id="hanSelect"></select>
+          </label>
+          <label>Localidad del Han
+            <input type="text" id="hanLocalidad" disabled />
+          </label>
+          <label>Grupo de capacitación
+            <select id="grupoSelect"></select>
+          </label>
+        </div>
 
-  <label>Zadankai
-    <select id="frecuenciaZadankai">
-      <option value="">Seleccionar...</option>
-      <option value="Frecuentemente">Frecuentemente</option>
-      <option value="Poco">Poco</option>
-      <option value="Nunca">Nunca</option>
-    </select>
-  </label>
+        <fieldset>
+          <legend>Participación</legend>
+          <label>Reuniones semanales (general)
+            <select id="frecuenciaSemanal">
+              <option value="">Seleccionar...</option>
+              <option value="Frecuentemente">Frecuentemente</option>
+              <option value="Poco">Poco</option>
+              <option value="Nunca">Nunca</option>
+            </select>
+          </label>
 
-  <!-- Si querés conservar los checkboxes previos (por compatibilidad),
-       podés dejarlos ocultos o eliminarlos. Recomiendo migrar y eliminar. -->
+          <label>Zadankai
+            <select id="frecuenciaZadankai">
+              <option value="">Seleccionar...</option>
+              <option value="Frecuentemente">Frecuentemente</option>
+              <option value="Poco">Poco</option>
+              <option value="Nunca">Nunca</option>
+            </select>
+          </label>
+
+          <label><input type="checkbox" id="suscriptoHumanismoSoka" /> Suscripto a Humanismo Soka</label>
+          <label><input type="checkbox" id="realizaZaimu" /> Realiza Zaimu</label>
+        </fieldset>
+
+        <button type="submit">Guardar mi perfil</button>
+      </form>
+    </section>
+
+    <!-- ADMIN: Gestión de Hanes -->
+    <section class="panel admin-only hidden">
+      <h2>Administrar Hanes</h2>
+      <form id="hanForm">
+        <input type="hidden" id="hanId" />
+        <div class="grid">
+          <label>Nombre del Han
+            <input type="text" id="hanName" required />
+          </label>
+          <label>Localidad
+            <input type="text" id="hanCity" required />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar Han</button>
+          <button type="button" id="hanCancelBtn" class="secondary">Cancelar edición</button>
+        </div>
+      </form>
+      <ul id="hanList"></ul>
+    </section>
+
+    <!-- ADMIN: Gestión de Grupos -->
+    <section class="panel admin-only hidden">
+      <h2>Grupos de Capacitación</h2>
+      <form id="grupoForm">
+        <input type="hidden" id="grupoId" />
+        <div class="grid">
+          <label>Nombre del grupo
+            <input type="text" id="grupoName" required />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar Grupo</button>
+          <button type="button" id="grupoCancelBtn" class="secondary">Cancelar edición</button>
+        </div>
+      </form>
+      <ul id="grupoList"></ul>
+    </section>
+
+    <!-- ADMIN: Personas, Filtros, Import/Export, Dashboard -->
+    <section class="panel admin-only hidden">
+      <h2>Personas registradas (Admin)</h2>
+
+      <!-- Filtros -->
+      <div class="grid" id="personasFilters">
+        <label>Han
+          <select id="filtroHan"></select>
+        </label>
+        <label>Grupo
+          <select id="filtroGrupo"></select>
+        </label>
+        <label>Estado
+          <select id="filtroEstado">
+            <option value="">Todos</option>
+            <option value="Miembro">Miembro</option>
+            <option value="Amigo Soka">Amigo Soka</option>
+            <option value="Sakubuku">Sakubuku</option>
+          </select>
+        </label>
+        <label>Reuniones semanales
+          <select id="filtroFreqSemanal">
+            <option value="">Todas</option>
+            <option value="Frecuentemente">Frecuentemente</option>
+            <option value="Poco">Poco</option>
+            <option value="Nunca">Nunca</option>
+          </select>
+        </label>
+        <label>Zadankai
+          <select id="filtroFreqZadankai">
+            <option value="">Todas</option>
+            <option value="Frecuentemente">Frecuentemente</option>
+            <option value="Poco">Poco</option>
+            <option value="Nunca">Nunca</option>
+          </select>
+        </label>
+        <label>Búsqueda
+          <input type="text" id="buscarTexto" placeholder="Apellido, nombre, email..." />
+        </label>
+      </div>
+
+      <!-- Import / Export -->
+      <div class="actions">
+        <label class="file-label">
+          Importar CSV
+          <input type="file" id="importCSV" accept=".csv" />
+        </label>
+        <button type="button" id="exportCSVBtn" class="secondary">Exportar CSV (filtrado)</button>
+      </div>
+      <details class="hint">
+        <summary>Formato esperado del CSV (click para ver)</summary>
+        <pre>
+firstName,lastName,birthDate,address,city,phone,email,status,hanName,hanCity,grupoName,frecuenciaSemanal,frecuenciaZadankai,suscriptoHumanismoSoka,realizaZaimu,uid
+Juan,Perez,1990-04-12,Av. Siempre Viva 123,Rosario,3411234567,juan@ejemplo.com,Miembro,Han Centro,Rosario,Grupo A,Frecuentemente,Poco,true,false,
+        </pre>
+        <ul>
+          <li><strong>uid</strong> (opcional): si lo tenés, se guardará en <code>personas/{uid}</code>. Si no, ID aleatorio.</li>
+          <li><strong>hanName / hanCity</strong> y <strong>grupoName</strong>: si no existen, se crean.</li>
+        </ul>
+      </details>
+
+      <!-- Tabla Personas -->
+      <table id="personasTable">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Estado</th>
+            <th>Han</th>
+            <th>Grupo</th>
+            <th>Reuniones semanales</th>
+            <th>Zadankai</th>
+            <th>Humanismo</th>
+            <th>Zaimu</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <!-- Editor de Persona (Admin) -->
+      <div id="personaEditor" class="panel secondary hidden">
+        <h3>Editar Persona</h3>
+        <form id="personaAdminForm">
+          <input type="hidden" id="personaId" />
+          <div class="grid">
+            <label>Nombre
+              <input type="text" id="p_firstName" required />
+            </label>
+            <label>Apellido
+              <input type="text" id="p_lastName" required />
+            </label>
+            <label>Fecha de Nacimiento
+              <input type="date" id="p_birthDate" />
+            </label>
+            <label>Domicilio
+              <input type="text" id="p_address" />
+            </label>
+            <label>Localidad
+              <input type="text" id="p_city" />
+            </label>
+            <label>Teléfono
+              <input type="tel" id="p_phone" />
+            </label>
+            <label>Email
