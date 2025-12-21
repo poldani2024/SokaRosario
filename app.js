@@ -6,12 +6,12 @@ import { getFirestore, collection, addDoc, setDoc, doc, getDoc, getDocs, updateD
 
 // 1) Configuración Firebase (REEMPLAZÁ con tu config)
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_AUTH_DOMAIN",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_STORAGE_BUCKET",
-  messagingSenderId: "TU_MSG_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyDSC8bYc5XF94OhHjM7rmQMR1zX8CE7h9E",
+  authDomain: "sokarosario.firebaseapp.com",
+  projectId: "sokarosario",
+  storageBucket: "sokarosario.firebasestorage.app",
+  messagingSenderId: "569099432032",
+  appId: "1:569099432032:web:b520d16270508ed25f1305"
 };
 
 const app = initializeApp(firebaseConfig);
