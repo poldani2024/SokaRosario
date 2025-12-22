@@ -289,3 +289,82 @@ async function listarPersonas() {
       <td>${p.status || ''}</td>
       <td>${hanName}</td>
       <td>${grupoName}</td>
+      <td>${p.frecuenciaSemanal || '-'}</td>
+      <td>${p.frecuenciaZadankai || '-'}</td>
+      <td>${p.suscriptoHumanismoSoka ? 'Sí' : 'No'}</td>
+      <td>${p.realizaZaimu ? 'Sí' : 'No'}</td>
+    `;
+    personasTableBody.appendChild(tr);
+  }
+}
+
+// 9) Visitas (roles)
+async function configurarVisitasSegunRol() {
+  visitaPersonaSelect.innerHTML = '';
+  if (isAdmin) {
+    visitaPersonaSelect.append(new Option('Seleccionar persona...', ''));
+    const snap = await getDocs(query(collection(db, 'personas'), orderBy('lastName')));
+    snap.forEach(docu => {
+      const p = docu.data();
+      visitaPersonaSelect.append(new Option(`${p.lastName || ''}, ${p.firstName || ''}`, docu.id));
+    });
+    visitaPersonaSelect.disabled = false;
+  } else {
+    visitaPersonaSelect.append(new Option('Yo mismo', currentUser.uid));
+    visitaPersonaSelect.disabled = true;
+  }
+}
+
+visitaForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const personaId = visitaPersonaSelect.value;
+  const fecha = f('visitaFecha').value;
+  const obs = f('visitaObs').value.trim();
+  if (!personaId || !fecha) return alert('Seleccioná una persona y fecha.');
+  const visitasCol = collection(db, 'personas', personaId, 'visitas');
+  await addDoc(visitasCol, { fecha, observaciones: obs, createdAt: serverTimestamp(), createdBy: currentUser.uid });
+  await listarVisitas();
+  visitaForm.reset();
+});
+
+async function listarVisitas() {
+  visitasTableBody.innerHTML = '';
+  if (isAdmin) {
+    const personasSnap = await getDocs(collection(db, 'personas'));
+    for (const docu of personasSnap.docs) {
+      const nombre = `${docu.data().lastName || ''}, ${docu.data().firstName || ''}`.trim();
+      const vSnap = await getDocs(collection(db, 'personas', docu.id, 'visitas'));
+      vSnap.forEach(vDoc => {
+        const v = vDoc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${nombre}</td><td>${v.fecha || ''}</td><td>${v.observaciones || ''}</td>`;
+        visitasTableBody.appendChild(tr);
+      });
+    }
+  } else {
+    const pSnap = await getDocs(collection(db, 'personas', currentUser.uid, 'visitas'));
+    const nombre = `${f('lastName').value || ''}, ${f('firstName').value || ''}`.trim();
+    pSnap.forEach(vDoc => {
+      const v = vDoc.data();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${nombre}</td><td>${v.fecha || ''}</td><td>${v.observaciones || ''}</td>`;
+      visitasTableBody.appendChild(tr);
+    });
+  }
+}
+
+// 10) Util
+function limpiarUI() {
+  userInfo.classList.add('hidden');
+  loginFormDiv.classList.remove('hidden');
+  roleBadge.textContent = '';
+  adminSections.forEach(sec => sec.classList.add('hidden'));
+  hanSelect.innerHTML = '';
+  grupoSelect.innerHTML = '';
+  hanLocalidadInput.value = '';
+  personasTableBody.innerHTML = '';
+  visitasTableBody.innerHTML = '';
+  visitaPersonaSelect.innerHTML = '';
+}
+
+console.log("[Soka] app.js cargado");
