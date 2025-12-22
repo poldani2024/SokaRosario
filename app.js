@@ -1,22 +1,35 @@
 
-// app.js
+// app.js (versión corregida)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, setDoc, doc, getDoc, getDocs, updateDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, setDoc, doc, getDoc, getDocs,
+  updateDoc, query, orderBy, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 1) Configuración Firebase (REEMPLAZÁ con tu config)
+// 1) Configuración Firebase (verifica storageBucket)
 const firebaseConfig = {
   apiKey: "AIzaSyDSC8bYc5XF94OhHjM7rmQMR1zX8CE7h9E",
   authDomain: "sokarosario.firebaseapp.com",
   projectId: "sokarosario",
-  storageBucket: "sokarosario.firebasestorage.app",
+  storageBucket: "sokarosario.appspot.com", // recomendado
   messagingSenderId: "569099432032",
   appId: "1:569099432032:web:b520d16270508ed25f1305"
 };
 
+console.log("[Soka] Inicializando Firebase…");
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+console.log("[Soka] Firebase OK");
 
 // 2) Referencias UI
 const googleLoginBtn = document.getElementById('googleLoginBtn');
@@ -48,14 +61,32 @@ const f = (id) => document.getElementById(id);
 let currentUser = null;
 let isAdmin = false;
 
-// 4) Auth con Google
+// 4) Auth con Google (popup con fallback a redirect si el popup se bloquea)
 googleLoginBtn.addEventListener('click', async () => {
   try {
+    console.log("[Soka] Click en Ingresar con Google (popup)");
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
   } catch (err) {
-    alert("Error al ingresar con Google: " + err.message);
+    console.error("[Soka] Error popup:", err?.code, err?.message);
+    // fallback a redirect si el navegador bloquea el popup
+    if (err?.code === "auth/popup-blocked" || err?.code === "auth/cancelled-popup-request") {
+      const provider = new GoogleAuthProvider();
+      console.log("[Soka] Fallback: signInWithRedirect");
+      await signInWithRedirect(auth, provider);
+    } else {
+      alert("Error al ingresar con Google: " + err.message);
+    }
   }
+});
+
+// Capturar resultado del redirect (si ocurrió)
+getRedirectResult(auth).then((res) => {
+  if (res?.user) {
+    console.log("[Soka] Login OK con redirect:", res.user.email);
+  }
+}).catch(err => {
+  if (err) console.error("[Soka] Error redirect:", err.code, err.message);
 });
 
 logoutBtn.addEventListener('click', async () => {
@@ -64,6 +95,7 @@ logoutBtn.addEventListener('click', async () => {
 
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
+  console.log("[Soka] Auth state:", user?.email || "no logueado");
   if (user) {
     userInfo.classList.remove('hidden');
     userEmailSpan.textContent = user.email || '';
@@ -95,8 +127,8 @@ async function esAdmin(uid) {
 // 5) Hanes
 async function cargarHanes() {
   hanSelect.innerHTML = '';
-  const q = query(collection(db, 'hanes'), orderBy('name'));
-  const snap = await getDocs(q);
+  const qy = query(collection(db, 'hanes'), orderBy('name'));
+  const snap = await getDocs(qy);
   hanSelect.append(new Option('Seleccionar Han...', ''));
   snap.forEach(docu => {
     const d = docu.data();
@@ -137,8 +169,8 @@ hanForm?.addEventListener('submit', async (e) => {
 // 6) Grupos
 async function cargarGrupos() {
   grupoSelect.innerHTML = '';
-  const q = query(collection(db, 'grupos'), orderBy('name'));
-  const snap = await getDocs(q);
+  const qy = query(collection(db, 'grupos'), orderBy('name'));
+  const snap = await getDocs(qy);
   grupoSelect.append(new Option('Seleccionar grupo...', ''));
   snap.forEach(docu => {
     const d = docu.data();
@@ -191,10 +223,8 @@ async function cargarMiPerfil() {
     f('status').value = p.status || 'Miembro';
     if (p.hanId) { hanSelect.value = p.hanId; hanSelect.dispatchEvent(new Event('change')); }
     if (p.grupoId) { grupoSelect.value = p.grupoId; }
-
     f('frecuenciaSemanal').value = p.frecuenciaSemanal || '';
     f('frecuenciaZadankai').value = p.frecuenciaZadankai || '';
-
     f('suscriptoHumanismoSoka').checked = !!p.suscriptoHumanismoSoka;
     f('realizaZaimu').checked = !!p.realizaZaimu;
   }
@@ -259,78 +289,3 @@ async function listarPersonas() {
       <td>${p.status || ''}</td>
       <td>${hanName}</td>
       <td>${grupoName}</td>
-      <td>${p.frecuenciaSemanal || '-'}</td>
-      <td>${p.frecuenciaZadankai || '-'}</td>
-      <td>${p.suscriptoHumanismoSoka ? 'Sí' : 'No'}</td>
-      <td>${p.realizaZaimu ? 'Sí' : 'No'}</td>
-    `;
-    personasTableBody.appendChild(tr);
-  }
-}
-
-// 9) Visitas (roles)
-async function configurarVisitasSegunRol() {
-  visitaPersonaSelect.innerHTML = '';
-  if (isAdmin) {
-    visitaPersonaSelect.append(new Option('Seleccionar persona...', ''));
-    const snap = await getDocs(query(collection(db, 'personas'), orderBy('lastName')));
-    snap.forEach(docu => {
-      const p = docu.data();
-      visitaPersonaSelect.append(new Option(`${p.lastName || ''}, ${p.firstName || ''}`, docu.id));
-    });
-    visitaPersonaSelect.disabled = false;
-  } else {
-    visitaPersonaSelect.append(new Option('Yo mismo', currentUser.uid));
-    visitaPersonaSelect.disabled = true;
-  }
-}
-
-visitaForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const personaId = visitaPersonaSelect.value;
-  const fecha = f('visitaFecha').value;
-  const obs = f('visitaObs').value.trim();
-  if (!personaId || !fecha) return alert('Seleccioná una persona y fecha.');
-  const visitasCol = collection(db, 'personas', personaId, 'visitas');
-  await addDoc(visitasCol, { fecha, observaciones: obs, createdAt: serverTimestamp(), createdBy: currentUser.uid });
-  await listarVisitas();
-  visitaForm.reset();
-});
-
-async function listarVisitas() {
-  visitasTableBody.innerHTML = '';
-  if (isAdmin) {
-    const personasSnap = await getDocs(collection(db, 'personas'));
-    for (const docu of personasSnap.docs) {
-      const nombre = `${docu.data().lastName || ''}, ${docu.data().firstName || ''}`.trim();
-      const vSnap = await getDocs(collection(db, 'personas', docu.id, 'visitas'));
-      vSnap.forEach(vDoc => {
-        const v = vDoc.data();
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${nombre}</td><td>${v.fecha || ''}</td><td>${v.observaciones || ''}</td>`;
-        visitasTableBody.appendChild(tr);
-      });
-    }
-  } else {
-    const pSnap = await getDocs(collection(db, 'personas', currentUser.uid, 'visitas'));
-    const nombre = `${f('lastName').value || ''}, ${f('firstName').value || ''}`.trim();
-    pSnap.forEach(vDoc => {
-      const v = vDoc.data();
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${nombre}</td><td>${v.fecha || ''}</td><td>${v.observaciones || ''}</td>`;
-      visitasTableBody.appendChild(tr);
-    });
-  }
-}
-
-// 10) Util
-function limpiarUI() {
-  userInfo.classList.add('hidden');
-  loginFormDiv.classList.remove('hidden');
-  roleBadge.textContent = '';
-  adminSections.forEach(sec => sec.classList.add('hidden'));
-  hanSelect.innerHTML = ''; grupoSelect.innerHTML = '';
-  han  hanLocalidadInput.value = '';
-  personasTableBody.innerHTML = '';
-  visitasTableBody.innerHTML = '';
-  visitaPersonaSelect.innerHTML = '';
