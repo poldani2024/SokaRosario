@@ -84,6 +84,48 @@ function ensureSeedData() {
   saveData();
 }
 
+// ===== Menú de Administración (dropdown) =====
+const adminMenu      = $("adminMenu");
+const adminMenuBtn   = $("adminMenuBtn");
+const adminDropdown  = $("adminDropdown");
+const adminPanels    = ["adminHanes", "adminGrupos"];
+
+// Toggle abrir/cerrar menú
+adminMenuBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const isOpen = !adminDropdown.classList.contains("hidden");
+  adminDropdown.classList.toggle("hidden", isOpen);
+  adminMenuBtn.setAttribute("aria-expanded", String(!isOpen));
+});
+
+// Cerrar al hacer click fuera
+document.addEventListener("click", (e) => {
+  if (!adminDropdown) return;
+  const clickedInside = adminDropdown.contains(e.target) || adminMenuBtn.contains(e.target);
+  if (!clickedInside) {
+    adminDropdown.classList.add("hidden");
+    adminMenuBtn?.setAttribute("aria-expanded", "false");
+  }
+});
+
+// Selección de pantalla
+adminDropdown?.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-target]");
+  if (!btn) return;
+  const targetId = btn.dataset.target;
+  showAdminPanel(targetId);
+  // cerrar menú luego de seleccionar
+  adminDropdown.classList.add("hidden");
+  adminMenuBtn?.setAttribute("aria-expanded", "false");
+});
+
+// Mostrar una pantalla admin y ocultar las otras
+function showAdminPanel(targetId) {
+  adminPanels.forEach(id => setHidden($(id), id !== targetId));
+  // scroll suave a la pantalla
+  $(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 /* ========================= Login con Firebase Auth (Google) ========================= */
 // Requiere firebase.js que expone: window.auth = firebase.auth()
 const auth = window.auth;
