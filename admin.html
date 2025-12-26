@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seguimiento Soka Gakkai — Administración</title>
+
+  <!-- CSS -->
+  https://poldani2024.github.io/SokaRosario/styles.css</link>
+
+  <meta name="color-scheme" content="light dark" />
+</head>
+<body>
+  <header>
+    <h1>Administración</h1>
+    <div id="auth">
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn">Cerrar sesión</button>
+      </div>
+      <div id="login-form">
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+    </div>
+
+    <!-- Volver a Inicio -->
+    <nav style="margin-left:12px;">
+      index.html">Inicio</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ========================= Admin: Hanes (CRUD) ========================= -->
+    <section id="adminHanes" class="panel">
+      <h2>Administrar Hanes</h2>
+      <form id="hanForm">
+        <input type="hidden" id="hanId" />
+        <div class="grid">
+          <label>Nombre del Han <input type="text" id="hanName" required /></label>
+          <label>Localidad <input type="text" id="hanCity" required /></label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar Han</button>
+          <button type="button" id="hanCancelBtn" class="secondary">Cancelar edición</button>
+        </div>
+      </form>
+      <ul id="hanList"></ul>
+    </section>
+
+    <!-- ========================= Admin: Grupos (CRUD) ========================= -->
+    <section id="adminGrupos" class="panel">
+      <h2>Grupos de Capacitación</h2>
+      <form id="grupoForm">
+        <input type="hidden" id="grupoId" />
+        <div class="grid">
+          <label>Nombre del grupo <input type="text" id="grupoName" required /></label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar Grupo</button>
+          <button type="button" id="grupoCancelBtn" class="secondary">Cancelar edición</button>
+        </div>
+      </form>
+      <ul id="grupoList"></ul>
+    </section>
+  </main>
+
+  <footer><small>Hecho con ❤️ — Soka Gakkai Tracker</small></footer>
+
+  <!-- PapaParse (no imprescindible aquí, pero lo dejamos igual por consistencia) -->
+  https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js</script>
+  <!-- Firebase v8 (app + auth) -->
+  https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js</script>
+  https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js</script>
+  <!-- Config de Firebase -->
+  ./firebase.js</script>
+  <!-- Lógica de Administración -->
+  ./admin.js</script>
+</body>
+</html>
