@@ -1,353 +1,64 @@
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Seguimiento Soka Gakkai</title>
+import { /* ... */, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  <!-- Hoja de estilos -->
-  <link rel="stylesheet" href="styles.css" />
+// Llamalo después de que se determine el rol y antes de listenPersonas()
+async function ensureSeedData() {
+  // Solo admin hace seed (para evitar múltiples usuarios pisando)
+  if (currentRole !== "Admin") return;
 
-  <meta name="color-scheme" content="light dark" />
-</head>
-<body>
-  <!-- Encabezado con login Google y badge de rol -->
-  <header>
-    <h1>Seguimiento Soka Gakkai</h1>
-    <div id="auth">
-      <div id="user-info" class="hidden">
-        <span id="user-email"></span>
-        <span id="role-badge" class="badge"></span>
-        <button id="logoutBtn">Cerrar sesión</button>
-      </div>
-      <div id="login-form">
-        <button id="googleLoginBtn">Ingresar con Google</button>
-      </div>
-    </div>
-  </header>
+  // Seed Hanes
+  const hanSnap = await getDocs(collection(db, "hanes"));
+  if (hanSnap.empty) {
+    const defaultsHanes = [
+      { name: "Han Centro", city: "Rosario" },
+      { name: "Han Norte", city: "Granadero Baigorria" },
+      { name: "Han Oeste", city: "Funes" },
+    ];
+    for (const h of defaultsHanes) {
+      await addDoc(collection(db, "hanes"), { ...h, createdAt: Date.now() });
+    }
+  }
 
-  <main>
-    <!-- ========================= Mi Perfil (Admin y Usuario) ========================= -->
-    <section class="panel">
-      <h2>Mi Perfil</h2>
-      <form id="miPerfilForm">
-        <div class="grid">
-          <label>Nombre
-            <input type="text" id="firstName" required />
-          </label>
-          <label>Apellido
-            <input type="text" id="lastName" required />
-          </label>
-          <label>Fecha de Nacimiento
-            <input type="date" id="birthDate" />
-          </label>
-          <label>Domicilio
-            <input type="text" id="address" />
-          </label>
-          <label>Localidad
-            <input type="text" id="city" />
-          </label>
-          <label>Teléfono
-            <input type="tel" id="phone" />
-          </label>
-          <label>Email (solo lectura)
-            <input type="email" id="email" disabled />
-          </label>
-          <label>Estado
-            <select id="status">
-              <option value="Miembro">Miembro</option>
-              <option value="Amigo Soka">Amigo Soka</option>
-              <option value="Sakubuku">Sakubuku</option>
-            </select>
-          </label>
-          <label>Han
-            <select id="hanSelect"></select>
-          </label>
-          <label>Localidad del Han
-            <input type="text" id="hanLocalidad" disabled />
-          </label>
-          <label>Grupo de capacitación
-            <select id="grupoSelect"></select>
-          </label>
-        </div>
+  // Seed Grupos
+  const grpSnap = await getDocs(collection(db, "grupos"));
+  if (grpSnap.empty) {
+    const defaultsGrupos = [
+      { name: "Grupo A" },
+      { name: "Grupo B" },
+      { name: "Grupo C" },
+    ];
+    for (const g of defaultsGrupos) {
+      await addDoc(collection(db, "grupos"), { ...g, createdAt: Date.now() });
+    }
+  }
 
-        <fieldset>
-          <legend>Participación</legend>
-          <label>Reuniones semanales (general)
-            <select id="frecuenciaSemanal">
-              <option value="">Seleccionar...</option>
-              <option value="Frecuentemente">Frecuentemente</option>
-              <option value="Poco">Poco</option>
-              <option value="Nunca">Nunca</option>
-            </select>
-          </label>
+  // Seed Personas (si no hay ninguna)
+  const persSnap = await getDocs(collection(db, "personas"));
+  if (persSnap.empty) {
+    // Tomar ids ya creados para referenciar
+    const hanDocs = await getDocs(collection(db, "hanes"));
+    const grupoDocs = await getDocs(collection(db, "grupos"));
+    const [han1] = hanDocs.docs.map(d => ({ id: d.id, ...d.data() }));
+    const [grp1] = grupoDocs.docs.map(d => ({ id: d.id, ...d.data() }));
 
-          <label>Zadankai
-            <select id="frecuenciaZadankai">
-              <option value="">Seleccionar...</option>
-              <option value="Frecuentemente">Frecuentemente</option>
-              <option value="Poco">Poco</option>
-              <option value="Nunca">Nunca</option>
-            </select>
-          </label>
+    const demoPersonas = [
+      { firstName: "Juan", lastName: "Pérez", email: "juan@ejemplo.com", status: "Miembro", frecuenciaSemanal: "Frecuentemente", frecuenciaZadankai: "Poco", suscriptoHumanismoSoka: true, realizaZaimu: false },
+      { firstName: "Ana", lastName: "García", email: "ana@ejemplo.com", status: "Amigo Soka", frecuenciaSemanal: "Poco", frecuenciaZadankai: "Nunca", suscriptoHumanismoSoka: false, realizaZaimu: false },
+      { firstName: "Luis", lastName: "Mendoza", email: "luis@ejemplo.com", status: "Miembro", frecuenciaSemanal: "Nunca", frecuenciaZadankai: "Frecuentemente", suscriptoHumanismoSoka: true, realizaZaimu: true },
+      { firstName: "Carla", lastName: "Sosa", email: "carla@ejemplo.com", status: "Sakubuku", frecuenciaSemanal: "Poco", frecuenciaZadankai: "Poco", suscriptoHumanismoSoka: false, realizaZaimu: true },
+      { firstName: "Pablo", lastName: "Ríos", email: "pablo@ejemplo.com", status: "Miembro", frecuenciaSemanal: "Frecuentemente", frecuenciaZadankai: "Frecuentemente", suscriptoHumanismoSoka: true, realizaZaimu: true },
+    ];
 
-          <label><input type="checkbox" id="suscriptoHumanismoSoka" /> Suscripto a Humanismo Soka</label>
-          <label><input type="checkbox" id="realizaZaimu" /> Realiza Zaimu</label>
-        </fieldset>
-
-        <button type="submit">Guardar mi perfil</button>
-      </form>
-    </section>
-
-    <!-- ========================= Admin: Hanes (CRUD) ========================= -->
-    <section class="panel admin-only hidden">
-      <h2>Administrar Hanes</h2>
-      <form id="hanForm">
-        <input type="hidden" id="hanId" />
-        <div class="grid">
-          <label>Nombre del Han
-            <input type="text" id="hanName" required />
-          </label>
-          <label>Localidad
-            <input type="text" id="hanCity" required />
-          </label>
-        </div>
-        <div class="actions">
-          <button type="submit">Guardar Han</button>
-          <button type="button" id="hanCancelBtn" class="secondary">Cancelar edición</button>
-        </div>
-      </form>
-      <ul id="hanList"></ul>
-    </section>
-
-    <!-- ========================= Admin: Grupos (CRUD) ========================= -->
-    <section class="panel admin-only hidden">
-      <h2>Grupos de Capacitación</h2>
-      <form id="grupoForm">
-        <input type="hidden" id="grupoId" />
-        <div class="grid">
-          <label>Nombre del grupo
-            <input type="text" id="grupoName" required />
-          </label>
-        </div>
-        <div class="actions">
-          <button type="submit">Guardar Grupo</button>
-          <button type="button" id="grupoCancelBtn" class="secondary">Cancelar edición</button>
-        </div>
-      </form>
-      <ul id="grupoList"></ul>
-    </section>
-
-    <!-- ========================= Admin: Personas + Filtros + Import/Export + Dashboard ========================= -->
-    <section class="panel admin-only hidden">
-      <h2>Personas registradas (Admin)</h2>
-
-      <!-- Filtros -->
-      <div class="grid" id="personasFilters">
-        <label>Han
-          <select id="filtroHan"></select>
-        </label>
-        <label>Grupo
-          <select id="filtroGrupo"></select>
-        </label>
-        <label>Estado
-          <select id="filtroEstado">
-            <option value="">Todos</option>
-            <option value="Miembro">Miembro</option>
-            <option value="Amigo Soka">Amigo Soka</option>
-            <option value="Sakubuku">Sakubuku</option>
-          </select>
-        </label>
-        <label>Reuniones semanales
-          <select id="filtroFreqSemanal">
-            <option value="">Todas</option>
-            <option value="Frecuentemente">Frecuentemente</option>
-            <option value="Poco">Poco</option>
-            <option value="Nunca">Nunca</option>
-          </select>
-        </label>
-        <label>Zadankai
-          <select id="filtroFreqZadankai">
-            <option value="">Todas</option>
-            <option value="Frecuentemente">Frecuentemente</option>
-            <option value="Poco">Poco</option>
-            <option value="Nunca">Nunca</option>
-          </select>
-        </label>
-        <label>Búsqueda
-          <input type="text" id="buscarTexto" placeholder="Apellido, nombre, email..." />
-        </label>
-      </div>
-
-      <!-- Import / Export -->
-      <div class="actions">
-        <label class="file-label">
-          Importar CSV
-          <input type="file" id="importCSV" accept=".csv" />
-        </label>
-        <button type="button" id="exportCSVBtn" class="secondary">Exportar CSV (filtrado)</button>
-      </div>
-
-      <details class="hint">
-        <summary>Formato esperado del CSV (click para ver)</summary>
-        <pre>
-firstName,lastName,birthDate,address,city,phone,email,status,hanName,hanCity,grupoName,frecuenciaSemanal,frecuenciaZadankai,suscriptoHumanismoSoka,realizaZaimu,uid
-Juan,Perez,1990-04-12,Av. Siempre Viva 123,Rosario,3411234567,juan@ejemplo.com,Miembro,Han Centro,Rosario,Grupo A,Frecuentemente,Poco,true,false,
-        </pre>
-        <ul>
-          <li><strong>uid</strong> (opcional): si lo tenés, se guardará en <code>personas/{uid}</code>. Si no, se genera ID aleatorio.</li>
-          <li><strong>hanName / hanCity</strong> y <strong>grupoName</strong>: si no existen, se crean.</li>
-        </ul>
-      </details>
-
-      <!-- Tabla Personas -->
-      <table id="personasTable">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Estado</th>
-            <th>Han</th>
-            <th>Grupo</th>
-            <th>Reuniones semanales</th>
-            <th>Zadankai</th>
-            <th>Humanismo</th>
-            <th>Zaimu</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <!-- Editor de Persona (Admin) -->
-      <div id="personaEditor" class="panel secondary hidden">
-        <h3>Editar Persona</h3>
-        <form id="personaAdminForm">
-          <input type="hidden" id="personaId" />
-          <div class="grid">
-            <label>Nombre
-              <input type="text" id="p_firstName" required />
-            </label>
-            <label>Apellido
-              <input type="text" id="p_lastName" required />
-            </label>
-            <label>Fecha de Nacimiento
-              <input type="date" id="p_birthDate" />
-            </label>
-            <label>Domicilio
-              <input type="text" id="p_address" />
-            </label>
-            <label>Localidad
-              <input type="text" id="p_city" />
-            </label>
-            <label>Teléfono
-              <input type="tel" id="p_phone" />
-            </label>
-            <label>Email
-              <input type="email" id="p_email" />
-            </label>
-            <label>Estado
-              <select id="p_status">
-                <option value="Miembro">Miembro</option>
-                <option value="Amigo Soka">Amigo Soka</option>
-                <option value="Sakubuku">Sakubuku</option>
-              </select>
-            </label>
-            <label>Han
-              <select id="p_hanSelect"></select>
-            </label>
-            <label>Grupo
-              <select id="p_grupoSelect"></select>
-            </label>
-            <label>Reuniones semanales
-              <select id="p_frecuenciaSemanal">
-                <option value="">Seleccionar...</option>
-                <option value="Frecuentemente">Frecuentemente</option>
-                <option value="Poco">Poco</option>
-                <option value="Nunca">Nunca</option>
-              </select>
-            </label>
-            <label>Zadankai
-              <select id="p_frecuenciaZadankai">
-                <option value="">Seleccionar...</option>
-                <option value="Frecuentemente">Frecuentemente</option>
-                <option value="Poco">Poco</option>
-                <option value="Nunca">Nunca</option>
-              </select>
-            </label>
-            <label><input type="checkbox" id="p_suscriptoHumanismoSoka" /> Suscripto a Humanismo Soka</label>
-            <label><input type="checkbox" id="p_realizaZaimu" /> Realiza Zaimu</label>
-          </div>
-          <div class="actions">
-            <button type="submit">Guardar cambios</button>
-            <button type="button" id="personaCancelBtn" class="secondary">Cancelar</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- KPIs -->
-      <div id="kpis" class="panel" style="margin-top:12px;">
-        <h3>KPIs rápidos</h3>
-        <div class="grid">
-          <div><strong>Total personas:</strong> <span id="kpiTotal">0</span></div>
-          <div><strong>Semanal Frecuente:</strong> <span id="kpiSemFre">0%</span></div>
-          <div><strong>Semanal Poco:</strong> <span id="kpiSemPoco">0%</span></div>
-          <div><strong>Semanal Nunca:</strong> <span id="kpiSemNunca">0%</span></div>
-          <div><strong>Zadankai Frecuente:</strong> <span id="kpiZadFre">0%</span></div>
-          <div><strong>Zadankai Poco:</strong> <span id="kpiZadPoco">0%</span></div>
-          <div><strong>Zadankai Nunca:</strong> <span id="kpiZadNunca">0%</span></div>
-          <div><strong>Humanismo Soka:</strong> <span id="kpiHumanismo">0%</span></div>
-          <div><strong>Zaimu:</strong> <span id="kpiZaimu">0%</span></div>
-        </div>
-      </div>
-
-      <!-- Dashboard -->
-      <div id="dashboard" class="panel">
-        <h3>Dashboard</h3>
-        <div class="grid">
-          <canvas id="chartFrecuencias"></canvas>
-          <canvas id="chartCompromisos"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========================= Visitas ========================= -->
-    <section class="panel">
-      <h2>Visitas</h2>
-      <form id="visitaForm">
-        <div class="grid">
-          <label>Persona
-            <select id="visitaPersonaSelect" required></select>
-          </label>
-          <label>Fecha de visita
-            <input type="date" id="visitaFecha" required />
-          </label>
-          <label>Observaciones
-            <textarea id="visitaObs" rows="3" placeholder="Notas de la visita"></textarea>
-          </label>
-        </div>
-        <button type="submit">Registrar visita</button>
-      </form>
-
-      <table id="visitasTable">
-        <thead>
-          <tr><th>Persona</th><th>Fecha</th><th>Observaciones</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
-
-  <footer>
-    <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
-  </footer>
-
-  <!-- Librerías para Dashboard e Import CSV -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
-
-  <!-- Lógica principal -->
-  <script type="module" src="./app.js"></script>
-</body>
-</html>
+    for (const p of demoPersonas) {
+      await addDoc(collection(db, "personas"), {
+        ...p,
+        hanId: han1?.id || "",
+        hanName: han1?.name || "",
+        hanCity: han1?.city || "",
+        grupoId: grp1?.id || "",
+        grupoName: grp1?.name || "",
+        updatedAt: Date.now()
+      });
+    }
+  }
+}
