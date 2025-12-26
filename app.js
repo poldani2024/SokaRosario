@@ -1,333 +1,346 @@
 
-// ====== Estado / Cache ======
-let currentUser = null;      // { email, uid }
-let currentRole = "Usuario"; // "Admin" | "Usuario"
-let hanes = [];   // [{id,name,city}]
-let grupos = [];  // [{id,name}]
-let personas = []; // [{id,...}]
-let visitas = []; // [{id, personaId, fecha, obs, createdBy }]
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seguimiento Soka Gakkai</title>
 
-// ====== Constantes / Config ======
-const ADMIN_EMAILS = [
-  "pedro@ejemplo.com", // Cambiá por tus correos de admin
-  "admin@soka.org"
-];
+  <!-- Hoja de estilos -->
+  <link rel="stylesheet" href="./styles.css" />
 
-const STORAGE_KEYS = {
-  hanes: "soka_hanes",
-  grupos: "soka_grupos",
-  personas: "soka_personas",
-  visitas: "soka_visitas",
-  session: "soka_session"    // { email, uid, role }
-};
+  <meta name="color-scheme" content="light dark" />
+</head>
+<body>
+  <!-- Encabezado con login Google y badge de rol -->
+  <header>
+    <h1>Seguimiento Soka Gakkai</h1>
+    <div id="auth">
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn">Cerrar sesión</button>
+      </div>
 
-// ====== Helpers DOM ======
-const $ = (id) => document.getElementById(id);
-const setHidden = (el, hidden) => { if (!el) return; el.classList.toggle("hidden", hidden); };
-const text = (id, value) => { const el = $(id); if (el) el.textContent = value; };
-const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
-function toast(msg) { console.log(msg); }
+      <!-- Botón de Google (GIS) -->
+      <div id="login-form">
+        <div id="googleBtnContainer"></div>
+      </div>
+    </div>
+  </header>
 
-// ====== Persistencia local ======
-function loadData() {
-  hanes = JSON.parse(localStorage.getItem(STORAGE_KEYS.hanes) || "[]");
-  grupos = JSON.parse(localStorage.getItem(STORAGE_KEYS.grupos) || "[]");
-  personas = JSON.parse(localStorage.getItem(STORAGE_KEYS.personas) || "[]");
-  visitas = JSON.parse(localStorage.getItem(STORAGE_KEYS.visitas) || "[]");
-}
-function saveData() {
-  localStorage.setItem(STORAGE_KEYS.hanes, JSON.stringify(hanes));
-  localStorage.setItem(STORAGE_KEYS.grupos, JSON.stringify(grupos));
-  localStorage.setItem(STORAGE_KEYS.personas, JSON.stringify(personas));
-  localStorage.setItem(STORAGE_KEYS.visitas, JSON.stringify(visitas));
-}
+  <main>
+    <!-- ========================= Personas (visible para todos) ========================= -->
+    <section class="panel">
+      <h2>Personas registradas</h2>
 
-// ====== Seed inicial (si no hay datos) ======
-function ensureSeedData() {
-  if (!hanes.length) {
-    hanes = [
-      { id: uid(), name: "Han Centro", city: "Rosario" },
-      { id: uid(), name: "Han Norte", city: "Granadero Baigorria" },
-      { id: uid(), name: "Han Oeste", city: "Funes" },
-    ];
-  }
-  if (!grupos.length) {
-    grupos = [
-      { id: uid(), name: "Grupo A" },
-      { id: uid(), name: "Grupo B" },
-      { id: uid(), name: "Grupo C" },
-    ];
-  }
-  if (!personas.length) {
-    const h0 = hanes[0], g0 = grupos[0];
-    personas = [
-      { id: uid(), firstName: "Juan", lastName: "Pérez", email: "juan@ejemplo.com", status: "Miembro", hanId: h0.id, hanName: h0.name, hanCity: h0.city, grupoId: g0.id, grupoName: g0.name, frecuenciaSemanal: "Frecuentemente", frecuenciaZadankai: "Poco", suscriptoHumanismoSoka: true, realizaZaimu: false, updatedAt: Date.now() },
-      { id: uid(), firstName: "Ana",  lastName: "García", email: "ana@ejemplo.com",  status: "Amigo Soka", hanId: h0.id, hanName: h0.name, hanCity: h0.city, grupoId: g0.id, grupoName: g0.name, frecuenciaSemanal: "Poco", frecuenciaZadankai: "Nunca", suscriptoHumanismoSoka: false, realizaZaimu: false, updatedAt: Date.now() },
-      { id: uid(), firstName: "Luis", lastName: "Mendoza", email: "luis@ejemplo.com", status: "Miembro", hanId: h0.id, hanName: h0.name, hanCity: h0.city, grupoId: g0.id, grupoName: g0.name, frecuenciaSemanal: "Nunca", frecuenciaZadankai: "Frecuentemente", suscriptoHumanismoSoka: true, realizaZaimu: true, updatedAt: Date.now() },
-    ];
-  }
-  saveData();
-}
+      <!-- Filtros -->
+      <div class="grid" id="personasFilters">
+        <label>Han
+          <select id="filtroHan"></select>
+        </label>
+        <label>Grupo
+          <select id="filtroGrupo"></select>
+        </label>
+        <label>Estado
+          <select id="filtroEstado">
+            <option value="">Todos</option>
+            <option value="Miembro">Miembro</option>
+            <option value="Amigo Soka">Amigo Soka</option>
+            <option value="Sakubuku">Sakubuku</option>
+          </select>
+        </label>
+        <label>Reuniones semanales
+          <select id="filtroFreqSemanal">
+            <option value="">Todas</option>
+            <option value="Frecuentemente">Frecuentemente</option>
+            <option value="Poco">Poco</option>
+            <option value="Nunca">Nunca</option>
+          </select>
+        </label>
+        <label>Zadankai
+          <select id="filtroFreqZadankai">
+            <option value="">Todas</option>
+            <option value="Frecuentemente">Frecuentemente</option>
+            <option value="Poco">Poco</option>
+            <option value="Nunca">Nunca</option>
+          </select>
+        </label>
+        <label>Búsqueda
+          <input type="text" id="buscarTexto" placeholder="Apellido, nombre, email..." />
+        </label>
+      </div>
 
-// ====== Login simple ======
-$("simpleLoginBtn").addEventListener("click", () => {
-  const email = ($("loginEmail").value || "").trim().toLowerCase();
-  if (!email) return alert("Ingresá tu email.");
-  const role = ADMIN_EMAILS.includes(email) ? "Admin" : "Usuario";
-  currentUser = { email, uid: email }; // usamos email como uid simple
-  currentRole = role;
-  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, uid: currentUser.uid, role }));
-  postLoginUI();
-});
-$("logoutBtn").addEventListener("click", () => {
-  localStorage.removeItem(STORAGE_KEYS.session);
-  currentUser = null;
-  currentRole = "Usuario";
-  preLoginUI();
-});
+      <!-- Import / Export -->
+      <div class="actions">
+        <label class="file-label">
+          Importar CSV
+          <input type="file" id="importCSV" accept=".csv" />
+        </label>
+        <button type="button" id="exportCSVBtn" class="secondary">Exportar CSV (filtrado)</button>
+      </div>
 
-function postLoginUI() {
-  setHidden($("login-form"), true);
-  setHidden($("user-info"), false);
-  text("user-email", currentUser.email);
-  text("role-badge", currentRole);
-  document.body.classList.toggle("role-admin", currentRole === "Admin");
-  document.body.classList.toggle("role-user", currentRole !== "Admin");
-  document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", currentRole !== "Admin"));
+      <!-- Tabla Personas -->
+      <table id="personasTable">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Estado</th>
+            <th>Han</th>
+            <th>Grupo</th>
+            <th>Reuniones semanales</th>
+            <th>Zadankai</th>
+            <th>Humanismo</th>
+            <th>Zaimu</th>
+            <th class="acciones-admin">Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
 
-  renderCatalogsToSelects();
-  renderPersonas();
-  updateKPIs();
-  updateCharts();
-  renderVisitas();
-  loadMiPerfil(currentUser.uid, currentUser.email);
-}
-function preLoginUI() {
-  setHidden($("login-form"), false);
-  setHidden($("user-info"), true);
-  text("user-email", "");
-  text("role-badge", "");
-  document.body.classList.remove("role-admin", "role-user");
-  document.querySelectorAll(".admin-only").forEach(el => el.classList.add("hidden"));
-}
+      <!-- Editor de Persona (solo Admin) -->
+      <div id="personaEditor" class="panel secondary hidden admin-only">
+        <h3>Editar Persona</h3>
+        <form id="personaAdminForm">
+          <input type="hidden" id="personaId" />
+          <div class="grid">
+            <label>Nombre
+              <input type="text" id="p_firstName" required />
+            </label>
+            <label>Apellido
+              <input type="text" id="p_lastName" required />
+            </label>
+            <label>Fecha de Nacimiento
+              <input type="date" id="p_birthDate" />
+            </label>
+            <label>Domicilio
+              <input type="text" id="p_address" />
+            </label>
+            <label>Localidad
+              <input type="text" id="p_city" />
+            </label>
+            <label>Teléfono
+              <input type="tel" id="p_phone" />
+            </label>
+            <label>Email
+              <input type="email" id="p_email" />
+            </label>
+            <label>Estado
+              <select id="p_status">
+                <option value="Miembro">Miembro</option>
+                <option value="Amigo Soka">Amigo Soka</option>
+                <option value="Sakubuku">Sakubuku</option>
+              </select>
+            </label>
+            <label>Han
+              <select id="p_hanSelect"></select>
+            </label>
+            <label>Grupo
+              <select id="p_grupoSelect"></select>
+            </label>
+            <label>Reuniones semanales
+              <select id="p_frecuenciaSemanal">
+                <option value="">Seleccionar...</option>
+                <option value="Frecuentemente">Frecuentemente</option>
+                <option value="Poco">Poco</option>
+                <option value="Nunca">Nunca</option>
+              </select>
+            </label>
+            <label>Zadankai
+              <select id="p_frecuenciaZadankai">
+                <option value="">Seleccionar...</option>
+                <option value="Frecuentemente">Frecuentemente</option>
+                <option value="Poco">Poco</option>
+                <option value="Nunca">Nunca</option>
+              </select>
+            </label>
+            <label><input type="checkbox" id="p_suscriptoHumanismoSoka" /> Suscripto a Humanismo Soka</label>
+            <label><input type="checkbox" id="p_realizaZaimu" /> Realiza Zaimu</label>
+          </div>
+          <div class="actions">
+            <button type="submit">Guardar cambios</button>
+            <button type="button" id="personaCancelBtn" class="secondary">Cancelar</button>
+          </div>
+        </form>
+      </div>
 
-// ====== Inicialización ======
-loadData();
-ensureSeedData();
-renderCatalogsToSelects(); // para ver filtros y selects antes del login también
-renderPersonas();
-updateKPIs();
-updateCharts();
-renderVisitas();
-// restaurar sesión si existe
-const s = JSON.parse(localStorage.getItem(STORAGE_KEYS.session) || "null");
-if (s && s.email) {
-  currentUser = { email: s.email, uid: s.uid };
-  currentRole = s.role || "Usuario";
-  postLoginUI();
-}
+      <!-- KPIs -->
+      <div id="kpis" class="panel" style="margin-top:12px;">
+        <h3>KPIs rápidos</h3>
+        <div class="grid">
+          <div><strong>Total personas:</strong> <span id="kpiTotal">0</span></div>
+          <div><strong>Semanal Frecuente:</strong> <span id="kpiSemFre">0%</span></div>
+          <div><strong>Semanal Poco:</strong> <span id="kpiSemPoco">0%</span></div>
+          <div><strong>Semanal Nunca:</strong> <span id="kpiSemNunca">0%</span></div>
+          <div><strong>Zadankai Frecuente:</strong> <span id="kpiZadFre">0%</span></div>
+          <div><strong>Zadankai Poco:</strong> <span id="kpiZadPoco">0%</span></div>
+          <div><strong>Zadankai Nunca:</strong> <span id="kpiZadNunca">0%</span></div>
+          <div><strong>Humanismo Soka:</strong> <span id="kpiHumanismo">0%</span></div>
+          <div><strong>Zaimu:</strong> <span id="kpiZaimu">0%</span></div>
+        </div>
+      </div>
 
-// ====== Catálogos → Selects ======
-function renderCatalogsToSelects() {
-  // Selects de Mi Perfil
-  fillSelect($("hanSelect"), hanes, "id", "name", true);
-  fillSelect($("grupoSelect"), grupos, "id", "name", true);
+      <!-- Dashboard -->
+      <div id="dashboard" class="panel">
+        <h3>Dashboard</h3>
+        <div class="grid">
+          <canvas id="chartFrecuencias"></canvas>
+          <canvas id="chartCompromisos"></canvas>
+        </div>
+      </div>
+    </section>
 
-  // Selects del editor de persona (admin)
-  fillSelect($("p_hanSelect"), hanes, "id", "name", true);
-  fillSelect($("p_grupoSelect"), grupos, "id", "name", true);
+    <!-- ========================= Mi Perfil ========================= -->
+    <section class="panel">
+      <h2>Mi Perfil</h2>
+      <form id="miPerfilForm">
+        <div class="grid">
+          <label>Nombre
+            <input type="text" id="firstName" required />
+          </label>
+          <label>Apellido
+            <input type="text" id="lastName" required />
+          </label>
+          <label>Fecha de Nacimiento
+            <input type="date" id="birthDate" />
+          </label>
+          <label>Domicilio
+            <input type="text" id="address" />
+          </label>
+          <label>Localidad
+            <input type="text" id="city" />
+          </label>
+          <label>Teléfono
+            <input type="tel" id="phone" />
+          </label>
+          <label>Email (solo lectura)
+            <input type="email" id="email" disabled />
+          </label>
+          <label>Estado
+            <select id="status">
+              <option value="Miembro">Miembro</option>
+              <option value="Amigo Soka">Amigo Soka</option>
+              <option value="Sakubuku">Sakubuku</option>
+            </select>
+          </label>
+          <label>Han
+            <select id="hanSelect"></select>
+          </label>
+          <label>Localidad del Han
+            <input type="text" id="hanLocalidad" disabled />
+          </label>
+          <label>Grupo de capacitación
+            <select id="grupoSelect"></select>
+          </label>
+        </div>
 
-  // Filtros
-  fillSelect($("filtroHan"), [{ id: "", name: "Todos" }, ...hanes], "id", "name", false);
-  fillSelect($("filtroGrupo"), [{ id: "", name: "Todos" }, ...grupos], "id", "name", false);
+        <fieldset>
+          <legend>Participación</legend>
+          <label>Reuniones semanales (general)
+            <select id="frecuenciaSemanal">
+              <option value="">Seleccionar...</option>
+              <option value="Frecuentemente">Frecuentemente</option>
+              <option value="Poco">Poco</option>
+              <option value="Nunca">Nunca</option>
+            </select>
+          </label>
 
-  // Cambio de Han en Mi Perfil → muestra localidad
-  $("hanSelect")?.addEventListener("change", () => {
-    const sel = $("hanSelect").value;
-    const h = hanes.find(x => x.id === sel);
-    $("hanLocalidad").value = h?.city || "";
-  });
-}
+          <label>Zadankai
+            <select id="frecuenciaZadankai">
+              <option value="">Seleccionar...</option>
+              <option value="Frecuentemente">Frecuentemente</option>
+              <option value="Poco">Poco</option>
+              <option value="Nunca">Nunca</option>
+            </select>
+          </label>
 
-// ====== Mi Perfil ======
-function loadMiPerfil(uid, email) {
-  $("email").value = email;
-  const p = personas.find(x => x.uid === uid || x.email === email);
-  if (p) {
-    $("firstName").value = p.firstName || "";
-    $("lastName").value = p.lastName || "";
-    $("birthDate").value = p.birthDate || "";
-    $("address").value = p.address || "";
-    $("city").value = p.city || "";
-    $("phone").value = p.phone || "";
-    $("status").value = p.status || "Miembro";
-    $("hanSelect").value = p.hanId || "";
-    $("hanLocalidad").value = p.hanCity || "";
-    $("grupoSelect").value = p.grupoId || "";
-    $("frecuenciaSemanal").value = p.frecuenciaSemanal || "";
-    $("frecuenciaZadankai").value = p.frecuenciaZadankai || "";
-    $("suscriptoHumanismoSoka").checked = !!p.suscriptoHumanismoSoka;
-    $("realizaZaimu").checked = !!p.realizaZaimu;
-  }
-}
+          <label><input type="checkbox" id="suscriptoHumanismoSoka" /> Suscripto a Humanismo Soka</label>
+          <label><input type="checkbox" id="realizaZaimu" /> Realiza Zaimu</label>
+        </fieldset>
 
-$("miPerfilForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  if (!currentUser) return alert("Ingresá primero.");
+        <button type="submit">Guardar mi perfil</button>
+      </form>
+    </section>
 
-  const hanId = $("hanSelect").value || "";
-  const hanObj = hanes.find(h => h.id === hanId);
-  const grupoId = $("grupoSelect").value || "";
-  const grupoObj = grupos.find(g => g.id === grupoId);
+    <!-- ========================= Admin: Hanes (CRUD) ========================= -->
+    <section class="panel admin-only hidden">
+      <h2>Administrar Hanes</h2>
+      <form id="hanForm">
+        <input type="hidden" id="hanId" />
+        <div class="grid">
+          <label>Nombre del Han
+            <input type="text" id="hanName" required />
+          </label>
+          <label>Localidad
+            <input type="text" id="hanCity" required />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar Han</button>
+          <button type="button" id="hanCancelBtn" class="secondary">Cancelar edición</button>
+        </div>
+      </form>
+      <ul id="hanList"></ul>
+    </section>
 
-  const persona = {
-    id: uid(),
-    firstName: $("firstName").value.trim(),
-    lastName: $("lastName").value.trim(),
-    birthDate: $("birthDate").value || "",
-    address: $("address").value.trim(),
-    city: $("city").value.trim(),
-    phone: $("phone").value.trim(),
-    email: $("email").value.trim(),
-    status: $("status").value || "Miembro",
-    hanId, hanName: hanObj?.name || "", hanCity: hanObj?.city || "",
-    grupoId, grupoName: grupoObj?.name || "",
-    frecuenciaSemanal: $("frecuenciaSemanal").value || "",
-    frecuenciaZadankai: $("frecuenciaZadankai").value || "",
-    suscriptoHumanismoSoka: $("suscriptoHumanismoSoka").checked,
-    realizaZaimu: $("realizaZaimu").checked,
-    uid: currentUser.uid,
-    updatedAt: Date.now(),
-  };
+    <!-- ========================= Admin: Grupos (CRUD) ========================= -->
+    <section class="panel admin-only hidden">
+      <h2>Grupos de Capacitación</h2>
+      <form id="grupoForm">
+        <input type="hidden" id="grupoId" />
+        <div class="grid">
+          <label>Nombre del grupo
+            <input type="text" id="grupoName" required />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar Grupo</button>
+          <button type="button" id="grupoCancelBtn" class="secondary">Cancelar edición</button>
+        </div>
+      </form>
+      <ul id="grupoList"></ul>
+    </section>
 
-  const idx = personas.findIndex(x => x.uid === currentUser.uid);
-  if (idx >= 0) {
-    persona.id = personas[idx].id;
-    personas[idx] = persona;
-  } else {
-    personas.push(persona);
-  }
-  saveData();
-  renderPersonas();
-  updateKPIs();
-  updateCharts();
-  alert("Perfil guardado correctamente");
-});
+    <!-- ========================= Visitas ========================= -->
+    <section class="panel">
+      <h2>Visitas</h2>
+      <form id="visitaForm">
+        <div class="grid">
+          <label>Persona
+            <select id="visitaPersonaSelect" required></select>
+          </label>
+          <label>Fecha de visita
+            <input type="date" id="visitaFecha" required />
+          </label>
+          <label>Observaciones
+            <textarea id="visitaObs" rows="3" placeholder="Notas de la visita"></textarea>
+          </label>
+        </div>
+        <button type="submit">Registrar visita</button>
+      </form>
 
-// ====== Hanes (CRUD, solo admin) ======
-$("hanForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const id = $("hanId").value.trim();
-  const name = $("hanName").value.trim();
-  const city = $("hanCity").value.trim();
-  if (!name || !city) return;
+      <table id="visitasTable">
+        <thead>
+          <tr><th>Persona</th><th>Fecha</th><th>Observaciones</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
 
-  if (id) {
-    const i = hanes.findIndex(h => h.id === id);
-    if (i >= 0) hanes[i] = { ...hanes[i], name, city };
-  } else {
-    hanes.push({ id: uid(), name, city });
-  }
-  saveData();
-  $("hanForm").reset();
-  renderCatalogsToSelects();
-  renderHanesAdmin();
-});
+  <footer>
+    <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
+  </footer>
 
-$("hanCancelBtn").addEventListener("click", () => $("hanForm").reset());
-$("hanList")?.addEventListener("click", (e) => {
-  const btn = e.target.closest("button");
-  if (!btn) return;
-  const id = btn.dataset.id;
-  const action = btn.dataset.action;
-  const h = hanes.find(x => x.id === id);
-  if (!h) return;
+  <!-- Librerías para Dashboard e Import CSV (cargan antes que app.js por el orden con defer) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
 
-  if (action === "edit") {
-    $("hanId").value = h.id;
-    $("hanName").value = h.name;
-    $("hanCity").value = h.city;
-  } else if (action === "delete") {
-    if (!confirm(`¿Eliminar Han "${h.name}"?`)) return;
-    hanes = hanes.filter(x => x.id !== id);
-    saveData();
-    renderCatalogsToSelects();
-    renderHanesAdmin();
-  }
-});
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-function renderHanesAdmin() {
-  const ul = $("hanList");
-  if (!ul) return;
-  ul.innerHTML = "";
-  hanes.forEach(h => {
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <span><strong>${h.name}</strong> — ${h.city}</span>
-      <div class="actions acciones-admin">
-        <button data-action="edit" data-id="${h.id}">Editar</button>
-        <button data-action="delete" data-id="${h.id}">Eliminar</button>
-      </div>`;
-    ul.appendChild(li);
-  });
-}
-renderHanesAdmin();
-
-// ====== Grupos (CRUD, solo admin) ======
-$("grupoForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const id = $("grupoId").value.trim();
-  const name = $("grupoName").value.trim();
-  if (!name) return;
-
-  if (id) {
-    const i = grupos.findIndex(g => g.id === id);
-    if (i >= 0) grupos[i] = { ...grupos[i], name };
-  } else {
-    grupos.push({ id: uid(), name });
-  }
-  saveData();
-  $("grupoForm").reset();
-  renderCatalogsToSelects();
-  renderGruposAdmin();
-});
-
-$("grupoCancelBtn").addEventListener("click", () => $("grupoForm").reset());
-$("grupoList")?.addEventListener("click", (e) => {
-  const btn = e.target.closest("button");
-  if (!btn) return;
-  const id = btn.dataset.id;
-  const action = btn.dataset.action;
-  const g = grupos.find(x => x.id === id);
-  if (!g) return;
-
-  if (action === "edit") {
-    $("grupoId").value = g.id;
-    $("grupoName").value = g.name;
-  } else if (action === "delete") {
-    if (!confirm(`¿Eliminar Grupo "${g.name}"?`)) return;
-    grupos = grupos.filter(x => x.id !== id);
-    saveData();
-    renderCatalogsToSelects();
-    renderGruposAdmin();
-  }
-});
-
-function renderGruposAdmin() {
-  const ul = $("grupoList");
-  if (!ul) return;
-  ul.innerHTML = "";
-  grupos.forEach(g => {
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <span><strong>${g.name}</strong></span>
-      <div class="actions acciones-admin">
-        <button data-action="edit" data-id="${g.id}">Editar</button>
-        <button data-action="delete" data-id="${g.id}">Eliminar</button>
-      </div>`;
-    ul.appendChild(li);
-  });
-}
-renderGruposAdmin();
-
-// ====== Personas (listado + filtros + acciones admin) ======
+  <!-- Lógica principal -->
+  <script src="./app.js" defer></script>
+</body>
+</html>
