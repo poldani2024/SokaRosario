@@ -3,11 +3,12 @@
  * App Soka Gakkai — 100% Frontend (GitHub Pages) + Google Sign-In
  * - Autenticación con Google Identity Services (GIS)
  * - Datos en localStorage (Hanes, Grupos, Personas, Visitas)
- * - Filtros, CSV import/export, KPIs, Dashboard Chart.js
+ * - Filtros, CSV import/export
+ * - SIN KPIs y SIN gráficos
  ******************************************************************/
 
 // ====== Configurar Google Sign-In ======
-const CLIENT_ID = "TU_CLIENT_ID.apps.googleusercontent.com"; // <-- reemplazar
+const CLIENT_ID = "project-569099432032.apps.googleusercontent.com"; // <-- reemplazar con tu Client ID
 
 // ====== Estado / Cache ======
 let currentUser = null;      // { email, name, picture, sub(uid) }
@@ -19,8 +20,7 @@ let visitas = []; // [{id, personaId, fecha, obs, createdBy }]
 
 // ====== Constantes ======
 const ADMIN_EMAILS = [
-  "pedro@ejemplo.com", // Cambiá por tus correos de admin
-  "admin@soka.org"
+  "tu-admin@gmail.com" // <-- agregá aquí tus cuentas admin de Gmail
 ];
 
 const STORAGE_KEYS = {
@@ -84,13 +84,16 @@ function ensureSeedData() {
     personas = [
       { id: uid(), firstName: "Juan", lastName: "Pérez", email: "juan@ejemplo.com", status: "Miembro",
         hanId: h0.id, hanName: h0.name, hanCity: h0.city, grupoId: g0.id, grupoName: g0.name,
-        frecuenciaSemanal: "Frecuentemente", frecuenciaZadankai: "Poco", suscriptoHumanismoSoka: true, realizaZaimu: false, updatedAt: Date.now() },
+        frecuenciaSemanal: "Frecuentemente", frecuenciaZadankai: "Poco",
+        suscriptoHumanismoSoka: true, realizaZaimu: false, updatedAt: Date.now() },
       { id: uid(), firstName: "Ana",  lastName: "García", email: "ana@ejemplo.com",  status: "Amigo Soka",
         hanId: h0.id, hanName: h0.name, hanCity: h0.city, grupoId: g0.id, grupoName: g0.name,
-        frecuenciaSemanal: "Poco", frecuenciaZadankai: "Nunca", suscriptoHumanismoSoka: false, realizaZaimu: false, updatedAt: Date.now() },
+        frecuenciaSemanal: "Poco", frecuenciaZadankai: "Nunca",
+        suscriptoHumanismoSoka: false, realizaZaimu: false, updatedAt: Date.now() },
       { id: uid(), firstName: "Luis", lastName: "Mendoza", email: "luis@ejemplo.com", status: "Miembro",
         hanId: h0.id, hanName: h0.name, hanCity: h0.city, grupoId: g0.id, grupoName: g0.name,
-        frecuenciaSemanal: "Nunca", frecuenciaZadankai: "Frecuentemente", suscriptoHumanismoSoka: true, realizaZaimu: true, updatedAt: Date.now() },
+        frecuenciaSemanal: "Nunca", frecuenciaZadankai: "Frecuentemente",
+        suscriptoHumanismoSoka: true, realizaZaimu: true, updatedAt: Date.now() },
     ];
   }
   saveData();
@@ -107,8 +110,8 @@ function initGoogleSignIn() {
   google.accounts.id.initialize({
     client_id: CLIENT_ID,
     callback: handleCredentialResponse,
-    auto_select: false, // cambia a true si querés auto-selección
-    ux_mode: "popup"    // popup mejor para GitHub Pages
+    auto_select: false,
+    ux_mode: "popup"
   });
 
   // Renderiza botón
@@ -116,9 +119,6 @@ function initGoogleSignIn() {
     document.getElementById("googleBtnContainer"),
     { theme: "outline", size: "large", type: "standard", text: "signin_with" }
   );
-
-  // Optional: One-tap
-  // google.accounts.id.prompt();
 }
 
 function handleCredentialResponse(response) {
@@ -168,8 +168,6 @@ function postLoginUI() {
 
   renderCatalogsToSelects();
   renderPersonas();
-  updateKPIs();
-  updateCharts();
   renderVisitas();
   loadMiPerfil(currentUser.sub, currentUser.email);
 }
@@ -189,8 +187,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ensureSeedData();
   renderCatalogsToSelects();
   renderPersonas();
-  updateKPIs();
-  updateCharts();
   renderVisitas();
 
   // Restaurar sesión si existe
@@ -285,8 +281,6 @@ $("miPerfilForm").addEventListener("submit", (e) => {
   }
   saveData();
   renderPersonas();
-  updateKPIs();
-  updateCharts();
   alert("Perfil guardado correctamente");
 });
 
@@ -408,7 +402,7 @@ renderGruposAdmin();
 
 // ====== Personas (listado + filtros + acciones admin) ======
 ["filtroHan", "filtroGrupo", "filtroEstado", "filtroFreqSemanal", "filtroFreqZadankai", "buscarTexto"]
-  .forEach(id => $(id)?.addEventListener("input", () => { renderPersonas(); updateKPIs(); updateCharts(); }));
+  .forEach(id => $(id)?.addEventListener("input", () => { renderPersonas(); }));
 
 function applyFilters(list) {
   const fHan = $("filtroHan").value || "";
@@ -472,14 +466,15 @@ function renderPersonas() {
         personas = personas.filter(x => x.id !== id);
         saveData();
         renderPersonas();
-        updateKPIs();
-        updateCharts();
       }
     });
   });
 
   // Select de visitas (personas)
-  fillSelect($("visitaPersonaSelect"), personas.map(p => ({ id: p.id, name: `${p.lastName || ""}, ${p.firstName || ""}` })), "id", "name", true);
+  fillSelect($("visitaPersonaSelect"),
+    personas.map(p => ({ id: p.id, name: `${p.lastName || ""}, ${p.firstName || ""}` })),
+    "id", "name", true
+  );
 }
 
 function openPersonaEditor(p) {
@@ -535,8 +530,6 @@ $("personaAdminForm").addEventListener("submit", (e) => {
   toast("Persona actualizada");
   setHidden($("personaEditor"), true);
   renderPersonas();
-  updateKPIs();
-  updateCharts();
 });
 
 // ====== Import / Export CSV ======
@@ -590,8 +583,6 @@ $("importCSV").addEventListener("change", async (e) => {
       saveData();
       renderCatalogsToSelects();
       renderPersonas();
-      updateKPIs();
-      updateCharts();
       alert("Importación completada");
       $("importCSV").value = "";
     }
@@ -627,72 +618,6 @@ $("exportCSVBtn").addEventListener("click", () => {
   a.click();
   URL.revokeObjectURL(url);
 });
-
-// ====== KPIs ======
-function updateKPIs() {
-  const list = applyFilters(personas);
-  const total = list.length;
-  const count = (prop, val) => list.filter(p => (p[prop] || "") === val).length;
-  const pct = (n) => total ? Math.round((n / total) * 100) + "%" : "0%";
-
-  text("kpiTotal", String(total));
-  text("kpiSemFre", pct(count("frecuenciaSemanal", "Frecuentemente")));
-  text("kpiSemPoco", pct(count("frecuenciaSemanal", "Poco")));
-  text("kpiSemNunca", pct(count("frecuenciaSemanal", "Nunca")));
-  text("kpiZadFre", pct(count("frecuenciaZadankai", "Frecuentemente")));
-  text("kpiZadPoco", pct(count("frecuenciaZadankai", "Poco")));
-  text("kpiZadNunca", pct(count("frecuenciaZadankai", "Nunca")));
-  text("kpiHumanismo", pct(list.filter(p => !!p.suscriptoHumanismoSoka).length));
-  text("kpiZaimu", pct(list.filter(p => !!p.realizaZaimu).length));
-}
-
-// ====== Charts (Chart.js) ======
-let chartFrecuencias = null;
-let chartCompromisos = null;
-
-function updateCharts() {
-  const list = applyFilters(personas);
-
-  const sem = {
-    Frecuentemente: list.filter(p => p.frecuenciaSemanal === "Frecuentemente").length,
-    Poco: list.filter(p => p.frecuenciaSemanal === "Poco").length,
-    Nunca: list.filter(p => p.frecuenciaSemanal === "Nunca").length,
-  };
-  const zad = {
-    Frecuentemente: list.filter(p => p.frecuenciaZadankai === "Frecuentemente").length,
-    Poco: list.filter(p => p.frecuenciaZadankai === "Poco").length,
-    Nunca: list.filter(p => p.frecuenciaZadankai === "Nunca").length,
-  };
-  const compromisos = {
-    Humanismo: list.filter(p => !!p.suscriptoHumanismoSoka).length,
-    Zaimu: list.filter(p => !!p.realizaZaimu).length,
-  };
-
-  const ctx1 = $("chartFrecuencias").getContext("2d");
-  if (chartFrecuencias) chartFrecuencias.destroy();
-  chartFrecuencias = new Chart(ctx1, {
-    type: "bar",
-    data: {
-      labels: ["Frecuente", "Poco", "Nunca"],
-      datasets: [
-        { label: "Semanal", data: [sem.Frecuentemente, sem.Poco, sem.Nunca], backgroundColor: "#43b0f1" },
-        { label: "Zadankai", data: [zad.Frecuentemente, zad.Poco, zad.Nunca], backgroundColor: "#9b59b6" },
-      ]
-    },
-    options: { responsive: true, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true } } }
-  });
-
-  const ctx2 = $("chartCompromisos").getContext("2d");
-  if (chartCompromisos) chartCompromisos.destroy();
-  chartCompromisos = new Chart(ctx2, {
-    type: "doughnut",
-    data: {
-      labels: ["Humanismo", "Zaimu"],
-      datasets: [{ data: [compromisos.Humanismo, compromisos.Zaimu], backgroundColor: ["#2ecc71", "#e67e22"] }]
-    },
-    options: { responsive: true, plugins: { legend: { position: "bottom" } } }
-  });
-}
 
 // ====== Visitas ======
 function renderVisitas() {
