@@ -31,6 +31,31 @@ const STORAGE_KEYS = {
   session: "soka_session"    // { email, name, picture, sub, role }
 };
 
+// Reintenta hasta que GIS esté listo (máx 10 intentos cada 200 ms)
+function ensureGISLoadedThenInit(retries = 10, delayMs = 200) {
+  if (window.google && window.google.accounts && window.google.accounts.id) {
+    initGoogleSignIn();
+    return;
+  }
+  if (retries <= 0) {
+    console.warn("GIS no disponible tras reintentos. Verifica la etiqueta <script src='https://accounts.google.com/gsi/client'> y el dominio autorizado.");
+    return;
+  }
+  setTimeout(() => ensureGISLoadedThenInit(retries - 1, delayMs), delayMs);
+}
+
+// En vez de initGoogleSignIn() directo:
+document.addEventListener("DOMContentLoaded", () => {
+  // ... tu inicialización actual ...
+  ensureGISLoadedThenInit();
+});
+
+window.addEventListener("load", () => {
+  if (!window.google) {
+    ensureGISLoadedThenInit();
+  }
+});
+
 // ====== Helpers DOM ======
 const $ = (id) => document.getElementById(id);
 const setHidden = (el, hidden) => { if (!el) return; el.classList.toggle("hidden", hidden); };
