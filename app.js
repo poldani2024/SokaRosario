@@ -102,7 +102,7 @@ function ensureSeedData() {
 // ====== Google Sign-In (GIS) ======
 function initGoogleSignIn() {
   if (!window.google || !CLIENT_ID.includes(".apps.googleusercontent.com")) {
-    console.warn("GIS no cargado o CLIENT_ID faltante.");
+    console.warn("GIS no cargado o CLIENT_ID faltante."||CLIENT_ID);
     return;
   }
 
