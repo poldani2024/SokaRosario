@@ -1,78 +1,315 @@
 
-:root {
-  color-scheme: light dark;
-  --bg: #ffffff;
-  --text: #222;
-  --muted: #666;
-  --primary: #1f7a8c;
-  --primary-contrast: #fff;
-  --secondary: #e2e8f0;
-  --border: #d7d7d7;
-  --panel: #f8fafc;
-}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seguimiento Soka Gakkai</title>
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1216;
-    --text: #eaeaea;
-    --muted: #9ba1a6;
-    --primary: #43b0f1;
-    --secondary: #1f2937;
-    --border: #2b3240;
-    --panel: #111827;
-  }
-}
+  <!-- Hoja de estilos -->
+  <link rel="stylesheet" href="styles.css" />
 
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+  <meta name="color-scheme" content="light dark" />
+</head>
+<body>
+  <!-- Encabezado con login Google y badge de rol -->
+  <header>
+    <h1>Seguimiento Soka Gakkai</h1>
+    <div id="auth">
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn">Cerrar sesión</button>
+      </div>
+      <div id="login-form">
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+    </div>
+  </header>
 
-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px; border-bottom: 1px solid var(--border); background: var(--panel);
-}
-h1 { margin: 0; font-size: 1.4rem; }
-.badge {
-  display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px;
-  background: var(--secondary); color: var(--muted); font-size: 0.8rem;
-}
-#auth button { margin-left: 8px; }
+  <main>
+    <!-- ========================= Personas (visible para todos) ========================= -->
+    <section class="panel">
+      <h2>Personas registradas</h2>
 
-main { padding: 16px; max-width: 1200px; margin: 0 auto; }
+      <!-- Filtros -->
+      <div class="grid" id="personasFilters">
+        <label>Han
+          <select id="filtroHan"></select>
+        </label>
+        <label>Grupo
+          <select id="filtroGrupo"></select>
+        </label>
+        <label>Estado
+          <select id="filtroEstado">
+            <option value="">Todos</option>
+            <option value="Miembro">Miembro</option>
+            <option value="Amigo Soka">Amigo Soka</option>
+            <option value="Sakubuku">Sakubuku</option>
+          </select>
+        </label>
+        <label>Reuniones semanales
+          <select id="filtroFreqSemanal">
+            <option value="">Todas</option>
+            <option value="Frecuentemente">Frecuentemente</option>
+            <option value="Poco">Poco</option>
+            <option value="Nunca">Nunca</option>
+          </select>
+        </label>
+        <label>Zadankai
+          <select id="filtroFreqZadankai">
+            <option value="">Todas</option>
+            <option value="Frecuentemente">Frecuentemente</option>
+            <option value="Poco">Poco</option>
+            <option value="Nunca">Nunca</option>
+          </select>
+        </label>
+        <label>Búsqueda
+          <input type="text" id="buscarTexto" placeholder="Apellido, nombre, email..." />
+        </label>
+      </div>
 
-.panel {
-  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-  padding: 16px; margin-bottom: 16px;
-}
-.panel.secondary { background: transparent; }
+      <!-- Import / Export -->
+      <div class="actions">
+        <label class="file-label">
+          Importar CSV
+          <input type="file" id="importCSV" accept=".csv" />
+        </label>
+        <button type="button" id="exportCSVBtn" class="secondary">Exportar CSV (filtrado)</button>
+      </div>
 
-.grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;
-}
-label { display: flex; flex-direction: column; gap: 6px; font-size: 0.95rem; }
-input, select, textarea, button {
-  font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
-  background: var(--bg); color: var(--text);
-}
-textarea { resize: vertical; }
-button { cursor: pointer; background: var(--primary); color: var(--primary-contrast); border: none; }
-button.secondary { background: var(--secondary); color: var(--text); border: 1px solid var(--border); }
-button:disabled { opacity: 0.6; cursor: not-allowed; }
+      <!-- Tabla Personas -->
+      <table id="personasTable">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Estado</th>
+            <th>Han</th>
+            <th>Grupo</th>
+            <th>Reuniones semanales</th>
+            <th>Zadankai</th>
+            <th>Humanismo</th>
+            <th>Zaimu</th>
+            <th class="acciones-admin">Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
 
-.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+      <!-- Editor de Persona (solo Admin) -->
+      <div id="personaEditor" class="panel secondary hidden admin-only">
+        <h3>Editar Persona</h3>
+        <form id="personaAdminForm">
+          <input type="hidden" id="personaId" />
+          <div class="grid">
+            <label>Nombre
+              <input type="text" id="p_firstName" required />
+            </label>
+            <label>Apellido
+              <input type="text" id="p_lastName" required />
+            </label>
+            <label>Fecha de Nacimiento
+              <input type="date" id="p_birthDate" />
+            </label>
+            <label>Domicilio
+              <input type="text" id="p_address" />
+            </label>
+            <label>Localidad
+              <input type="text" id="p_city" />
+            </label>
+            <label>Teléfono
+              <input type="tel" id="p_phone" />
+            </label>
+            <label>Email
+              <input type="email" id="p_email" />
+            </label>
+            <label>Estado
+              <select id="p_status">
+                <option value="Miembro">Miembro</option>
+                <option value="Amigo Soka">Amigo Soka</option>
+                <option value="Sakubuku">Sakubuku</option>
+              </select>
+            </label>
+            <label>Han
+              <select id="p_hanSelect"></select>
+            </label>
+            <label>Grupo
+              <select id="p_grupoSelect"></select>
+            </label>
+            <label>Reuniones semanales
+              <select id="p_frecuenciaSemanal">
+                <option value="">Seleccionar...</option>
+                <option value="Frecuentemente">Frecuentemente</option>
+                <option value="Poco">Poco</option>
+                <option value="Nunca">Nunca</option>
+              </select>
+            </label>
+            <label>Zadankai
+              <select id="p_frecuenciaZadankai">
+                <option value="">Seleccionar...</option>
+                <option value="Frecuentemente">Frecuentemente</option>
+                <option value="Poco">Poco</option>
+                <option value="Nunca">Nunca</option>
+              </select>
+            </label>
+            <label><input type="checkbox" id="p_suscriptoHumanismoSoka" /> Suscripto a Humanismo Soka</label>
+            <label><input type="checkbox" id="p_realizaZaimu" /> Realiza Zaimu</label>
+          </div>
+          <div class="actions">
+            <button type="submit">Guardar cambios</button>
+            <button type="button" id="personaCancelBtn" class="secondary">Cancelar</button>
+          </div>
+        </form>
+      </div>
 
-table { width: 100%; border-collapse: collapse; }
-thead th {
-  text-align: left; padding: 8px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.03);
-}
-tbody td { padding: 8px; border-bottom: 1px solid var(--border); }
+      <!-- KPIs -->
+      <div id="kpis" class="panel" style="margin-top:12px;">
+        <h3>KPIs rápidos</h3>
+        <div class="grid">
+          <div><strong>Total personas:</strong> <span id="kpiTotal">0</span></div>
+          <div><strong>Semanal Frecuente:</strong> <span id="kpiSemFre">0%</span></div>
+          <div><strong>Semanal Poco:</strong> <span id="kpiSemPoco">0%</span></div>
+          <div><strong>Semanal Nunca:</strong> <span id="kpiSemNunca">0%</span></div>
+          <div><strong>Zadankai Frecuente:</strong> <span id="kpiZadFre">0%</span></div>
+          <div><strong>Zadankai Poco:</strong> <span id="kpiZadPoco">0%</span></div>
+          <div><strong>Zadankai Nunca:</strong> <span id="kpiZadNunca">0%</span></div>
+          <div><strong>Humanismo Soka:</strong> <span id="kpiHumanismo">0%</span></div>
+          <div><strong>Zaimu:</strong> <span id="kpiZaimu">0%</span></div>
+        </div>
+      </div>
 
-.hidden { display: none !important; }
-.admin-only.hidden { display: none !important; }
+      <!-- Dashboard -->
+      <div id="dashboard" class="panel">
+        <h3>Dashboard</h3>
+        <div class="grid">
+          <canvas id="chartFrecuencias"></canvas>
+          <canvas id="chartCompromisos"></canvas>
+        </div>
+      </div>
+    </section>
 
-.file-label {
-  display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px dashed var(--border);
-  border-radius: 8px; background: var(--bg); color: var(--text);
-}
-.file-label input[type=file] { display: none; }
+    <!-- ========================= Mi Perfil ========================= -->
+    <section class="panel">
+      <h2>Mi Perfil</h2>
+      <form id="miPerfilForm">
+        <div class="grid">
+          <label>Nombre
+            <input type="text" id="firstName" required />
+          </label>
+          <label>Apellido
+            <input type="text" id="lastName" required />
+          </label>
+          <label>Fecha de Nacimiento
+            <input type="date" id="birthDate" />
+          </label>
+          <label>Domicilio
+            <input type="text" id="address" />
+          </label>
+          <label>Localidad
+            <input type="text" id="city" />
+          </label>
+          <label>Teléfono
+            <input type="tel" id="phone" />
+          </label>
+          <label>Email (solo lectura)
+            <input type="email" id="email" disabled />
+          </label>
+          <label>Estado
+            <select id="status">
+              <option value="Miembro">Miembro</option>
+              <option value="Amigo Soka">Amigo Soka</option>
+              <option value="Sakubuku">Sakubuku</option>
+            </select>
+          </label>
+          <label>Han
+            <select id="hanSelect"></select>
+          </label>
+          <label>Localidad del Han
+            <input type="text" id="hanLocalidad" disabled />
+          </label>
+          <label>Grupo de capacitación
+            <select id="grupoSelect"></select>
+          </label>
+        </div>
 
-footer { padding: 16px; text-align: center; color: var(--muted); }
+        <fieldset>
+          <legend>Participación</legend>
+          <label>Reuniones semanales (general)
+            <select id="frecuenciaSemanal">
+              <option value="">Seleccionar...</option>
+              <option value="Frecuentemente">Frecuentemente</option>
+              <option value="Poco">Poco</option>
+              <option value="Nunca">Nunca</option>
+            </select>
+          </label>
+
+          <label>Zadankai
+            <select id="frecuenciaZadankai">
+              <option value="">Seleccionar...</option>
+              <option value="Frecuentemente">Frecuentemente</option>
+              <option value="Poco">Poco</option>
+              <option value="Nunca">Nunca</option>
+            </select>
+          </label>
+
+          <label><input type="checkbox" id="suscriptoHumanismoSoka" /> Suscripto a Humanismo Soka</label>
+          <label><input type="checkbox" id="realizaZaimu" /> Realiza Zaimu</label>
+        </fieldset>
+
+        <button type="submit">Guardar mi perfil</button>
+      </form>
+    </section>
+
+    <!-- ========================= Admin: Hanes (CRUD) ========================= -->
+    <section class="panel admin-only hidden">
+      <h2>Administrar Hanes</h2>
+      <form id="hanForm">
+        <input type="hidden" id="hanId" />
+        <div class="grid">
+          <label>Nombre del Han
+            <input type="text" id="hanName" required />
+          </label>
+          <label>Localidad
+            <input type="text" id="hanCity" required />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar Han</button>
+          <button type="button" id="hanCancelBtn" class="secondary">Cancelar edición</button>
+        </div>
+      </form>
+      <ul id="hanList"></ul>
+    </section>
+
+    <!-- ========================= Admin: Grupos (CRUD) ========================= -->
+    <section class="panel admin-only hidden">
+      <h2>Grupos de Capacitación</h2>
+      <form id="grupoForm">
+        <input type="hidden" id="grupoId" />
+        <div class="grid">
+          <label>Nombre del grupo
+            <input type="text" id="grupoName" required />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar Grupo</button>
+          <button type="button" id="grupoCancelBtn" class="secondary">Cancelar edición</button>
+        </div>
+      </form>
+      <ul id="grupoList"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
+  </footer>
+
+  <!-- Librerías para Dashboard e Import CSV -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
+
+  <!-- Lógica principal (ES Modules) -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
