@@ -28,6 +28,18 @@
         <button id="googleLoginBtn">Ingresar con Google</button>
       </div>
     </div>
+    
+    <!-- Menú de Administración (solo Admin) -->
+    <nav id="adminMenu" class="admin-only hidden">
+      <button id="adminMenuBtn" class="menu-button" aria-haspopup="true" aria-expanded="false">
+        Administración ▾
+      </button>
+      <ul id="adminDropdown" class="dropdown hidden" role="menu" aria-label="Menú de administración">
+        <li><button type="button" data-target="adminHanes"  role="menuitem">Hanes</button></li>
+        <li><button type="button" data-target="adminGrupos" role="menuitem">Grupos de Capacitación</button></li>
+      </ul>
+    </nav>
+
   </header>
 
   <!-- ====== (tu contenido: Personas, Mi Perfil, Hanes, Grupos, Visitas) ====== -->
