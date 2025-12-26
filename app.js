@@ -165,6 +165,41 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+// ====== Utilidades ======
+function fillSelect(selectEl, items, valueKey, labelKey, includeEmpty) {
+  if (!selectEl) return;           // seguridad: si el elemento no existe, salimos
+  const current = selectEl.value;  // guardamos el valor actual para reponerlo luego
+  selectEl.innerHTML = "";
+
+  if (includeEmpty) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Seleccionar...";
+    selectEl.appendChild(opt);
+  }
+
+  (items || []).forEach(it => {
+    // admite tanto objetos {id, name} como strings (por si acaso)
+    const v = typeof it === "object" ? it[valueKey] : it;
+    const l = typeof it === "object" ? it[labelKey] : String(it);
+    const opt = document.createElement("option");
+    opt.value = v ?? "";
+    opt.textContent = l ?? "";
+    selectEl.appendChild(opt);
+  });
+
+  // restaurar selección si posible
+  if ([...selectEl.options].some(o => o.value === current)) {
+    selectEl.value = current;
+  }
+}
+
+function toBool(v) {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return ["true","1","sí","si","yes"].includes(v.trim().toLowerCase());
+  return !!v;
+}
+
 // ====== Catálogos → Selects ======
 function renderCatalogsToSelects() {
   // Mi Perfil
