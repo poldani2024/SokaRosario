@@ -12,7 +12,7 @@
   <meta name="color-scheme" content="light dark" />
 </head>
 <body>
-  <!-- Encabezado con login simple y badge de rol -->
+  <!-- Encabezado con login Google y badge de rol -->
   <header>
     <h1>Seguimiento Soka Gakkai</h1>
     <div id="auth">
@@ -21,9 +21,10 @@
         <span id="role-badge" class="badge"></span>
         <button id="logoutBtn">Cerrar sesión</button>
       </div>
+
+      <!-- Botón de Google (GIS) -->
       <div id="login-form">
-        <input type="email" id="loginEmail" placeholder="tu@correo.com" />
-        <button id="simpleLoginBtn">Ingresar</button>
+        <div id="googleBtnContainer"></div>
       </div>
     </div>
   </header>
@@ -332,11 +333,14 @@
     <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
   </footer>
 
-  <!-- Librerías para Dashboard e Import CSV -->
+  <!-- Librerías para Dashboard e Import CSV (cargan antes que app.js por el orden con defer) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
 
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <!-- Lógica principal -->
-  <script type="module" src="./app.js"></script>
+  <script src="./app.js" defer></script>
 </body>
 </html>
