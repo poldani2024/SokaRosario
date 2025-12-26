@@ -8,7 +8,7 @@
  ******************************************************************/
 
 // ====== Configurar Google Sign-In ======
-const CLIENT_ID = "project-569099432032.apps.googleusercontent.com"; // <-- reemplazar con tu Client ID
+const CLIENT_ID = "569099432032-38i5gd0ckti341cq2n5n906n4b56skm9.apps.googleusercontent.com"; // <-- reemplazar con tu Client ID
 
 // ====== Estado / Cache ======
 let currentUser = null;      // { email, name, picture, sub(uid) }
@@ -20,7 +20,7 @@ let visitas = []; // [{id, personaId, fecha, obs, createdBy }]
 
 // ====== Constantes ======
 const ADMIN_EMAILS = [
-  "tu-admin@gmail.com" // <-- agregá aquí tus cuentas admin de Gmail
+  "pedro.l.oldani@gmail.com" // <-- agregá aquí tus cuentas admin de Gmail
 ];
 
 const STORAGE_KEYS = {
