@@ -164,31 +164,6 @@
           </div>
         </form>
       </div>
-
-      <!-- KPIs -->
-      <div id="kpis" class="panel" style="margin-top:12px;">
-        <h3>KPIs rápidos</h3>
-        <div class="grid">
-          <div><strong>Total personas:</strong> <span id="kpiTotal">0</span></div>
-          <div><strong>Semanal Frecuente:</strong> <span id="kpiSemFre">0%</span></div>
-          <div><strong>Semanal Poco:</strong> <span id="kpiSemPoco">0%</span></div>
-          <div><strong>Semanal Nunca:</strong> <span id="kpiSemNunca">0%</span></div>
-          <div><strong>Zadankai Frecuente:</strong> <span id="kpiZadFre">0%</span></div>
-          <div><strong>Zadankai Poco:</strong> <span id="kpiZadPoco">0%</span></div>
-          <div><strong>Zadankai Nunca:</strong> <span id="kpiZadNunca">0%</span></div>
-          <div><strong>Humanismo Soka:</strong> <span id="kpiHumanismo">0%</span></div>
-          <div><strong>Zaimu:</strong> <span id="kpiZaimu">0%</span></div>
-        </div>
-      </div>
-
-      <!-- Dashboard -->
-      <div id="dashboard" class="panel">
-        <h3>Dashboard</h3>
-        <div class="grid">
-          <canvas id="chartFrecuencias"></canvas>
-          <canvas id="chartCompromisos"></canvas>
-        </div>
-      </div>
     </section>
 
     <!-- ========================= Mi Perfil ========================= -->
@@ -333,11 +308,10 @@
     <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
   </footer>
 
-  <!-- Librerías para Dashboard e Import CSV (cargan antes que app.js por el orden con defer) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <!-- Librería para Import/Export CSV -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js" defer></script>
 
-  <!-- Google Identity Services -->
+  <!-- Google Identity Services (GIS) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <!-- Lógica principal -->
