@@ -4,16 +4,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Seguimiento Soka Gakkai</title>
+  <title>Seguimiento Soka Gakkai — Inicio</title>
 
-  <link rel="stylesheet" href="./styles.css" />
-
-  <meta name="color-scheme" content="light dark" />
+  <!-- CSS -->
+  https://poldani2024.github.io/SokaRosario/styles.css</link>
 
   <meta name="color-scheme" content="light dark" />
 </head>
 <body>
-  <!-- Encabezado con login Google y badge de rol -->
   <header>
     <h1>Seguimiento Soka Gakkai</h1>
     <div id="auth">
@@ -22,30 +20,19 @@
         <span id="role-badge" class="badge"></span>
         <button id="logoutBtn">Cerrar sesión</button>
       </div>
-
-      <!-- Botón de Google (Firebase Auth) -->
       <div id="login-form">
         <button id="googleLoginBtn">Ingresar con Google</button>
       </div>
     </div>
-    
-    <!-- Menú de Administración (solo Admin) -->
-    <nav id="adminMenu" class="admin-only hidden">
-      <button id="adminMenuBtn" class="menu-button" aria-haspopup="true" aria-expanded="false">
-        Administración ▾
-      </button>
-      <ul id="adminDropdown" class="dropdown hidden" role="menu" aria-label="Menú de administración">
-        <li><button type="button" data-target="adminHanes"  role="menuitem">Hanes</button></li>
-        <li><button type="button" data-target="adminGrupos" role="menuitem">Grupos de Capacitación</button></li>
-      </ul>
-    </nav>
 
+    <!-- Link a Administración (solo Admin) -->
+    <nav id="adminLinkNav" class="admin-only hidden" style="margin-left:12px;">
+      admin.html">Administración</a>
+    </nav>
   </header>
 
-  <!-- ====== (tu contenido: Personas, Mi Perfil, Hanes, Grupos, Visitas) ====== -->
-  <!-- Mantengo todo tal cual tu estructura actual -->
   <main>
-    <!-- ========================= Personas (visible para todos) ========================= -->
+    <!-- ========================= Personas (buscador + grilla) ========================= -->
     <section class="panel">
       <h2>Personas registradas</h2>
 
@@ -95,7 +82,7 @@
         <button type="button" id="exportCSVBtn" class="secondary">Exportar CSV (filtrado)</button>
       </div>
 
-      <!-- Tabla Personas -->
+      <!-- Grilla Personas -->
       <table id="personasTable">
         <thead>
           <tr>
@@ -120,27 +107,13 @@
         <form id="personaAdminForm">
           <input type="hidden" id="personaId" />
           <div class="grid">
-            <label>Nombre
-              <input type="text" id="p_firstName" required />
-            </label>
-            <label>Apellido
-              <input type="text" id="p_lastName" required />
-            </label>
-            <label>Fecha de Nacimiento
-              <input type="date" id="p_birthDate" />
-            </label>
-            <label>Domicilio
-              <input type="text" id="p_address" />
-            </label>
-            <label>Localidad
-              <input type="text" id="p_city" />
-            </label>
-            <label>Teléfono
-              <input type="tel" id="p_phone" />
-            </label>
-            <label>Email
-              <input type="email" id="p_email" />
-            </label>
+            <label>Nombre <input type="text" id="p_firstName" required /></label>
+            <label>Apellido <input type="text" id="p_lastName" required /></label>
+            <label>Fecha de Nacimiento <input type="date" id="p_birthDate" /></label>
+            <label>Domicilio <input type="text" id="p_address" /></label>
+            <label>Localidad <input type="text" id="p_city" /></label>
+            <label>Teléfono <input type="tel" id="p_phone" /></label>
+            <label>Email <input type="email" id="p_email" /></label>
             <label>Estado
               <select id="p_status">
                 <option value="Miembro">Miembro</option>
@@ -148,12 +121,8 @@
                 <option value="Sakubuku">Sakubuku</option>
               </select>
             </label>
-            <label>Han
-              <select id="p_hanSelect"></select>
-            </label>
-            <label>Grupo
-              <select id="p_grupoSelect"></select>
-            </label>
+            <label>Han <select id="p_hanSelect"></select></label>
+            <label>Grupo <select id="p_grupoSelect"></select></label>
             <label>Reuniones semanales
               <select id="p_frecuenciaSemanal">
                 <option value="">Seleccionar...</option>
@@ -181,32 +150,18 @@
       </div>
     </section>
 
-    <!-- ========================= Mi Perfil ========================= -->
+    <!-- ========================= Datos Personales (antes Mi Perfil) ========================= -->
     <section class="panel">
-      <h2>Mi Perfil</h2>
+      <h2>Datos Personales</h2>
       <form id="miPerfilForm">
         <div class="grid">
-          <label>Nombre
-            <input type="text" id="firstName" required />
-          </label>
-          <label>Apellido
-            <input type="text" id="lastName" required />
-          </label>
-          <label>Fecha de Nacimiento
-            <input type="date" id="birthDate" />
-          </label>
-          <label>Domicilio
-            <input type="text" id="address" />
-          </label>
-          <label>Localidad
-            <input type="text" id="city" />
-          </label>
-          <label>Teléfono
-            <input type="tel" id="phone" />
-          </label>
-          <label>Email (solo lectura)
-            <input type="email" id="email" disabled />
-          </label>
+          <label>Nombre <input type="text" id="firstName" required /></label>
+          <label>Apellido <input type="text" id="lastName" required /></label>
+          <label>Fecha de Nacimiento <input type="date" id="birthDate" /></label>
+          <label>Domicilio <input type="text" id="address" /></label>
+          <label>Localidad <input type="text" id="city" /></label>
+          <label>Teléfono <input type="tel" id="phone" /></label>
+          <label>Email (solo lectura) <input type="email" id="email" disabled /></label>
           <label>Estado
             <select id="status">
               <option value="Miembro">Miembro</option>
@@ -214,20 +169,14 @@
               <option value="Sakubuku">Sakubuku</option>
             </select>
           </label>
-          <label>Han
-            <select id="hanSelect"></select>
-          </label>
-          <label>Localidad del Han
-            <input type="text" id="hanLocalidad" disabled />
-          </label>
-          <label>Grupo de capacitación
-            <select id="grupoSelect"></select>
-          </label>
+          <label>Han <select id="hanSelect"></select></label>
+          <label>Localidad del Han <input type="text" id="hanLocalidad" disabled /></label>
+          <label>Grupo de capacitación <select id="grupoSelect"></select></label>
         </div>
 
         <fieldset>
           <legend>Participación</legend>
-          <label>Reuniones semanales (general)
+          <label>Reuniones semanales
             <select id="frecuenciaSemanal">
               <option value="">Seleccionar...</option>
               <option value="Frecuentemente">Frecuentemente</option>
@@ -249,48 +198,8 @@
           <label><input type="checkbox" id="realizaZaimu" /> Realiza Zaimu</label>
         </fieldset>
 
-        <button type="submit">Guardar mi perfil</button>
+        <button type="submit">Guardar datos personales</button>
       </form>
-    </section>
-    
-    <!-- ========================= Admin: Hanes (CRUD) ========================= -->
-    
-    <section id="adminHanes" class="panel admin-only hidden">
-      <h2>Administrar Hanes</h2>
-      <form id="hanForm">
-        <input type="hidden" id="hanId" />
-        <div class="grid">
-          <label>Nombre del Han
-            <input type="text" id="hanName" required />
-          </label>
-          <label>Localidad
-            <input type="text" id="hanCity" required />
-          </label>
-        </div>
-        <div class="actions">
-          <button type="submit">Guardar Han</button>
-          <button type="button" id="hanCancelBtn" class="secondary">Cancelar edición</button>
-        </div>
-      </form>
-      <ul id="hanList"></ul>
-    </section>
-  
-    <!-- ========================= Admin: Grupos (CRUD) ========================= -->
-    <section id="adminGrupos" class="panel admin-only hidden">
-      <h2>Grupos de Capacitación</h2>
-      <form id="grupoForm">
-        <input type="hidden" id="grupoId" />
-        <div class="grid">
-          <label>Nombre del grupo
-            <input type="text" id="grupoName" required />
-          </label>
-        </div>
-        <div class="actions">
-          <button type="submit">Guardar Grupo</button>
-          <button type="button" id="grupoCancelBtn" class="secondary">Cancelar edición</button>
-        </div>
-      </form>
-      <ul id="grupoList"></ul>
     </section>
 
     <!-- ========================= Visitas ========================= -->
@@ -298,15 +207,9 @@
       <h2>Visitas</h2>
       <form id="visitaForm">
         <div class="grid">
-          <label>Persona
-            <select id="visitaPersonaSelect" required></select>
-          </label>
-          <label>Fecha de visita
-            <input type="date" id="visitaFecha" required />
-          </label>
-          <label>Observaciones
-            <textarea id="visitaObs" rows="3" placeholder="Notas de la visita"></textarea>
-          </label>
+          <label>Persona <select id="visitaPersonaSelect" required></select></label>
+          <label>Fecha de visita <input type="date" id="visitaFecha" required /></label>
+          <label>Observaciones <textarea id="visitaObs" rows="3" placeholder="Notas de la visita"></textarea></label>
         </div>
         <button type="submit">Registrar visita</button>
       </form>
@@ -320,18 +223,16 @@
     </section>
   </main>
 
-  <footer>
-    <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
-  </footer>
- 
-  <!-- PapaParse para Import/Export CSV -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <!-- Firebase v8 (app + auth) desde CDN -->
-   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <!-- Config de Firebase (AUTH ONLY) -->
-  <script src="./firebase.js"></script>
-  <!-- Lógica principal de la app (localStorage + Login Firebase) -->
-  <script src=" ./app.js"></script>
+  <footer><small>Hecho con ❤️ — Soka Gakkai Tracker</small></footer>
+
+  <!-- PapaParse -->
+  https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js</script>
+  <!-- Firebase v8 (app + auth) -->
+  https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js</script>
+  https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js</script>
+  <!-- Config de Firebase -->
+  ./firebase.js</script>
+  <!-- Lógica principal de Inicio -->
+  ./app.js</script>
 </body>
 </html>
