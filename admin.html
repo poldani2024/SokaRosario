@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,9 +7,9 @@
   <title>Seguimiento Soka Gakkai — Administración</title>
 
   <!-- CSS -->
-<link rel="stylesheet" href="https://poldani2024.github.io/SokaRosario/styles.css" /></link>
-  <meta name="color-scheme" content="light dark" />
+  ./styles.css
 
+  <meta name="color-scheme" content="light dark" />
 </head>
 <body>
   <header>
@@ -24,60 +25,99 @@
       </div>
     </div>
 
-    <!-- Volver a Inicio -->
- 
-<nav style="margin-left:12px;">
-  <a href="index.html" class="menu-link">Inicio</a>
-</nav>
-
+    <!-- Volver a Inicio (link dentro del objeto nav, como te gusta) -->
+    <nav style="margin-left:12px;">
+      index.htmlInicio</a>
+    </nav>
   </header>
 
   <main>
-    <!-- ========================= Admin: Hanes (CRUD) ========================= -->
+   
+<!-- ========================= Admin: Hanes (CRUD) ========================= -->
     <section id="adminHanes" class="panel">
       <h2>Administrar Hanes</h2>
+
       <form id="hanForm">
         <input type="hidden" id="hanId" />
         <div class="grid">
-          <label>Nombre del Han <input type="text" id="hanName" required /></label>
-          <label>Localidad <input type="text" id="hanCity" required /></label>
+          <label>Nombre del Han
+            <input type="text" id="hanName" required />
+          </label>
+
+          <label>Localidad
+            <input type="text" id="hanCity" required />
+          </label>
+
+          <label>Domicilio del Han
+            <input type="text" id="hanAddress" placeholder="Calle y número, piso, etc." />
+          </label>
+
+          <label>Teléfono de contacto
+            <input type="tel" id="hanContactPhone" placeholder="+54 9 ..." />
+          </label>
+
+          <label>Líder del Han (miembro)
+            <select id="hanLeaderSelect"></select>
+          </label>
         </div>
+
         <div class="actions">
           <button type="submit">Guardar Han</button>
+          <button type="button" id="hanClearLeaderBtn" class="secondary">Limpiar líder</button>
           <button type="button" id="hanCancelBtn" class="secondary">Cancelar edición</button>
         </div>
       </form>
+
       <ul id="hanList"></ul>
     </section>
 
     <!-- ========================= Admin: Grupos (CRUD) ========================= -->
     <section id="adminGrupos" class="panel">
       <h2>Grupos de Capacitación</h2>
+
       <form id="grupoForm">
         <input type="hidden" id="grupoId" />
         <div class="grid">
-          <label>Nombre del grupo <input type="text" id="grupoName" required /></label>
+          <label>Nombre del grupo
+            <input type="text" id="grupoName" required />
+          </label>
+
+          <label>Líder del grupo (miembro)
+            <select id="grupoLeaderSelect"></select>
+          </label>
         </div>
+
         <div class="actions">
           <button type="submit">Guardar Grupo</button>
+          <button type="button" id="grupoClearLeaderBtn" class="secondary">Limpiar líder</button>
           <button type="button" id="grupoCancelBtn" class="secondary">Cancelar edición</button>
         </div>
       </form>
+
       <ul id="grupoList"></ul>
     </section>
   </main>
 
-  <footer><small>Hecho con ❤️ — Soka Gakkai Tracker</small></footer>
+  <footer>
+    <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
+  </footer>
 
-  
-  <!-- PapaParse (no imprescindible aquí, pero lo dejamos igual por consistencia) -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <!-- ===== SCRIPTS: TODOS EN FORMATO ...</script> ===== -->
+
+  </main>
+
+  <footer>
+    <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
+  </footer>
+
   <!-- Firebase v8 (app + auth) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <!-- Config de Firebase -->
-  <script src="./firebase.js"></script>
+  https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js</script>
+  https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js</script>
+
+  <!-- Config de Firebase (AUTH ONLY) -->
+  ./firebase.js</script>
+
   <!-- Lógica de Administración -->
-  <script src="./admin.js"></script>
+  ./admin.js</script>
 </body>
 </html>
