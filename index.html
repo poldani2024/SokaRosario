@@ -2,241 +2,225 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
   <title>Seguimiento Soka Gakkai — Inicio</title>
-
-  <!-- CSS -->
-  
- <link rel="stylesheet" href="./styles.css" /></link>
-  <meta name="color-scheme" content="light dark" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Mantener tus CSS y scripts tal como los tenías -->
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Firebase v8 SDKs deben cargarse antes de firebase.js y app.js -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="firebase.js"></script>
 </head>
 <body>
-  <header>
+  <header class="panel">
     <h1>Seguimiento Soka Gakkai</h1>
-    <section id="login-gate" class="panel gate hidden">
-      <h2>Ingresá para continuar</h2>
-      <p>Necesitás iniciar sesión con Google para acceder.</p>
-      <div class="actions">
-        <button id="googleLoginBtn" type="button">Ingresar con Google</button>
-      </div>
-    </section>
-    <div id="auth">
-      <div id="user-info" class="hidden">
+
+    <!-- Bloque de autenticación: botón con ID correcto -->
+    <div id="auth" class="actions">
+      <span id="user-info" class="hidden">
         <span id="user-email"></span>
         <span id="role-badge" class="badge"></span>
-        <button id="logoutBtn">Cerrar sesión</button>
-      </div>
-      <div id="login-form">
-        <button id="googleLoginBtn">Ingresar con Google</button>
-      </div>
+        <button id="logoutBtn" type="button">Cerrar sesión</button>
+      </span>
+
+      <span id="login-form">
+        <button id="googleLoginBtn" type="button">Ingresar con Google</button>
+      </span>
+
+      <nav>
+        <a href="admin.html">Administración</a>
+      </nav>
     </div>
-
-
-
-    <!-- Link a Administración (solo Admin) -->
- 
-<nav id="adminLinkNav" class="admin-only hidden" style="margin-left:12px;">
-  <a href="admin.html" id="adminLink" class="menu-link">Administración</a>
-</nav>
-
-   
   </header>
 
   <main>
-    <!-- ========================= Personas (buscador + grilla) ========================= -->
-    
-<!-- === Personas registradas (filtros + grilla) === -->
-<section class="panel" id="personas">
-  <h3>Personas registradas</h3>
+    <!-- Gate informativo (no bloquea; sólo texto) -->
+    <section class="panel">
+      <h3>Ingresá para continuar</h3>
+      <p>Necesitás iniciar sesión con Google para acceder.</p>
+    </section>
 
-  <div class="grid">
-    <label>Han
-      <select id="filtroHan"></select>
-    </label>
-    <label>Grupo
-      <select id="filtroGrupo"></select>
-    </label>
-    <label>Estado
-      <select id="filtroEstado">
-        <option value="">Todos</option>
-        <option>Miembro</option>
-        <option>Amigo Soka</option>
-        <option>Sakubuku</option>
-      </select>
-    </label>
-    <label>Reuniones semanales
-      <select id="filtroFreqSemanal">
-        <option value="">Todas</option>
-        <option>Frecuentemente</option>
-        <option>Poco</option>
-        <option>Nunca</option>
-      </select>
-    </label>
-    <label>Zadankai
-      <select id="filtroFreqZadankai">
-        <option value="">Todas</option>
-        <option>Frecuentemente</option>
-        <option>Poco</option>
-        <option>Nunca</option>
-      </select>
-    </label>
-    <label>Búsqueda
-      <input id="buscarTexto" type="text" placeholder="Nombre, apellido o email..." />
-    </label>
-  </div>
+    <!-- Personas registradas -->
+    <section class="panel" id="personas">
+      <h3>Personas registradas</h3>
 
-  <div class="actions">
-    <label class="file-label">
-      <input id="importCSV" type="file" accept=".csv" />
-      Importar CSV
-    </label>
-    <button id="exportCSVBtn" class="secondary" type="button">Exportar CSV (filtrado)</button>
+      <div class="grid">
+        <label>Han
+          <select id="filtroHan"></select>
+        </label>
+        <label>Grupo
+          <select id="filtroGrupo"></select>
+        </label>
+        <label>Estado
+          <select id="filtroEstado">
+            <option value="">Todos</option>
+            <option>Miembro</option>
+            <option>Amigo Soka</option>
+            <option>Sakubuku</option>
+          </select>
+        </label>
+        <label>Reuniones semanales
+          <select id="filtroFreqSemanal">
+            <option value="">Todas</option>
+            <option>Frecuentemente</option>
+            <option>Poco</option>
+            <option>Nunca</option>
+          </select>
+        </label>
+        <label>Zadankai
+          <select id="filtroFreqZadankai">
+            <option value="">Todas</option>
+            <option>Frecuentemente</option>
+            <option>Poco</option>
+            <option>Nunca</option>
+          </select>
+        </label>
+        <label>Búsqueda
+          <input id="buscarTexto" type="text" placeholder="Nombre, apellido o email..." />
+        </label>
+      </div>
 
-    <!-- Solo Admin: alta directa -->
-    <button id="newPersonaBtn" class="secondary admin-only" type="button">Nueva persona</button>
-  </div>
+      <div class="actions">
+        <label class="file-label">
+          <input id="importCSV" type="file" accept=".csv" />
+          Importar CSV
+        </label>
+        <button id="exportCSVBtn" class="secondary" type="button">Exportar CSV (filtrado)</button>
+        <button id="newPersonaBtn" class="secondary admin-only" type="button">Nueva persona</button>
+      </div>
 
-  <table id="personasTable">
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Apellido</th>
-        <th>Estado</th>
-        <th>Han</th>
-        <th>Grupo</th>
-        <th>Reuniones semanales</th>
-        <th>Zadankai</th>
-        <th>Humanismo</th>
-        <th>Zaimu</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</section>
+      <table id="personasTable">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Estado</th>
+            <th>Han</th>
+            <th>Grupo</th>
+            <th>Reuniones semanales</th>
+            <th>Zadankai</th>
+            <th>Humanismo</th>
+            <th>Zaimu</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-<!-- === Persona: Alta / Edición === -->
-<section class="panel" id="personaFormPanel">
-  <h3>Persona</h3>
-  <!-- Unificado: mismo form para alta o edición -->
-  <form id="miPerfilForm">
-    <div class="grid">
-      <label>Nombre
-        <input id="firstName" type="text" />
-      </label>
-      <label>Apellido
-        <input id="lastName" type="text" />
-      </label>
-      <label>Fecha de Nacimiento
-        <input id="birthDate" type="date" />
-      </label>
-      <label>Domicilio
-        <input id="address" type="text" />
-      </label>
-      <label>Localidad
-        <input id="city" type="text" />
-      </label>
-      <label>Teléfono
-        <input id="phone" type="tel" />
-      </label>
-      <label>Email
-        <!-- Editable para alta/edición (antes decía solo lectura) -->
-        <input id="email" type="email" />
-      </label>
+    <!-- Persona (alta/edición en un único formulario) -->
+    <section class="panel" id="personaFormPanel">
+      <h3>Persona</h3>
+      <form id="miPerfilForm">
+        <div class="grid">
+          <label>Nombre
+            <input id="firstName" type="text" />
+          </label>
+          <label>Apellido
+            <input id="lastName" type="text" />
+          </label>
+          <label>Fecha de Nacimiento
+            <input id="birthDate" type="date" />
+          </label>
+          <label>Domicilio
+            <input id="address" type="text" />
+          </label>
+          <label>Localidad
+            <input id="city" type="text" />
+          </label>
+          <label>Teléfono
+            <input id="phone" type="tel" />
+          </label>
+          <label>Email
+            <input id="email" type="email" />
+          </label>
 
-      <label>Estado
-        <select id="status">
-          <option>Miembro</option>
-          <option>Amigo Soka</option>
-          <option>Sakubuku</option>
-        </select>
-      </label>
+          <label>Estado
+            <select id="status">
+              <option>Miembro</option>
+              <option>Amigo Soka</option>
+              <option>Sakubuku</option>
+            </select>
+          </label>
 
-      <label>Han
-        <select id="hanSelect"></select>
-      </label>
-      <label>Localidad del Han
-        <input id="hanLocalidad" type="text" readonly />
-      </label>
-      <label>Grupo de capacitación
-        <select id="grupoSelect"></select>
-      </label>
+          <label>Han
+            <select id="hanSelect"></select>
+          </label>
+          <label>Localidad del Han
+            <input id="hanLocalidad" type="text" readonly />
+          </label>
+          <label>Grupo de capacitación
+            <select id="grupoSelect"></select>
+          </label>
 
-      <label>Reuniones semanales
-        <select id="frecuenciaSemanal">
-          <option value="">Seleccionar...</option>
-          <option>Frecuentemente</option>
-          <option>Poco</option>
-          <option>Nunca</option>
-        </select>
-      </label>
-      <label>Zadankai
-        <select id="frecuenciaZadankai">
-          <option value="">Seleccionar...</option>
-          <option>Frecuentemente</option>
-          <option>Poco</option>
-          <option>Nunca</option>
-        </select>
-      </label>
-      <label class="actions">
-        <input id="suscriptoHumanismoSoka" type="checkbox" />
-        Suscripto a Humanismo Soka
-      </label>
-      <label class="actions">
-        <input id="realizaZaimu" type="checkbox" />
-        Realiza Zaimu
-      </label>
-    </div>
+          <label>Reuniones semanales
+            <select id="frecuenciaSemanal">
+              <option value="">Seleccionar...</option>
+              <option>Frecuentemente</option>
+              <option>Poco</option>
+              <option>Nunca</option>
+            </select>
+          </label>
+          <label>Zadankai
+            <select id="frecuenciaZadankai">
+              <option value="">Seleccionar...</option>
+              <option>Frecuentemente</option>
+              <option>Poco</option>
+              <option>Nunca</option>
+            </select>
+          </label>
+          <label class="actions">
+            <input id="suscriptoHumanismoSoka" type="checkbox" /> Suscripto a Humanismo Soka
+          </label>
+          <label class="actions">
+            <input id="realizaZaimu" type="checkbox" /> Realiza Zaimu
+          </label>
+        </div>
 
-    <div class="actions">
-      <button type="submit">Guardar</button>
-      <button type="button" id="personaClearBtn" class="secondary">Limpiar</button>
-    </div>
-  </form>
-</section>
+        <div class="actions">
+          <button type="submit">Guardar</button>
+          <button type="button" id="personaClearBtn" class="secondary">Limpiar</button>
+        </div>
+      </form>
+    </section>
 
-<!-- === Visitas (se mantiene tu sección actual) === -->
-<section class="panel" id="visitas">
-  <h3>Visitas</h3>
+    <!-- Visitas -->
+    <section class="panel" id="visitas">
+      <h3>Visitas</h3>
 
-  <form id="visitaForm">
-    <div class="grid">
-      <label>Persona
-        <select id="visitaPersonaSelect"></select>
-      </label>
-      <label>Fecha de visita
-        <input id="visitaFecha" type="date" />
-      </label>
-      <label>Observaciones
-        <textarea id="visitaObs" rows="3"></textarea>
-      </label>
-    </div>
-    <div class="actions">
-      <button type="submit">Registrar visita</button>
-    </div>
-  </form>
+      <form id="visitaForm">
+        <div class="grid">
+          <label>Persona
+            <select id="visitaPersonaSelect"></select>
+          </label>
+          <label>Fecha de visita
+            <input id="visitaFecha" type="date" />
+          </label>
+          <label>Observaciones
+            <textarea id="visitaObs" rows="3"></textarea>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Registrar visita</button>
+        </div>
+      </form>
 
-  <table id="visitasTable">
-    <thead>
-      <tr><th>Persona</th><th>Fecha</th><th>Observaciones</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</section>
-
+      <table id="visitasTable">
+        <thead>
+          <tr><th>Persona</th><th>Fecha</th><th>Observaciones</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
   </main>
 
-  <footer><small>Hecho con ❤️ — Soka Gakkai Tracker</small></footer>
+  <footer>
+    Hecho con ❤️ — Soka Gakkai Tracker
+  </footer>
 
-  <!-- PapaParse -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <!-- Firebase v8 (app + auth) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <!-- Config de Firebase -->
- <script src="./firebase.js"></script>
-  <!-- Lógica principal de Inicio -->
-  <script src="./app.js"></script>
+  <!-- Mantener tus scripts como estaban -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.5.0/papaparse.min.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
