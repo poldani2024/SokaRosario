@@ -313,17 +313,29 @@ function renderPersonas() {
 
     // Acciones Admin (Editar / Eliminar)
     const actions = tr.querySelector(".actions");
-    if (actions) {
-      const btnEdit = document.createElement("button");
-      btnEdit.textContent = "Editar";
-      btnEdit.dataset.action = "edit-persona"; btnEdit.dataset.id = p.id;
+    
+if (actions) {
+  const btnVis = document.createElement("button");
+  btnVis.textContent = "Visitas";
+  btnVis.dataset.action = "visita-modal";
+  btnVis.dataset.id = p.id;
+  actions.appendChild(btnVis);
 
-      const btnDel  = document.createElement("button");
-      btnDel.textContent = "Eliminar"; btnDel.className = "secondary";
-      btnDel.dataset.action = "delete-persona"; btnDel.dataset.id = p.id;
+  const btnEdit = document.createElement("button");
+  btnEdit.textContent = "Editar";
+  btnEdit.dataset.action = "edit-persona";
+  btnEdit.dataset.id = p.id;
 
-      actions.appendChild(btnEdit); actions.appendChild(btnDel);
-    }
+  const btnDel = document.createElement("button");
+  btnDel.textContent = "Eliminar";
+  btnDel.className = "secondary";
+  btnDel.dataset.action = "delete-persona";
+  btnDel.dataset.id = p.id;
+
+  actions.appendChild(btnEdit);
+  actions.appendChild(btnDel);
+}
+
     tbody.appendChild(tr);
   });
 
@@ -342,6 +354,12 @@ function renderPersonas() {
         saveData();
         renderPersonas();
       }
+      
+      if (action === "visita-modal") {
+        openVisitaModal(p);
+        return;
+      }
+
     });
   });
 
@@ -352,6 +370,39 @@ function renderPersonas() {
     "id","name", true
   );
 }
+
+function openVisitaModal(p) {
+  const m = document.getElementById("visitaModal");
+  if (!m) return;
+  document.getElementById("visitaPersonaId").value = p.id;
+  document.getElementById("visitaPersonaNombre").value = `${p.lastName ?? ""}, ${p.firstName ?? ""}`;
+  document.getElementById("visitaModalFecha").value = new Date().toISOString().slice(0,10);
+  document.getElementById("visitaModalObs").value = "";
+  m.classList.remove("hidden");
+}
+document.getElementById("visitaModalCerrar")?.addEventListener("click", () => {
+  document.getElementById("visitaModal")?.classList.add("hidden");
+});
+
+document.getElementById("visitaModalForm")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const personaId = document.getElementById("visitaPersonaId").value;
+  const fechaStr  = document.getElementById("visitaModalFecha").value;
+  const obs       = document.getElementById("visitaModalObs").value.trim();
+  if (!personaId || !fechaStr) return;
+
+  visitas.push({
+    id: uid(),
+    personaId,
+    fecha: new Date(fechaStr).toISOString(),
+    obs,
+    createdBy: currentUser?.uid ?? "",
+    createdAt: Date.now(),
+  });
+  saveData();
+  renderVisitas();
+  document.getElementById("visitaModal")?.classList.add("hidden");
+});
 
 function populateDatosPersonales(p, { readonly }) {
   $("firstName").value = p.firstName || "";
