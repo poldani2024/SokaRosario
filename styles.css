@@ -1,4 +1,17 @@
 
+/* Modal de visita */
+#visitaModal {
+  position: fixed;
+  inset: 10% auto auto 50%;
+  transform: translateX(-50%);
+  max-width: 720px;
+  z-index: 1000;
+}
+@media (max-width: 760px) {
+  #visitaModal { inset: 4% 2% auto 2%; transform: none; }
+}
+``
+
 /* Gate de autenticación */
 .gate {
   position: relative;
