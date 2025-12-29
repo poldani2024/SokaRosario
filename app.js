@@ -102,7 +102,7 @@ auth.onAuthStateChanged((user) => {
     const email = user.email?.toLowerCase() || "";
     const role = ADMIN_EMAILS.includes(email) ? "Admin" : "Usuario";
     currentRole = role;
-    howLoginGate(false);
+    ShowLoginGate(false);
     localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({
       email, displayName: user.displayName || email, uid: user.uid, role
     }));
