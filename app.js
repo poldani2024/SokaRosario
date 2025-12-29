@@ -131,6 +131,15 @@ auth.onAuthStateChanged((user) => {
   }
 });
 
+/* ===== Hook del botón "Nueva persona" ===== */
+document.getElementById('newPersonaBtn')?.addEventListener('click', () => {
+  editPersonaId = null; // modo alta
+  // limpiamos el formulario de Datos Personales y habilitamos edición (solo Admin)
+  clearDatosPersonales();
+  const readonly = !(currentRole === "Admin");
+  toggleDatosPersonalesReadonly(readonly);
+});
+
 /* ===== Init ===== */
 document.addEventListener("DOMContentLoaded", () => {
   loadData();
@@ -163,6 +172,28 @@ function renderCatalogsToSelects() {
   });
 }
 
+function clearDatosPersonales() {
+  ["firstName","lastName","birthDate","address","city","phone","email"]
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+  ["status","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai"]
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+  ["suscriptoHumanismoSoka","realizaZaimu"]
+    .forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+}
+
+function toggleDatosPersonalesReadonly(readonly) {
+  const fields = [
+    "firstName","lastName","birthDate","address","city","phone","status",
+    "hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai",
+    "suscriptoHumanismoSoka","realizaZaimu"
+  ];
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !!readonly;
+  });
+}
+
 /* ===== Datos Personales (antes Mi Perfil) ===== */
 function loadMiPerfil(uid, email) {
   $("email").value = email;
@@ -170,46 +201,58 @@ function loadMiPerfil(uid, email) {
   if (p) populateDatosPersonales(p, { readonly: false });
 }
 
-$("miPerfilForm")?.addEventListener("submit", (e) => {
+
+document.getElementById("miPerfilForm")?.addEventListener("submit", (e) => {
   e.preventDefault();
-  if (!currentUser) return alert("Ingresá con Google primero.");
+  if (!currentUser && currentRole !== "Admin") {
+    return alert("Ingresá con Google primero.");
+  }
 
-  const hanId   = $("hanSelect").value || "";
-  const hanObj  = hanes.find(h => h.id === hanId);
-  const grupoId = $("grupoSelect").value || "";
-  const grupoObj= grupos.find(g => g.id === grupoId);
+  const hanId = document.getElementById("hanSelect").value ?? "";
+  const hanObj = hanes.find(h => h.id === hanId);
+  const grupoId = document.getElementById("grupoSelect").value ?? "";
+  const grupoObj = grupos.find(g => g.id === grupoId);
 
-  const persona = {
-    id: uid(),
-    firstName: $("firstName").value.trim(),
-    lastName:  $("lastName").value.trim(),
-    birthDate: $("birthDate").value || "",
-    address:   $("address").value.trim(),
-    city:      $("city").value.trim(),
-    phone:     $("phone").value.trim(),
-    email:     $("email").value.trim(),
-    status:    $("status").value || "Miembro",
-
-    hanId,   hanName:  hanObj?.name  || "", hanCity: hanObj?.city  || "",
-    grupoId, grupoName:grupoObj?.name|| "",
-
-    frecuenciaSemanal:  $("frecuenciaSemanal").value  || "",
-    frecuenciaZadankai: $("frecuenciaZadankai").value || "",
-    suscriptoHumanismoSoka: $("suscriptoHumanismoSoka").checked,
-    realizaZaimu:           $("realizaZaimu").checked,
-
-    uid: currentUser.uid,
+  const base = {
+    firstName: document.getElementById("firstName").value.trim(),
+    lastName: document.getElementById("lastName").value.trim(),
+    birthDate: document.getElementById("birthDate").value ?? "",
+    address: document.getElementById("address").value.trim(),
+    city: document.getElementById("city").value.trim(),
+    phone: document.getElementById("phone").value.trim(),
+    email: document.getElementById("email").value.trim(),
+    status: document.getElementById("status").value ?? "Miembro",
+    hanId, hanName: hanObj?.name ?? "", hanCity: hanObj?.city ?? "",
+    grupoId, grupoName: grupoObj?.name ?? "",
+    frecuenciaSemanal: document.getElementById("frecuenciaSemanal").value ?? "",
+    frecuenciaZadankai: document.getElementById("frecuenciaZadankai").value ?? "",
+    suscriptoHumanismoSoka: document.getElementById("suscriptoHumanismoSoka").checked,
+    realizaZaimu: document.getElementById("realizaZaimu").checked,
     updatedAt: Date.now(),
   };
 
-  const idx = personas.findIndex(x => x.uid === currentUser.uid);
-  if (idx >= 0) { persona.id = personas[idx].id; personas[idx] = persona; }
-  else { personas.push(persona); }
+  if (editPersonaId) {
+    // edición
+    const i = personas.findIndex(x => x.id === editPersonaId);
+    if (i >= 0) {
+      personas[i] = { ...personas[i], ...base };
+    }
+  } else {
+    // alta
+    const nueva = {
+      id: uid(),
+      ...base,
+      uid: currentUser?.uid ?? "", // si es admin creando, puede quedar vacío o el mail del formulario
+    };
+    personas.push(nueva);
+    editPersonaId = nueva.id;
+  }
 
   saveData();
   renderPersonas();
-  alert("Datos personales guardados");
+  alert("Persona guardada");
 });
+
 
 /* ===== Personas: filtros + grilla + click -> llenar Datos Personales ===== */
 ["filtroHan","filtroGrupo","filtroEstado","filtroFreqSemanal","filtroFreqZadankai","buscarTexto"]
@@ -259,10 +302,14 @@ function renderPersonas() {
       <td class="acciones-admin"><div class="actions"></div></td>
     `;
     // Click en fila -> llenar Datos Personales (solo lectura si no sos dueño ni admin)
-    tr.addEventListener("click", () => {
-      const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
-      populateDatosPersonales(p, { readonly });
-    });
+     
+      tr.addEventListener("click", () => {
+        editPersonaId = p.id; // estamos editando esta persona
+        const readonly = !(currentRole === "Admin" || (currentUser && p.uid === currentUser.uid));
+        populateDatosPersonales(p, { readonly });
+      });
+
+
 
     // Acciones Admin (Editar / Eliminar)
     const actions = tr.querySelector(".actions");
