@@ -34,7 +34,6 @@ function clearDatosPersonales() {
     .forEach(id => { const el = $(id); if (el) el.value = ""; });
   ["suscriptoHumanismoSoka","realizaZaimu"]
     .forEach(id => { const el = $(id); if (el) el.checked = false; });
-  // localidad del han se autocompleta al cambiar han
   $("hanLocalidad")?.value && ($("hanLocalidad").value = "");
 }
 
@@ -104,16 +103,9 @@ const auth = window.auth;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 const isSafari = /^(?!(chrome|android)).*safari/i.test(navigator.userAgent);
 
-$("googleLoginBtn")?.addEventListener("click", async () => {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    if (isIOS && isSafari) await auth.signInWithRedirect(provider);
-    else await auth.signInWithPopup(provider);
-  } catch (err) {
-    console.error("[auth] signIn error", err);
-    alert("No se pudo iniciar sesión con Google. Probá nuevamente.");
-  }
-});
+// ¡Importante! NO adjuntamos el listener aquí antes del DOM.
+// Lo hacemos dentro de DOMContentLoaded más abajo.
+
 $("logoutBtn")?.addEventListener("click", () => auth.signOut());
 
 auth.onAuthStateChanged((user) => {
@@ -158,6 +150,34 @@ document.addEventListener("DOMContentLoaded", () => {
   const s = JSON.parse(localStorage.getItem(STORAGE_KEYS.session) ?? "null");
   if (s && s.email) { text("user-email", s.email); text("role-badge", s.role); }
 
+  // Listener del botón de login: ahora sí existe en el DOM
+  const loginBtn = document.getElementById("googleLoginBtn");
+  if (loginBtn) {
+    loginBtn.addEventListener("click", async () => {
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        if (isIOS && isSafari) await auth.signInWithRedirect(provider);
+        else await auth.signInWithPopup(provider);
+      } catch (err) {
+        console.error("[auth] signIn error", err);
+        alert("No se pudo iniciar sesión con Google. Probá nuevamente.");
+      }
+    });
+  }
+  // Fallback por si el botón se renderiza dinámicamente luego
+  document.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("#googleLoginBtn");
+    if (!btn) return;
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      if (isIOS && isSafari) await auth.signInWithRedirect(provider);
+      else await auth.signInWithPopup(provider);
+    } catch (err) {
+      console.error("[auth] signIn error", err);
+      alert("No se pudo iniciar sesión con Google. Probá nuevamente.");
+    }
+  });
+
   // Alta rápida (solo Admin)
   $("newPersonaBtn")?.addEventListener("click", () => {
     if (currentRole !== "Admin") return alert("Solo Admin puede crear personas nuevas.");
@@ -171,7 +191,6 @@ document.addEventListener("DOMContentLoaded", () => {
   $("personaClearBtn")?.addEventListener("click", () => {
     editPersonaId = null;
     clearDatosPersonales();
-    // si no sos Admin, bloqueamos edición
     toggleDatosPersonalesReadonly(!(currentRole === "Admin"));
   });
 });
