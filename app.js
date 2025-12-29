@@ -100,7 +100,7 @@ auth.onAuthStateChanged((user) => {
     const email = user.email?.toLowerCase() || "";
     const role = ADMIN_EMAILS.includes(email) ? "Admin" : "Usuario";
     currentRole = role;
-
+    howLoginGate(false);
     localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({
       email, displayName: user.displayName || email, uid: user.uid, role
     }));
@@ -119,6 +119,7 @@ auth.onAuthStateChanged((user) => {
     renderVisitas();
     loadMiPerfil(user.uid, email);
   } else {
+    showLoginGate(true);
     setHidden($("login-form"), false);
     setHidden($("user-info"), true);
     document.body.classList.remove("role-admin", "role-user");
