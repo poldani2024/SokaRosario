@@ -210,3 +210,10 @@ function renderGruposAdmin() {
     ul.appendChild(li);
   });
 }
+
+function showLoginGate(show) {
+  const gate = document.getElementById('login-gate');
+  if (!gate) return;
+  gate.classList.toggle('hidden', !show);
+  gate.classList.toggle('visible', show);
+}
