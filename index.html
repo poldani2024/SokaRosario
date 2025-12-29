@@ -215,6 +215,28 @@
       </form>
     </section>
 
+    <section id="visitaModal" class="panel hidden">
+      <h3>Registrar visita</h3>
+      <form id="visitaModalForm">
+        <input type="hidden" id="visitaPersonaId" />
+        <div class="grid">
+          <label>Persona
+            <input id="visitaPersonaNombre" type="text" readonly />
+          </label>
+          <label>Fecha de visita
+            <input id="visitaModalFecha" type="date" required />
+          </label>
+          <label>Observaciones
+            <textarea id="visitaModalObs" rows="4" placeholder="Notas..."></textarea>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar</button>
+          <button type="button" id="visitaModalCerrar" class="secondary">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
     <!-- ========================= Visitas ========================= -->
     <section class="panel">
       <h2>Visitas</h2>
