@@ -504,3 +504,10 @@ function toBool(v) {
   if (typeof v === "string") return ["true","1","sí","si","yes"].includes(v.trim().toLowerCase());
   return !!v;
 }
+
+function showLoginGate(show) {
+  const gate = document.getElementById('login-gate');
+  if (!gate) return;
+  gate.classList.toggle('hidden', !show);
+  gate.classList.toggle('visible', show);
+}
