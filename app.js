@@ -10,6 +10,8 @@
 let currentUser = null;      // { email, displayName, uid }
 let currentRole = "Usuario"; // "Admin" | "Usuario"
 
+let editPersonaId = null; // null => alta; id => edición de esa persona
+
 let hanes   = [];
 let grupos  = [];
 let personas= [];
