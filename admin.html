@@ -14,14 +14,19 @@
 <body>
   <header>
     <h1>Administración</h1>
+    <section id="login-gate" class="panel gate hidden">
+      <h2>Acceso restringido</h2>
+      <p>Iniciá sesión con Google. Solo administradores podrán ver esta página.</p>
+      <div class="actions">
+        <button id="googleLoginBtn" type="button">Ingresar con Google</button>
+      </div>
+    </section>
+
     <div id="auth">
       <div id="user-info" class="hidden">
         <span id="user-email"></span>
         <span id="role-badge" class="badge"></span>
         <button id="logoutBtn">Cerrar sesión</button>
-      </div>
-      <div id="login-form">
-        <button id="googleLoginBtn">Ingresar con Google</button>
       </div>
     </div>
 
