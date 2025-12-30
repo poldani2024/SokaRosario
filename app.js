@@ -1,4 +1,6 @@
 
+<!-- app (1).js -->
+<script>
 /*******************************************************
  * INICIO — Soka Gakkai + Firebase Auth (Google) + localStorage
  * - Personas: filtros + grilla (click -> llenar Persona)
@@ -28,10 +30,8 @@ const text = (id, value) => { const el = $(id); if (el) el.textContent = value; 
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 function applyRoleVisibility(role) {
-  // body role classes (por si querés estilizar diferente)
   document.body.classList.toggle("role-admin", role === "Admin");
   document.body.classList.toggle("role-user", role !== "Admin");
-  // mostrar/ocultar elementos solo-Admin
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", role !== "Admin"));
 }
 
@@ -113,42 +113,44 @@ const isSafari = /^(?!(chrome|android)).*safari/i.test(navigator.userAgent);
 
 $("logoutBtn")?.addEventListener("click", () => auth.signOut());
 
-auth.onAuthStateChanged((user) => {
-  currentUser = user ?? null;
+// Refactor para actualizar UI con el usuario
+function applySignedInUser(user) {
+  currentUser = user;
+  const email = user.email?.toLowerCase() ?? "";
+  const role = ADMIN_EMAILS.includes(email) ? "Admin" : "Usuario";
+  currentRole = role;
+
+  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({
+    email, displayName: user.displayName ?? email, uid: user.uid, role
+  }));
+
+  text("user-email", email);
+  text("role-badge", role);
+  setHidden($("login-form"), true);
+  setHidden($("user-info"), false);
+  applyRoleVisibility(role);
+
+  renderCatalogsToSelects();
+  renderPersonas();
+  renderVisitas();
+
+  loadMiPerfil(user.uid, email);
+}
+
+function applySignedOut() {
+  currentUser = null;
   currentRole = "Usuario";
+  text("user-email", "");
+  text("role-badge", "");
+  setHidden($("login-form"), false);
+  setHidden($("user-info"), true);
+  applyRoleVisibility("Usuario");
+  localStorage.removeItem(STORAGE_KEYS.session);
+}
 
-  if (user) {
-    const email = user.email?.toLowerCase() ?? "";
-    const role = ADMIN_EMAILS.includes(email) ? "Admin" : "Usuario";
-    currentRole = role;
-
-    localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({
-      email, displayName: user.displayName ?? email, uid: user.uid, role
-    }));
-
-    // Mostrar estado logueado en UI
-    text("user-email", email);
-    text("role-badge", role);
-    setHidden($("login-form"), true);
-    setHidden($("user-info"), false);
-    applyRoleVisibility(role);
-
-    // Render inicial
-    renderCatalogsToSelects();
-    renderPersonas();
-    renderVisitas();
-
-    // Cargar registro del dueño si existe
-    loadMiPerfil(user.uid, email);
-  } else {
-    // Estado deslogueado en UI
-    text("user-email", "");
-    text("role-badge", "");
-    setHidden($("login-form"), false);
-    setHidden($("user-info"), true);
-    applyRoleVisibility("Usuario");
-    localStorage.removeItem(STORAGE_KEYS.session);
-  }
+auth.onAuthStateChanged((user) => {
+  if (user) applySignedInUser(user);
+  else applySignedOut();
 });
 
 /* ===== Init ===== */
@@ -159,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderPersonas();
   renderVisitas();
 
-  // mostrar email/rol si había sesión previa (para no ver vacío antes de onAuthStateChanged)
+  // Render inmediato si había sesión en storage (evita parpadeo)
   const s = JSON.parse(localStorage.getItem(STORAGE_KEYS.session) ?? "null");
   if (s && s.email) {
     text("user-email", s.email);
@@ -169,38 +171,66 @@ document.addEventListener("DOMContentLoaded", () => {
     applyRoleVisibility(s.role);
   }
 
-  // Listener del botón de login: con guard anti-doble click / doble listener
+  // Guard contra dobles llamadas de login
   let isSigningIn = false;
+
+  // Listener del botón de login (UNA sola vez)
   const loginBtn = document.getElementById("googleLoginBtn");
   if (loginBtn) {
     loginBtn.addEventListener("click", async () => {
-      if (isSigningIn) return; // evita doble disparo
+      if (isSigningIn) return;
       isSigningIn = true;
       loginBtn.disabled = true;
 
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
         if (isIOS || isSafari) {
+          // Redirect flow
+          sessionStorage.setItem("soka_signin", "1");
           await auth.signInWithRedirect(provider);
         } else {
+          // Popup flow
           await auth.signInWithPopup(provider);
+          // Si el popup resolvió, onAuthStateChanged disparará applySignedInUser
+          loginBtn.disabled = false;
+          isSigningIn = false;
         }
       } catch (err) {
         console.error("[auth] signIn error", err);
         alert("No se pudo iniciar sesión con Google. Probá nuevamente.");
-        // Rehabilitamos para reintento
         isSigningIn = false;
         loginBtn.disabled = false;
       }
     });
   }
 
+  // Al volver del redirect: consolidar sesión y limpiar flags
+  auth.getRedirectResult()
+    .then((result) => {
+      if (result && result.user) {
+        applySignedInUser(result.user);
+      }
+    })
+    .catch((err) => {
+      console.error("[auth] getRedirectResult error:", err);
+      // Mensajes útiles de proveedor/dominio
+      if (err && err.code) {
+        alert("Error de autenticación: " + err.code);
+      }
+    })
+    .finally(() => {
+      // Limpia el flag de redirect, re-habilita botón
+      sessionStorage.removeItem("soka_signin");
+      if (loginBtn) loginBtn.disabled = false;
+      isSigningIn = false;
+    });
+
   // Alta rápida (solo Admin)
   $("newPersonaBtn")?.addEventListener("click", () => {
     if (currentRole !== "Admin") return alert("Solo Admin puede crear personas nuevas.");
-    editPersonaId = null;           // modo alta
-    clearDatosPersonales();         // limpiar form
-    toggleDatosPersonalesReadonly(false); // habilitar edición
+    editPersonaId = null;
+    clearDatosPersonales();
+    toggleDatosPersonalesReadonly(false);
     $("firstName")?.focus();
   });
 
@@ -214,11 +244,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* ===== Catálogos → Selects ===== */
 function renderCatalogsToSelects() {
-  // Form unificado
   fillSelect($("hanSelect"), hanes, "id", "name", true);
   fillSelect($("grupoSelect"), grupos, "id", "name", true);
 
-  // Filtros
   fillSelect($("filtroHan"), [{ id:"", name:"Todos" }, ...hanes], "id", "name", false);
   fillSelect($("filtroGrupo"), [{ id:"", name:"Todos" }, ...grupos], "id", "name", false);
 
@@ -234,16 +262,14 @@ function loadMiPerfil(uid, email) {
   $("email").value = email;
   const p = personas.find(x => x.uid === uid || x.email === email);
   if (p) {
-    editPersonaId = p.id; // si existe, quedamos en modo edición
+    editPersonaId = p.id;
     populateDatosPersonales(p, { readonly: false });
   } else {
-    // si no hay registro previo, dejamos en alta (según rol)
     editPersonaId = null;
     toggleDatosPersonalesReadonly(!(currentRole === "Admin"));
   }
 }
 
-// Submit unificado: alta/edición
 $("miPerfilForm")?.addEventListener("submit", (e) => {
   e.preventDefault();
   if (!currentUser) return alert("Ingresá con Google primero.");
@@ -271,9 +297,6 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
     updatedAt: Date.now(),
   };
 
-  // Reglas de edición:
-  // - Admin puede editar cualquiera y crear nuevas
-  // - Usuario solo puede editar su propio registro (uid == currentUser.uid)
   if (editPersonaId) {
     const i = personas.findIndex(x => x.id === editPersonaId);
     if (i >= 0) {
@@ -285,7 +308,6 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
     }
   } else {
     if (currentRole !== "Admin") {
-      // Usuarios no-admin no pueden dar de alta otros registros
       return alert("Solo Admin puede crear nuevas personas.");
     }
     const nueva = { id: uid(), ...base, uid: "" }; // alta sin dueño
@@ -346,14 +368,12 @@ function renderPersonas() {
       <td class="acciones-admin"><div class="actions"></div></td>
     `;
 
-    // Click en fila → cargar en el form unificado (editable si admin o dueño)
     tr.addEventListener("click", () => {
       editPersonaId = p.id;
       const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
       populateDatosPersonales(p, { readonly });
     });
 
-    // Acciones (Editar / Eliminar)
     const actions = tr.querySelector(".actions");
     if (actions) {
       const btnEdit = document.createElement("button");
@@ -374,7 +394,6 @@ function renderPersonas() {
     tbody.appendChild(tr);
   });
 
-  // Delegado de botones dentro del tbody (para no pisar el click de fila)
   tbody.querySelectorAll("button").forEach(btn => {
     btn.addEventListener("click", (ev) => {
       ev.stopPropagation();
@@ -396,7 +415,6 @@ function renderPersonas() {
     });
   });
 
-  // Select de Visitas
   fillSelect(
     $("visitaPersonaSelect"),
     personas.map(p => ({ id:p.id, name:`${p.lastName ?? ""}, ${p.firstName ?? ""}` })),
@@ -434,21 +452,18 @@ $("importCSV")?.addEventListener("change", async (e) => {
     complete: (res) => {
       const rows = res.data;
       for (const r of rows) {
-        // Han
         let hanId = "";
         if (r.hanName) {
           let ex = hanes.find(h => h.name === r.hanName && (!r.hanCity || h.city === r.hanCity));
           if (!ex) { ex = { id: uid(), name: r.hanName, city: r.hanCity ?? "" }; hanes.push(ex); }
           hanId = ex.id;
         }
-        // Grupo
         let grupoId = "";
         if (r.grupoName) {
           let exg = grupos.find(g => g.name === r.grupoName);
           if (!exg) { exg = { id: uid(), name: r.grupoName }; grupos.push(exg); }
           grupoId = exg.id;
         }
-        // Persona
         const id = (r.uid && r.uid.trim()) || uid();
         const persona = {
           id,
@@ -534,3 +549,4 @@ function toBool(v) {
   if (typeof v === "string") return ["true","1","sí","si","yes"].includes(v.trim().toLowerCase());
   return !!v;
 }
+</script>
