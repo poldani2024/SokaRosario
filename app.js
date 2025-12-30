@@ -27,6 +27,14 @@ const setHidden = (el, hidden) => { if (!el) return; el.classList.toggle("hidden
 const text = (id, value) => { const el = $(id); if (el) el.textContent = value; };
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+function applyRoleVisibility(role) {
+  // body role classes (por si querés estilizar diferente)
+  document.body.classList.toggle("role-admin", role === "Admin");
+  document.body.classList.toggle("role-user", role !== "Admin");
+  // mostrar/ocultar elementos solo-Admin
+  document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", role !== "Admin"));
+}
+
 function clearDatosPersonales() {
   ["firstName","lastName","birthDate","address","city","phone","email"]
     .forEach(id => { const el = $(id); if (el) el.value = ""; });
@@ -103,7 +111,6 @@ const auth = window.auth;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 const isSafari = /^(?!(chrome|android)).*safari/i.test(navigator.userAgent);
 
-// Importante: solo listener directo al botón (sin delegación global)
 $("logoutBtn")?.addEventListener("click", () => auth.signOut());
 
 auth.onAuthStateChanged((user) => {
@@ -118,20 +125,28 @@ auth.onAuthStateChanged((user) => {
     localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({
       email, displayName: user.displayName ?? email, uid: user.uid, role
     }));
+
+    // Mostrar estado logueado en UI
     text("user-email", email);
     text("role-badge", role);
+    setHidden($("login-form"), true);
+    setHidden($("user-info"), false);
+    applyRoleVisibility(role);
 
     // Render inicial
     renderCatalogsToSelects();
     renderPersonas();
     renderVisitas();
 
-    // Si el dueño tiene registro previo, cargarlo
+    // Cargar registro del dueño si existe
     loadMiPerfil(user.uid, email);
   } else {
-    // limpiar sesión visual
+    // Estado deslogueado en UI
     text("user-email", "");
     text("role-badge", "");
+    setHidden($("login-form"), false);
+    setHidden($("user-info"), true);
+    applyRoleVisibility("Usuario");
     localStorage.removeItem(STORAGE_KEYS.session);
   }
 });
@@ -144,13 +159,18 @@ document.addEventListener("DOMContentLoaded", () => {
   renderPersonas();
   renderVisitas();
 
-  // mostrar email/rol si había sesión previa
+  // mostrar email/rol si había sesión previa (para no ver vacío antes de onAuthStateChanged)
   const s = JSON.parse(localStorage.getItem(STORAGE_KEYS.session) ?? "null");
-  if (s && s.email) { text("user-email", s.email); text("role-badge", s.role); }
+  if (s && s.email) {
+    text("user-email", s.email);
+    text("role-badge", s.role);
+    setHidden($("login-form"), true);
+    setHidden($("user-info"), false);
+    applyRoleVisibility(s.role);
+  }
 
   // Listener del botón de login: con guard anti-doble click / doble listener
   let isSigningIn = false;
-
   const loginBtn = document.getElementById("googleLoginBtn");
   if (loginBtn) {
     loginBtn.addEventListener("click", async () => {
