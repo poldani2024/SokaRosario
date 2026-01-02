@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Grupos — Soka Gakkai Tracker</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>.hidden{display:none!important}.notice{padding:10px;border:1px solid #ddd;border-radius:8px;margin:8px 0}</style>
 </head>
 <body>
   <header>
@@ -14,17 +16,19 @@
       <a href="hanes.html" class="admin-only" style="display:none;">Hanes</a>
     </nav>
   </header>
+
   <section class="auth">
-    <div id="login-form">
+    <div id="login-form" class="notice">
       <p>Acceso restringido. Iniciá sesión con Google.</p>
       <button id="googleLoginBtn">Ingresar con Google</button>
     </div>
-    <div id="user-info" style="display:none;">
+    <div id="user-info" class="hidden">
       <span id="user-email"></span> — <strong id="role-badge"></strong>
       <button id="logoutBtn" style="margin-left:8px;">Cerrar sesión</button>
     </div>
     <div id="admin-notice" class="notice hidden">Esta sección es solo para administradores.</div>
   </section>
+
   <section id="grupos" class="hidden">
     <h2>Grupos de Capacitación</h2>
     <form id="grupoForm">
@@ -36,12 +40,14 @@
       </div>
     </form>
   </section>
+
   <footer>
     <p>Hecho con ❤️ — Soka Gakkai Tracker</p>
   </footer>
+
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="firebase.js"></script>
+  <script src="firebase (1).js"></script>
   <script src="admin.js"></script>
 </body>
 </html>
