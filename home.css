@@ -1,4 +1,4 @@
-/* home.css — estilos del menú loto sin tocar styles.css */
+/* home.css — estilos del menú loto */
 :root {
   --bg: #f9fafb;
   --text: #333;
@@ -33,12 +33,6 @@ html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); f
 .card-link { display: block; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; color: var(--text); }
 .card-link:hover { border-color: #cbd5e1; }
 
-/* Responsive: en pantallas chicas, el SVG se mantiene y las tarjetas pasan a 1 columna */
-@media (max-width: 640px) {
-  .cards { grid-template-columns: 1fr; }
-}
+@media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
 
 .ftr { text-align: center; padding: 16px; color: var(--muted); }
-
-/* Admin-only visibility (se ajusta via JS) */
-.admin-only, .admin-only-link { display: none; }

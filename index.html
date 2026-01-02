@@ -29,7 +29,7 @@
 
   <!-- Flor de loto (SVG) -->
   <main class="lotus-wrap" aria-label="Menú principal">
-    <svg class="lotus" viewBox="0 0 400 400" role="group" aria-label="Flor de loto con opciones de menú">
+    <svg class="lotus" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Flor de loto con opciones de menú">
       <defs>
         <radialGradient id="petalGrad" cx="50%" cy="40%" r="70%">
           <stop offset="0%" stop-color="#d9f0ff" />
@@ -52,25 +52,25 @@
       </defs>
 
       <!-- Pétalo 1: Registro de Personas -->
-      <a xlink:href="app.html#personas" aria-label="Registro de Personas">
+      app.html#personas" aria-label="Registro de Personas">
         <path class="petal" d="M200,60 C240,80 270,130 200,180 C130,130 160,80 200,60 Z" fill="url(#petalGrad)" filter="url(#shadow)" />
         <text x="200" y="120" class="petal-label" aria-hidden="true">Personas</text>
       </a>
 
       <!-- Pétalo 2: Visitas -->
-      <a xlink:href="app.html#visitas" aria-label="Visitas">
+      app.html#visitas" aria-label="Visitas">
         <path class="petal" d="M340,200 C320,240 270,270 220,200 C270,130 320,160 340,200 Z" fill="url(#petalGrad2)" filter="url(#shadow)" />
         <text x="290" y="210" class="petal-label" aria-hidden="true">Visitas</text>
       </a>
 
       <!-- Pétalo 3: Administración de Hanes (Admin) -->
-      <a xlink:href="admin.html#hanes" aria-label="Administración de Hanes" class="admin-only-link">
+      admin.html#hanes" aria-label="Administración de Hanes" class="admin-only-link" style="display:none;">
         <path class="petal" d="M200,340 C160,320 130,270 200,220 C270,270 240,320 200,340 Z" fill="url(#petalGrad)" filter="url(#shadow)" />
         <text x="200" y="300" class="petal-label" aria-hidden="true">Hanes</text>
       </a>
 
       <!-- Pétalo 4: Grupos de Capacitación (Admin) -->
-      <a xlink:href="admin.html#grupos" aria-label="Grupos de Capacitación" class="admin-only-link">
+      admin.html#grupos" aria-label="Grupos de Capacitación" class="admin-only-link" style="display:none;">
         <path class="petal" d="M60,200 C80,160 130,130 180,200 C130,270 80,240 60,200 Z" fill="url(#petalGrad2)" filter="url(#shadow)" />
         <text x="110" y="210" class="petal-label" aria-hidden="true">Grupos</text>
       </a>
@@ -82,10 +82,10 @@
 
     <!-- Fallback móvil / accesible -->
     <div class="cards" aria-label="Opciones de menú (lista)">
-      <a class="card-link" href="app.html#personas">Registro de Personas</a>
-      <a class="card-link" href="app.html#visitas">Visitas</a>
-      <a class="card-link admin-only-link" href="admin.html#hanes">Administración de Hanes</a>
-      <a class="card-link admin-only-link" href="admin.html#grupos">Grupos de Capacitación</a>
+      app.html#personas">Registro de Personas</a>
+      app.html#visitas">Visitas</a>
+      admin.html#hanes" class="admin-only-link" style="display:none;">Administración de Hanes</a>
+      admin.html#grupos" class="admin-only-link" style="display:none;">Grupos de Capacitación</a>
     </div>
   </main>
 
@@ -96,7 +96,7 @@
   <!-- SDK Firebase v8: orden requerido -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="firebase.js"></script>
+  <script src="firebase (1).js"></script>
   <script src="home.js"></script>
 </body>
 </html>

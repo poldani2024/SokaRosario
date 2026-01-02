@@ -9,30 +9,44 @@
     const roleBadge = $('role-badge');
     const loginBtn  = $('googleLoginBtn');
     const logoutBtn = $('logoutBtn');
-    const adminLink = document.getElementById('adminLink');
 
     // Consolidar redirect si aplica
     auth.getRedirectResult().catch(() => {});
 
-    // Estado
-    auth.onAuthStateChanged((user) => {
+    auth.onAuthStateChanged(async (user) => {
       if (user) {
         const email = (user.email||'').toLowerCase();
-        const isAdmin = email === 'pedro.l.oldani@gmail.com';
+        const ADMINS = new Set(['pedro.l.oldani@gmail.com', 'pedro.loldani@gmail.com']);
+        let isAdmin = ADMINS.has(email);
+        try {
+          const token = await user.getIdTokenResult();
+          if (token?.claims?.admin === true) isAdmin = true;
+        } catch {}
+
         emailSpan.textContent = email;
         roleBadge.textContent = isAdmin ? 'Admin' : 'Usuario';
         loginForm.style.display = 'none';
         userInfo.style.display  = 'flex';
-        // Mostrar opciones admin
-        document.querySelectorAll('.admin-only, .admin-only-link').forEach(el => el.style.display = isAdmin ? '' : 'none');
+
+        // Mostrar/ocultar pétalos admin de forma robusta
+        const adminEls = document.querySelectorAll('.admin-only-link');
+        adminEls.forEach(el => {
+          if (isAdmin) {
+            el.classList.remove('admin-only-link');
+            el.removeAttribute('style'); // quita display:none
+            el.style.display = 'inline';
+          } else {
+            el.classList.add('admin-only-link');
+            el.style.display = 'none';
+          }
+        });
       } else {
         loginForm.style.display = 'flex';
         userInfo.style.display  = 'none';
-        document.querySelectorAll('.admin-only, .admin-only-link').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.admin-only-link').forEach(el => el.style.display = 'none');
       }
     });
 
-    // Login
     if (loginBtn) {
       loginBtn.addEventListener('click', async () => {
         const provider = new firebase.auth.GoogleAuthProvider();
@@ -46,11 +60,8 @@
       });
     }
 
-    // Logout
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', async () => {
-        await auth.signOut();
-      });
+      logoutBtn.addEventListener('click', async () => { await auth.signOut(); });
     }
   });
 })();
