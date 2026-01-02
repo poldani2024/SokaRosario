@@ -107,7 +107,7 @@ function ensureSeedData() {
 }
 
 /* ===== Auth (Firebase v8) ===== */
-const auth = window.auth;
+//const auth = window.auth;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 const isSafari = /^(?!(chrome|android)).*safari/i.test(navigator.userAgent);
 
