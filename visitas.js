@@ -1,10 +1,10 @@
-// visitas.js — usa window.auth y localStorage de app (2).js
+
+// visitas.js — usa window.auth y localStorage
 (function(){
   const $ = (id) => document.getElementById(id);
   const show = (el) => { if (el) el.style.display = ''; };
   const hide = (el) => { if (el) el.style.display = 'none'; };
 
-  // Claves compartidas con app (2).js
   const STORAGE_KEYS = { personas: 'soka_personas', visitas: 'soka_visitas' };
 
   function loadPersonas() {
@@ -23,10 +23,14 @@
     if (!selectEl) return;
     const current = selectEl.value;
     selectEl.innerHTML = '';
-    const empty = document.createElement('option'); empty.value=''; empty.textContent='Seleccionar...'; selectEl.appendChild(empty);
+    const empty = document.createElement('option');
+    empty.value=''; empty.textContent='Seleccionar...';
+    selectEl.appendChild(empty);
     items.forEach(p => {
       const opt = document.createElement('option');
-      opt.value = p.id; opt.textContent = `${p.lastName || ''}, ${p.firstName || ''}`; selectEl.appendChild(opt);
+      opt.value = p.id;
+      opt.textContent = `${p.lastName || ''}, ${p.firstName || ''}`;
+      selectEl.appendChild(opt);
     });
     if ([...selectEl.options].some(o => o.value === current)) selectEl.value = current;
   }
@@ -60,7 +64,8 @@
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         const email = (user.email||'').toLowerCase();
-        emailSpan.textContent = email; roleBadge.textContent = 'Usuario';
+        emailSpan.textContent = email;
+        roleBadge.textContent = 'Usuario';
         hide(loginForm); show(userInfo);
         renderVisitas();
       } else {
@@ -79,7 +84,6 @@
 
     if (logoutBtn) { logoutBtn.addEventListener('click', async () => { await auth.signOut(); }); }
 
-    // Alta de visitas
     const form = $('visitaForm');
     if (form) {
       form.addEventListener('submit', (e) => {
