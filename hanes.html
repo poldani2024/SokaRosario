@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hanes — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Administración de Hanes</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="grupos.html" class="admin-only" style="display:none;">Grupos</a>
+    </nav>
+  </header>
+  <section class="auth">
+    <div id="login-form">
+      <p>Acceso restringido. Iniciá sesión con Google.</p>
+      <button id="googleLoginBtn">Ingresar con Google</button>
+    </div>
+    <div id="user-info" style="display:none;">
+      <span id="user-email"></span> — <strong id="role-badge"></strong>
+      <button id="logoutBtn" style="margin-left:8px;">Cerrar sesión</button>
+    </div>
+    <div id="admin-notice" class="notice hidden">Esta sección es solo para administradores.</div>
+  </section>
+  <section id="hanes" class="hidden">
+    <h2>Administrar Hanes</h2>
+    <form id="hanForm">
+      <label>Nombre del Han <input id="hanName" type="text" /></label>
+      <label>Localidad <input id="hanCity" type="text" /></label>
+      <label>Domicilio del Han <input id="hanAddress" type="text" /></label>
+      <label>Teléfono de contacto <input id="hanPhone" type="tel" /></label>
+      <label>Líder del Han (miembro) <input id="hanLeader" type="text" /></label>
+      <div class="actions">
+        <button type="submit">Guardar Han</button>
+        <button type="button" id="hanClearBtn">Cancelar edición</button>
+      </div>
+    </form>
+  </section>
+  <footer>
+    <p>Hecho con ❤️ — Soka Gakkai Tracker</p>
+  </footer>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="firebase (1).js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Personas — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Registro de Personas</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="visitas.html">Visitas</a>
+      <a href="hanes.html" class="admin-only" style="display:none;">Hanes</a>
+      <a href="grupos.html" class="admin-only" style="display:none;">Grupos</a>
+    </nav>
+  </header>
+  <section class="auth">
+    <div id="login-form">
+      <p>Necesitás iniciar sesión con Google para acceder.</p>
+      <button id="googleLoginBtn">Ingresar con Google</button>
+    </div>
+    <div id="user-info" style="display:none;">
+      <span id="user-email"></span> — <strong id="role-badge"></strong>
+      <button id="logoutBtn" class="admin-only" style="margin-left:8px;">Cerrar sesión</button>
+    </div>
+  </section>
+  <section id="personas">
+    <h2>Personas registradas</h2>
+    <div class="filters">
+      <label>Han <select id="filtroHan"></select></label>
+      <label>Grupo <select id="filtroGrupo"></select></label>
+      <label>Estado
+        <select id="filtroEstado">
+          <option value="">Todos</option>
+          <option>Miembro</option>
+          <option>Amigo Soka</option>
+          <option>Sakubuku</option>
+        </select>
+      </label>
+      <label>Reuniones semanales
+        <select id="filtroFreqSemanal">
+          <option value="">Todas</option>
+          <option>Frecuentemente</option>
+          <option>Poco</option>
+          <option>Nunca</option>
+        </select>
+      </label>
+      <label>Zadankai
+        <select id="filtroFreqZadankai">
+          <option value="">Todas</option>
+          <option>Frecuentemente</option>
+          <option>Poco</option>
+          <option>Nunca</option>
+        </select>
+      </label>
+      <label>Búsqueda <input id="buscarTexto" type="text" placeholder="Nombre, Apellido o Email" /></label>
+    </div>
+    <div class="actions">
+      <input id="importCSV" type="file" accept=".csv" style="display:none;" />
+      <button id="exportCSVBtn">Exportar CSV (filtrado)</button>
+      <button id="newPersonaBtn" class="admin-only" style="display:none;">Nueva persona</button>
+    </div>
+    <table id="personasTable">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Apellido</th>
+          <th>Estado</th>
+          <th>Han</th>
+          <th>Grupo</th>
+          <th>Reuniones semanales</th>
+          <th>Zadankai</th>
+          <th>Humanismo</th>
+          <th>Zaimu</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Persona</h2>
+    <form id="miPerfilForm">
+      <div class="grid">
+        <label>Nombre <input id="firstName" type="text" /></label>
+        <label>Apellido <input id="lastName" type="text" /></label>
+        <label>Fecha de Nacimiento <input id="birthDate" type="date" /></label>
+        <label>Domicilio <input id="address" type="text" /></label>
+        <label>Localidad <input id="city" type="text" /></label>
+        <label>Teléfono <input id="phone" type="tel" /></label>
+        <label>Email <input id="email" type="email" /></label>
+        <label>Estado
+          <select id="status">
+            <option>Miembro</option>
+            <option>Amigo Soka</option>
+            <option>Sakubuku</option>
+          </select>
+        </label>
+        <label>Han <select id="hanSelect"></select></label>
+        <label>Localidad del Han <input id="hanLocalidad" type="text" /></label>
+        <label>Grupo de capacitación <select id="grupoSelect"></select></label>
+        <label>Reuniones semanales
+          <select id="frecuenciaSemanal">
+            <option value="">Seleccionar...</option>
+            <option>Frecuentemente</option>
+            <option>Poco</option>
+            <option>Nunca</option>
+          </select>
+        </label>
+        <label>Zadankai
+          <select id="frecuenciaZadankai">
+            <option value="">Seleccionar...</option>
+            <option>Frecuentemente</option>
+            <option>Poco</option>
+            <option>Nunca</option>
+          </select>
+        </label>
+        <label><input id="suscriptoHumanismoSoka" type="checkbox" /> Suscripto a Humanismo Soka</label>
+        <label><input id="realizaZaimu" type="checkbox" /> Realiza Zaimu</label>
+      </div>
+      <div class="actions">
+        <button type="submit">Guardar</button>
+        <button type="button" id="personaClearBtn">Limpiar</button>
+      </div>
+    </form>
+  </section>
+  <footer>
+    <p>Hecho con ❤️ — Soka Gakkai Tracker</p>
+  </footer>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="firebase (1).js"></script>
+  <script src="app (2).js"></script>
+</body>
+</html>
