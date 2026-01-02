@@ -1,6 +1,6 @@
 
 <!-- app (1).js -->
-<script>
+
 /*******************************************************
  * INICIO — Soka Gakkai + Firebase Auth (Google) + localStorage
  * - Personas: filtros + grilla (click -> llenar Persona)
@@ -549,4 +549,4 @@ function toBool(v) {
   if (typeof v === "string") return ["true","1","sí","si","yes"].includes(v.trim().toLowerCase());
   return !!v;
 }
-</script>
+
