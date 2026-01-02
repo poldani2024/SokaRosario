@@ -1,4 +1,5 @@
-// admin.js — mostrar header de sesión y gating de admin
+
+// admin.js — header de sesión y gating admin
 (function(){
   const $ = (id) => document.getElementById(id);
   const show = (el) => { if (el) el.classList.remove('hidden'); };
@@ -15,7 +16,6 @@
     const secHanes = $('hanes');
     const secGrupos = $('grupos');
 
-    // Consolidar redirect si aplica
     auth.getRedirectResult().catch(() => {});
 
     auth.onAuthStateChanged(async (user) => {
@@ -35,19 +35,19 @@
 
         if (isAdmin) {
           hide(adminNotice);
-          show(secHanes);
-          show(secGrupos);
+          if (secHanes)  show(secHanes);
+          if (secGrupos) show(secGrupos);
         } else {
           show(adminNotice);
-          hide(secHanes);
-          hide(secGrupos);
+          if (secHanes)  hide(secHanes);
+          if (secGrupos) hide(secGrupos);
         }
       } else {
         show(loginForm);
         hide(userInfo);
         show(adminNotice);
-        hide(secHanes);
-        hide(secGrupos);
+        if (secHanes)  hide(secHanes);
+        if (secGrupos) hide(secGrupos);
       }
     });
 
