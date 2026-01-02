@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -10,7 +11,10 @@
   <header class="hdr">
     <h1 class="app-title">Seguimiento Soka Gakkai</h1>
     <nav class="top-links">
-      <a href="admin.html" class="admin-only" id="adminLink" style="display:none;">Administración</a>
+      <a href="personas.html">Personas</a>
+      <a href="visitas.html">Visitas</a>
+      <a href="hanes.html" class="admin-only-link" style="display:none;">Hanes</a>
+      <a href="grupos.html" class="admin-only-link" style="display:none;">Grupos</a>
     </nav>
   </header>
 
@@ -49,47 +53,40 @@
         </filter>
       </defs>
 
-      
-      <!-- Pétalo 1: Registro de Personas -->
-      personas.html" aria-label="Registro de Personas">
-        <path class="petal" d="M200,60 C240,80 270,130 200,180 C130,130 160,80 200,60 Z"
-              fill="url(#petalGrad)" filter="url(#shadow)" />
+      <!-- Pétalo 1: Personas -->
+      <a href="personas.html" aria-label="Registro de Personas">
+        <path class="petal" d="M200,60 C240,80 270,130 200,180 C130,130 160,80 200,60 Z" fill="url(#petalGrad)" filter="url(#shadow)" />
         <text x="200" y="120" class="petal-label" aria-hidden="true">Personas</text>
       </a>
-      
+
       <!-- Pétalo 2: Visitas -->
-      visitas.html" aria-label="Visitas">
-        <path class="petal" d="M340,200 C320,240 270,270 220,200 C270,130 320,160 340,200 Z"
-              fill="url(#petalGrad2)" filter="url(#shadow)" />
+      <a href="visitas.html" aria-label="Visitas">
+        <path class="petal" d="M340,200 C320,240 270,270 220,200 C270,130 320,160 340,200 Z" fill="url(#petalGrad2)" filter="url(#shadow)" />
         <text x="290" y="210" class="petal-label" aria-hidden="true">Visitas</text>
       </a>
-      
-      <!-- Pétalo 3: Administración de Hanes (Admin) -->
-      hanes.html" aria-label="Administración de Hanes" class="admin-only-link" style="display:none;">
-        <path class="petal" d="M200,340 C160,320 130,270 200,220 C270,270 240,320 200,340 Z"
-              fill="url(#petalGrad)" filter="url(#shadow)" />
+
+      <!-- Pétalo 3: Hanes (Admin) -->
+      <a href="hanes.html" aria-label="Administración de Hanes" class="admin-only-link" style="display:none;">
+        <path class="petal" d="M200,340 C160,320 130,270 200,220 C270,270 240,320 200,340 Z" fill="url(#petalGrad)" filter="url(#shadow)" />
         <text x="200" y="300" class="petal-label" aria-hidden="true">Hanes</text>
       </a>
-      
-      <!-- Pétalo 4: Grupos de Capacitación (Admin) -->
-      grupos.html" aria-label="Grupos de Capacitación" class="admin-only-link" style="display:none;">
-        <path class="petal" d="M60,200 C80,160 130,130 180,200 C130,270 80,240 60,200 Z"
-              fill="url(#petalGrad2)" filter="url(#shadow)" />
+
+      <!-- Pétalo 4: Grupos (Admin) -->
+      <a href="grupos.html" aria-label="Grupos de Capacitación" class="admin-only-link" style="display:none;">
+        <path class="petal" d="M60,200 C80,160 130,130 180,200 C130,270 80,240 60,200 Z" fill="url(#petalGrad2)" filter="url(#shadow)" />
         <text x="110" y="210" class="petal-label" aria-hidden="true">Grupos</text>
       </a>
-
 
       <!-- Centro -->
       <circle cx="200" cy="200" r="40" fill="url(#centerGrad)" />
       <text x="200" y="206" class="center-label" aria-hidden="true">Menú</text>
     </svg>
 
-    <!-- Fallback móvil / accesible: enlaces limpios -->
     <div class="cards" aria-label="Opciones de menú (lista)">
-      <a class="card-link" href="app.html#personas">Registro de Personas</a>
-      <a class="card-link" href="app.html#visitas">Visitas</a>
-      <a class="card-link admin-only-link" href="admin.html#hanes" style="display:none;">Administración de Hanes</a>
-      <a class="card-link admin-only-link" href="admin.html#grupos" style="display:none;">Grupos de Capacitación</a>
+      <a class="card-link" href="personas.html">Registro de Personas</a>
+      <a class="card-link" href="visitas.html">Visitas</a>
+      <a class="card-link admin-only-link" href="hanes.html" style="display:none;">Administración de Hanes</a>
+      <a class="card-link admin-only-link" href="grupos.html" style="display:none;">Grupos de Capacitación</a>
     </div>
   </main>
 
