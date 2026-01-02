@@ -1,128 +1,75 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Seguimiento Soka Gakkai — Administración</title>
-
-  <!-- CSS -->
-    <link rel="stylesheet" href="./styles.css" />
-
-  <meta name="color-scheme" content="light dark" />
+  <title>Administración — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Fallback para ocultar secciones hasta que cargue el estado */
+    .hidden { display: none !important; }
+    .notice { padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin: 8px 0; }
+  </style>
 </head>
 <body>
   <header>
-    <h1>Administración</h1>
-    <section id="login-gate" class="panel gate hidden">
-      <h2>Acceso restringido</h2>
-      <p>Iniciá sesión con Google. Solo administradores podrán ver esta página.</p>
-      <div class="actions">
-        <button id="googleLoginBtn" type="button">Ingresar con Google</button>
-      </div>
-    </section>
-
-    <div id="auth">
-      <div id="user-info" class="hidden">
-        <span id="user-email"></span>
-        <span id="role-badge" class="badge"></span>
-        <button id="logoutBtn">Cerrar sesión</button>
-      </div>
-    </div>
-
-    <!-- Volver a Inicio (link dentro del objeto nav, como te gusta) -->
-    <nav style="margin-left:12px;">      
-      <a href="index.html" id="adminLink" class="menu-link">Inicio</a>
+    <h1>Seguimiento Soka Gakkai — Administración</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
     </nav>
-    
-  </nav>
   </header>
 
-  <main>
-   
-<!-- ========================= Admin: Hanes (CRUD) ========================= -->
-    <section id="adminHanes" class="panel">
-      <h2>Administrar Hanes</h2>
+  <!-- Bloque de autenticación con los mismos IDs que usa el resto de la app -->
+  <section class="auth">
+    <div id="login-form" class="notice">
+      <p>Acceso restringido. Iniciá sesión con Google.</p>
+      <button id="googleLoginBtn">Ingresar con Google</button>
+    </div>
+    <div id="user-info" class="hidden">
+      <span id="user-email"></span> — <strong id="role-badge"></strong>
+      <button id="logoutBtn" style="margin-left:8px;">Cerrar sesión</button>
+    </div>
+    <div id="admin-notice" class="notice hidden">Esta sección es solo para administradores.</div>
+  </section>
 
-      <form id="hanForm">
-        <input type="hidden" id="hanId" />
-        <div class="grid">
-          <label>Nombre del Han
-            <input type="text" id="hanName" required />
-          </label>
+  <!-- Administración de Hanes -->
+  <section id="hanes" class="hidden">
+    <h2>Administrar Hanes</h2>
+    <form id="hanForm">
+      <label>Nombre del Han <input id="hanName" type="text" /></label>
+      <label>Localidad <input id="hanCity" type="text" /></label>
+      <label>Domicilio del Han <input id="hanAddress" type="text" /></label>
+      <label>Teléfono de contacto <input id="hanPhone" type="tel" /></label>
+      <label>Líder del Han (miembro) <input id="hanLeader" type="text" /></label>
+      <div class="actions">
+        <button type="submit">Guardar Han</button>
+        <button type="button" id="hanClearBtn">Cancelar edición</button>
+      </div>
+    </form>
+  </section>
 
-          <label>Localidad
-            <input type="text" id="hanCity" required />
-          </label>
-
-          <label>Domicilio del Han
-            <input type="text" id="hanAddress" placeholder="Calle y número, piso, etc." />
-          </label>
-
-          <label>Teléfono de contacto
-            <input type="tel" id="hanContactPhone" placeholder="+54 9 ..." />
-          </label>
-
-          <label>Líder del Han (miembro)
-            <select id="hanLeaderSelect"></select>
-          </label>
-        </div>
-
-        <div class="actions">
-          <button type="submit">Guardar Han</button>
-          <button type="button" id="hanClearLeaderBtn" class="secondary">Limpiar líder</button>
-          <button type="button" id="hanCancelBtn" class="secondary">Cancelar edición</button>
-        </div>
-      </form>
-
-      <ul id="hanList"></ul>
-    </section>
-
-    <!-- ========================= Admin: Grupos (CRUD) ========================= -->
-    <section id="adminGrupos" class="panel">
-      <h2>Grupos de Capacitación</h2>
-
-      <form id="grupoForm">
-        <input type="hidden" id="grupoId" />
-        <div class="grid">
-          <label>Nombre del grupo
-            <input type="text" id="grupoName" required />
-          </label>
-
-          <label>Líder del grupo (miembro)
-            <select id="grupoLeaderSelect"></select>
-          </label>
-        </div>
-
-        <div class="actions">
-          <button type="submit">Guardar Grupo</button>
-          <button type="button" id="grupoClearLeaderBtn" class="secondary">Limpiar líder</button>
-          <button type="button" id="grupoCancelBtn" class="secondary">Cancelar edición</button>
-        </div>
-      </form>
-
-      <ul id="grupoList"></ul>
-    </section>
-  </main>
+  <!-- Grupos de Capacitación -->
+  <section id="grupos" class="hidden">
+    <h2>Grupos de Capacitación</h2>
+    <form id="grupoForm">
+      <label>Nombre del grupo <input id="grupoName" type="text" /></label>
+      <label>Líder del grupo (miembro) <input id="grupoLeader" type="text" /></label>
+      <div class="actions">
+        <button type="submit">Guardar Grupo</button>
+        <button type="button" id="grupoClearBtn">Cancelar edición</button>
+      </div>
+    </form>
+  </section>
 
   <footer>
-    <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
+    <p>Hecho con ❤️ — Soka Gakkai Tracker</p>
   </footer>
 
-  <!-- ===== SCRIPTS: TODOS EN FORMATO ...</script> ===== -->
-
-  </main>
-  
-  <!-- Firebase v8 (app + auth) -->
-  <script scr="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script scr="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
-  <!-- Config de Firebase (AUTH ONLY) -->
-  <script scr="./firebase.js"></script>
-
-  <!-- Lógica de Administración -->
-  <script scr="./admin.js"></script>
-    <!-- Config de Firebase -->
- <script src=" ./firebase.js"></script>
+  <!-- SDK Firebase v8 (orden: app -> auth) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="firebase (1).js"></script>
+  <!-- JS para estado de sesión y gating admin -->
+  <script src="admin.js"></script>
 </body>
 </html>
