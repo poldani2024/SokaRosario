@@ -1,98 +1,552 @@
-// app (2).js — usa 'auth' global definido en firebase (1).js
 
-// Helpers mínimos de UI
-const $ = (id) => document.getElementById(id);
-const setHidden = (el, hidden) => { if (!el) return; el.classList.toggle('hidden', !!hidden); };
-const text = (id, value) => { const el = $(id); if (el) el.textContent = value; };
+<!-- app (1).js -->
 
-// Estado
+/*******************************************************
+ * INICIO — Soka Gakkai + Firebase Auth (Google) + localStorage
+ * - Personas: filtros + grilla (click -> llenar Persona)
+ * - Persona (unificado: alta/edición en el mismo form)
+ * - Visitas: registro y listado
+ *******************************************************/
+
+/* ===== Estado ===== */
 let currentUser = null; // { email, displayName, uid }
-let currentRole = 'Usuario';
+let currentRole = "Usuario"; // "Admin" | "Usuario"
+let hanes = [];
+let grupos = [];
+let personas= [];
+let visitas = [];
+let editPersonaId = null; // null => alta; id => edición
 
-// Admins
-const ADMIN_EMAILS = ['pedro.l.oldani@gmail.com'];
+const ADMIN_EMAILS = ["pedro.l.oldani@gmail.com"];
+const STORAGE_KEYS = {
+  hanes:"soka_hanes", grupos:"soka_grupos", personas:"soka_personas",
+  visitas:"soka_visitas", session:"soka_session"
+};
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  const loginBtn = $('googleLoginBtn');
-  const logoutBtn = $('logoutBtn');
+/* ===== Helpers ===== */
+const $ = (id) => document.getElementById(id);
+const setHidden = (el, hidden) => { if (!el) return; el.classList.toggle("hidden", hidden); };
+const text = (id, value) => { const el = $(id); if (el) el.textContent = value; };
+const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-  // Consolidar resultado de redirect si aplica
-  auth.getRedirectResult()
-    .then(res => {
-      console.log('[Auth] getRedirectResult user?', !!res.user);
-      if (res.user) applySignedInUser(res.user);
-      if (loginBtn) loginBtn.disabled = false;
-    })
-    .catch(err => {
-      console.warn('[Auth] getRedirectResult ERROR:', err?.code || err?.message || err);
-      if (loginBtn) loginBtn.disabled = false;
-    });
+function applyRoleVisibility(role) {
+  document.body.classList.toggle("role-admin", role === "Admin");
+  document.body.classList.toggle("role-user", role !== "Admin");
+  document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", role !== "Admin"));
+}
 
-  // Listener de estado global
-  auth.onAuthStateChanged((user) => {
-    console.log('[Auth] onAuthStateChanged fired. user:', !!user);
-    if (user) applySignedInUser(user); else applySignedOut();
+function clearDatosPersonales() {
+  ["firstName","lastName","birthDate","address","city","phone","email"]
+    .forEach(id => { const el = $(id); if (el) el.value = ""; });
+  ["status","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai"]
+    .forEach(id => { const el = $(id); if (el) el.value = ""; });
+  ["suscriptoHumanismoSoka","realizaZaimu"]
+    .forEach(id => { const el = $(id); if (el) el.checked = false; });
+  $("hanLocalidad")?.value && ($("hanLocalidad").value = "");
+}
+
+function toggleDatosPersonalesReadonly(readonly) {
+  const fields = [
+    "firstName","lastName","birthDate","address","city","phone","email","status",
+    "hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai",
+    "suscriptoHumanismoSoka","realizaZaimu"
+  ];
+  fields.forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.disabled = !!readonly;
   });
+}
 
-  // Botón login
-  if (loginBtn) {
-    let isSigningIn = false;
-    loginBtn.addEventListener('click', async () => {
-      if (isSigningIn) return;
-      isSigningIn = true;
-      loginBtn.disabled = true;
-
-      const provider = new firebase.auth.GoogleAuthProvider();
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-      try {
-        console.log('[Auth] Iniciando login via', isSafari ? 'redirect' : 'popup');
-        if (isSafari) {
-          await auth.signInWithRedirect(provider);
-        } else {
-          const res = await auth.signInWithPopup(provider);
-          console.log('[Auth] Popup OK:', res.user?.email);
-        }
-      } catch (e) {
-        console.error('[Auth] Login error:', e);
-        alert('No se pudo iniciar sesión con Google. Probá nuevamente.');
-        loginBtn.disabled = false;
-        isSigningIn = false;
-      }
-    });
+/* ===== localStorage ===== */
+function loadData() {
+  hanes = JSON.parse(localStorage.getItem(STORAGE_KEYS.hanes) ?? "[]");
+  grupos = JSON.parse(localStorage.getItem(STORAGE_KEYS.grupos) ?? "[]");
+  personas = JSON.parse(localStorage.getItem(STORAGE_KEYS.personas) ?? "[]");
+  visitas = JSON.parse(localStorage.getItem(STORAGE_KEYS.visitas) ?? "[]");
+}
+function saveData() {
+  localStorage.setItem(STORAGE_KEYS.hanes, JSON.stringify(hanes));
+  localStorage.setItem(STORAGE_KEYS.grupos, JSON.stringify(grupos));
+  localStorage.setItem(STORAGE_KEYS.personas, JSON.stringify(personas));
+  localStorage.setItem(STORAGE_KEYS.visitas, JSON.stringify(visitas));
+}
+function ensureSeedData() {
+  if (!hanes.length) {
+    hanes = [
+      { id: uid(), name: "Han Centro", city: "Rosario" },
+      { id: uid(), name: "Han Norte", city: "Granadero Baigorria" },
+      { id: uid(), name: "Han Oeste", city: "Funes" }
+    ];
   }
-
-  // Botón logout
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', async () => {
-      await auth.signOut();
-      console.log('[Auth] Sesión cerrada');
-    });
+  if (!grupos.length) {
+    grupos = [
+      { id: uid(), name: "Grupo A" },
+      { id: uid(), name: "Grupo B" },
+      { id: uid(), name: "Grupo C" }
+    ];
   }
-});
+  if (!personas.length) {
+    const h0 = hanes[0], g0 = grupos[0];
+    personas = [
+      { id: uid(), firstName: "Juan", lastName: "Pérez", email:"juan@ejemplo.com", status:"Miembro",
+        hanId:h0.id, hanName:h0.name, hanCity:h0.city, grupoId:g0.id, grupoName:g0.name,
+        frecuenciaSemanal:"Frecuentemente", frecuenciaZadankai:"Poco",
+        suscriptoHumanismoSoka:true, realizaZaimu:false, updatedAt:Date.now() },
+      { id: uid(), firstName: "Ana", lastName: "García", email:"ana@ejemplo.com", status:"Amigo Soka",
+        hanId:h0.id, hanName:h0.name, hanCity:h0.city, grupoId:g0.id, grupoName:g0.name,
+        frecuenciaSemanal:"Poco", frecuenciaZadankai:"Nunca",
+        suscriptoHumanismoSoka:false, realizaZaimu:false, updatedAt:Date.now() },
+      { id: uid(), firstName: "Luis", lastName: "Mendoza", email:"luis@ejemplo.com", status:"Miembro",
+        hanId:h0.id, hanName:h0.name, hanCity:h0.city, grupoId:g0.id, grupoName:g0.name,
+        frecuenciaSemanal:"Nunca", frecuenciaZadankai:"Frecuentemente",
+        suscriptoHumanismoSoka:true, realizaZaimu:true, updatedAt:Date.now() }
+    ];
+  }
+  saveData();
+}
 
-// UI handlers
+/* ===== Auth (Firebase v8) ===== */
+//const auth = window.auth;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+const isSafari = /^(?!(chrome|android)).*safari/i.test(navigator.userAgent);
+
+$("logoutBtn")?.addEventListener("click", () => auth.signOut());
+
+// Refactor para actualizar UI con el usuario
 function applySignedInUser(user) {
   currentUser = user;
-  const email = (user.email || '').toLowerCase();
-  const role = ADMIN_EMAILS.includes(email) ? 'Admin' : 'Usuario';
+  const email = user.email?.toLowerCase() ?? "";
+  const role = ADMIN_EMAILS.includes(email) ? "Admin" : "Usuario";
   currentRole = role;
 
-  text('user-email', email);
-  text('role-badge', role);
-  setHidden($('login-form'), true);
-  setHidden($('user-info'), false);
+  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({
+    email, displayName: user.displayName ?? email, uid: user.uid, role
+  }));
 
-  document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', role !== 'Admin'));
+  text("user-email", email);
+  text("role-badge", role);
+  setHidden($("login-form"), true);
+  setHidden($("user-info"), false);
+  applyRoleVisibility(role);
+
+  renderCatalogsToSelects();
+  renderPersonas();
+  renderVisitas();
+
+  loadMiPerfil(user.uid, email);
 }
 
 function applySignedOut() {
   currentUser = null;
-  currentRole = 'Usuario';
-  text('user-email', '');
-  text('role-badge', '');
-  setHidden($('login-form'), false);
-  setHidden($('user-info'), true);
-  document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+  currentRole = "Usuario";
+  text("user-email", "");
+  text("role-badge", "");
+  setHidden($("login-form"), false);
+  setHidden($("user-info"), true);
+  applyRoleVisibility("Usuario");
+  localStorage.removeItem(STORAGE_KEYS.session);
 }
+
+auth.onAuthStateChanged((user) => {
+  if (user) applySignedInUser(user);
+  else applySignedOut();
+});
+
+/* ===== Init ===== */
+document.addEventListener("DOMContentLoaded", () => {
+  loadData();
+  ensureSeedData();
+  renderCatalogsToSelects();
+  renderPersonas();
+  renderVisitas();
+
+  // Render inmediato si había sesión en storage (evita parpadeo)
+  const s = JSON.parse(localStorage.getItem(STORAGE_KEYS.session) ?? "null");
+  if (s && s.email) {
+    text("user-email", s.email);
+    text("role-badge", s.role);
+    setHidden($("login-form"), true);
+    setHidden($("user-info"), false);
+    applyRoleVisibility(s.role);
+  }
+
+  // Guard contra dobles llamadas de login
+  let isSigningIn = false;
+
+  // Listener del botón de login (UNA sola vez)
+  const loginBtn = document.getElementById("googleLoginBtn");
+  if (loginBtn) {
+    loginBtn.addEventListener("click", async () => {
+      if (isSigningIn) return;
+      isSigningIn = true;
+      loginBtn.disabled = true;
+
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        if (isIOS || isSafari) {
+          // Redirect flow
+          sessionStorage.setItem("soka_signin", "1");
+          await auth.signInWithRedirect(provider);
+        } else {
+          // Popup flow
+          await auth.signInWithPopup(provider);
+          // Si el popup resolvió, onAuthStateChanged disparará applySignedInUser
+          loginBtn.disabled = false;
+          isSigningIn = false;
+        }
+      } catch (err) {
+        console.error("[auth] signIn error", err);
+        alert("No se pudo iniciar sesión con Google. Probá nuevamente.");
+        isSigningIn = false;
+        loginBtn.disabled = false;
+      }
+    });
+  }
+
+  // Al volver del redirect: consolidar sesión y limpiar flags
+  auth.getRedirectResult()
+    .then((result) => {
+      if (result && result.user) {
+        applySignedInUser(result.user);
+      }
+    })
+    .catch((err) => {
+      console.error("[auth] getRedirectResult error:", err);
+      // Mensajes útiles de proveedor/dominio
+      if (err && err.code) {
+        alert("Error de autenticación: " + err.code);
+      }
+    })
+    .finally(() => {
+      // Limpia el flag de redirect, re-habilita botón
+      sessionStorage.removeItem("soka_signin");
+      if (loginBtn) loginBtn.disabled = false;
+      isSigningIn = false;
+    });
+
+  // Alta rápida (solo Admin)
+  $("newPersonaBtn")?.addEventListener("click", () => {
+    if (currentRole !== "Admin") return alert("Solo Admin puede crear personas nuevas.");
+    editPersonaId = null;
+    clearDatosPersonales();
+    toggleDatosPersonalesReadonly(false);
+    $("firstName")?.focus();
+  });
+
+  // Limpiar form
+  $("personaClearBtn")?.addEventListener("click", () => {
+    editPersonaId = null;
+    clearDatosPersonales();
+    toggleDatosPersonalesReadonly(!(currentRole === "Admin"));
+  });
+});
+
+/* ===== Catálogos → Selects ===== */
+function renderCatalogsToSelects() {
+  fillSelect($("hanSelect"), hanes, "id", "name", true);
+  fillSelect($("grupoSelect"), grupos, "id", "name", true);
+
+  fillSelect($("filtroHan"), [{ id:"", name:"Todos" }, ...hanes], "id", "name", false);
+  fillSelect($("filtroGrupo"), [{ id:"", name:"Todos" }, ...grupos], "id", "name", false);
+
+  $("hanSelect")?.addEventListener("change", () => {
+    const sel = $("hanSelect").value;
+    const h = hanes.find(x => x.id === sel);
+    $("hanLocalidad").value = h?.city ?? "";
+  });
+}
+
+/* ===== Persona (antes Mi Perfil) ===== */
+function loadMiPerfil(uid, email) {
+  $("email").value = email;
+  const p = personas.find(x => x.uid === uid || x.email === email);
+  if (p) {
+    editPersonaId = p.id;
+    populateDatosPersonales(p, { readonly: false });
+  } else {
+    editPersonaId = null;
+    toggleDatosPersonalesReadonly(!(currentRole === "Admin"));
+  }
+}
+
+$("miPerfilForm")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!currentUser) return alert("Ingresá con Google primero.");
+
+  const hanId = $("hanSelect").value ?? "";
+  const hanObj = hanes.find(h => h.id === hanId);
+  const grupoId = $("grupoSelect").value ?? "";
+  const grupoObj= grupos.find(g => g.id === grupoId);
+
+  const base = {
+    firstName: $("firstName").value.trim(),
+    lastName: $("lastName").value.trim(),
+    birthDate: $("birthDate").value ?? "",
+    address: $("address").value.trim(),
+    city: $("city").value.trim(),
+    phone: $("phone").value.trim(),
+    email: $("email").value.trim(),
+    status: $("status").value ?? "Miembro",
+    hanId, hanName: hanObj?.name ?? "", hanCity: hanObj?.city ?? "",
+    grupoId, grupoName: grupoObj?.name ?? "",
+    frecuenciaSemanal: $("frecuenciaSemanal").value ?? "",
+    frecuenciaZadankai: $("frecuenciaZadankai").value ?? "",
+    suscriptoHumanismoSoka: $("suscriptoHumanismoSoka").checked,
+    realizaZaimu: $("realizaZaimu").checked,
+    updatedAt: Date.now(),
+  };
+
+  if (editPersonaId) {
+    const i = personas.findIndex(x => x.id === editPersonaId);
+    if (i >= 0) {
+      const esDueno = personas[i].uid && personas[i].uid === currentUser.uid;
+      if (currentRole !== "Admin" && !esDueno) {
+        return alert("Solo podés editar tu propio registro.");
+      }
+      personas[i] = { ...personas[i], ...base };
+    }
+  } else {
+    if (currentRole !== "Admin") {
+      return alert("Solo Admin puede crear nuevas personas.");
+    }
+    const nueva = { id: uid(), ...base, uid: "" }; // alta sin dueño
+    personas.push(nueva);
+    editPersonaId = nueva.id;
+  }
+
+  saveData();
+  renderPersonas();
+  alert("Persona guardada");
+});
+
+/* ===== Personas: filtros + grilla ===== */
+["filtroHan","filtroGrupo","filtroEstado","filtroFreqSemanal","filtroFreqZadankai","buscarTexto"]
+  .forEach(id => $(id)?.addEventListener("input", () => renderPersonas()));
+
+function applyFilters(list) {
+  const fHan = $("filtroHan")?.value ?? "";
+  const fGrupo = $("filtroGrupo")?.value ?? "";
+  const fEstado= $("filtroEstado")?.value ?? "";
+  const fSem = $("filtroFreqSemanal")?.value ?? "";
+  const fZad = $("filtroFreqZadankai")?.value ?? "";
+  const qText = ($("buscarTexto")?.value ?? "").toLowerCase();
+
+  return (list ?? []).filter(p => {
+    const okHan   = !fHan   || p.hanId === fHan;
+    const okGrupo = !fGrupo || p.grupoId === fGrupo;
+    const okEst   = !fEstado|| (p.status ?? "") === fEstado;
+    const okSem   = !fSem   || (p.frecuenciaSemanal ?? "") === fSem;
+    const okZad   = !fZad   || (p.frecuenciaZadankai ?? "") === fZad;
+    const txt = `${p.lastName ?? ""} ${p.firstName ?? ""} ${p.email ?? ""}`.toLowerCase();
+    const okText  = !qText || txt.includes(qText);
+    return okHan && okGrupo && okEst && okSem && okZad && okText;
+  });
+}
+
+function renderPersonas() {
+  const table = $("personasTable");
+  if (!table) return;
+  const tbody = table.querySelector("tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  const filtered = applyFilters(personas);
+
+  filtered.forEach(p => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.firstName ?? ""}</td>
+      <td>${p.lastName ?? ""}</td>
+      <td>${p.status ?? ""}</td>
+      <td>${p.hanName ?? ""}</td>
+      <td>${p.grupoName ?? ""}</td>
+      <td>${p.frecuenciaSemanal ?? ""}</td>
+      <td>${p.frecuenciaZadankai ?? ""}</td>
+      <td>${p.suscriptoHumanismoSoka ? "Sí" : "No"}</td>
+      <td>${p.realizaZaimu ? "Sí" : "No"}</td>
+      <td class="acciones-admin"><div class="actions"></div></td>
+    `;
+
+    tr.addEventListener("click", () => {
+      editPersonaId = p.id;
+      const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
+      populateDatosPersonales(p, { readonly });
+    });
+
+    const actions = tr.querySelector(".actions");
+    if (actions) {
+      const btnEdit = document.createElement("button");
+      btnEdit.textContent = "Editar";
+      btnEdit.dataset.action = "edit-persona";
+      btnEdit.dataset.id = p.id;
+
+      const btnDel = document.createElement("button");
+      btnDel.textContent = "Eliminar";
+      btnDel.className = "secondary";
+      btnDel.dataset.action = "delete-persona";
+      btnDel.dataset.id = p.id;
+
+      actions.appendChild(btnEdit);
+      actions.appendChild(btnDel);
+    }
+
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      const p = personas.find(x => x.id === id);
+      if (!p) return;
+
+      if (action === "edit-persona") {
+        editPersonaId = p.id;
+        const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
+        populateDatosPersonales(p, { readonly });
+      } else if (action === "delete-persona") {
+        if (!confirm(`¿Eliminar persona "${p.lastName ?? ""}, ${p.firstName ?? ""}"?`)) return;
+        personas = personas.filter(x => x.id !== id);
+        saveData();
+        renderPersonas();
+      }
+    });
+  });
+
+  fillSelect(
+    $("visitaPersonaSelect"),
+    personas.map(p => ({ id:p.id, name:`${p.lastName ?? ""}, ${p.firstName ?? ""}` })),
+    "id","name", true
+  );
+}
+
+function populateDatosPersonales(p, { readonly }) {
+  $("firstName").value = p.firstName ?? "";
+  $("lastName").value = p.lastName ?? "";
+  $("birthDate").value = p.birthDate ?? "";
+  $("address").value = p.address ?? "";
+  $("city").value = p.city ?? "";
+  $("phone").value = p.phone ?? "";
+  $("email").value = p.email ?? "";
+  $("status").value = p.status ?? "Miembro";
+  $("hanSelect").value = p.hanId ?? "";
+  $("hanLocalidad").value = p.hanCity ?? "";
+  $("grupoSelect").value = p.grupoId ?? "";
+  $("frecuenciaSemanal").value = p.frecuenciaSemanal ?? "";
+  $("frecuenciaZadankai").value = p.frecuenciaZadankai ?? "";
+  $("suscriptoHumanismoSoka").checked = !!p.suscriptoHumanismoSoka;
+  $("realizaZaimu").checked = !!p.realizaZaimu;
+
+  toggleDatosPersonalesReadonly(!!readonly);
+}
+
+/* ===== Import / Export CSV ===== */
+$("importCSV")?.addEventListener("change", async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  Papa.parse(file, {
+    header: true, skipEmptyLines: true,
+    complete: (res) => {
+      const rows = res.data;
+      for (const r of rows) {
+        let hanId = "";
+        if (r.hanName) {
+          let ex = hanes.find(h => h.name === r.hanName && (!r.hanCity || h.city === r.hanCity));
+          if (!ex) { ex = { id: uid(), name: r.hanName, city: r.hanCity ?? "" }; hanes.push(ex); }
+          hanId = ex.id;
+        }
+        let grupoId = "";
+        if (r.grupoName) {
+          let exg = grupos.find(g => g.name === r.grupoName);
+          if (!exg) { exg = { id: uid(), name: r.grupoName }; grupos.push(exg); }
+          grupoId = exg.id;
+        }
+        const id = (r.uid && r.uid.trim()) || uid();
+        const persona = {
+          id,
+          firstName: r.firstName ?? "", lastName: r.lastName ?? "", birthDate: r.birthDate ?? "",
+          address: r.address ?? "", city: r.city ?? "", phone: r.phone ?? "",
+          email: r.email ?? "", status: r.status ?? "Miembro",
+          hanId, hanName: r.hanName ?? "", hanCity: r.hanCity ?? "",
+          grupoId, grupoName: r.grupoName ?? "",
+          frecuenciaSemanal: r.frecuenciaSemanal ?? "", frecuenciaZadankai: r.frecuenciaZadankai ?? "",
+          suscriptoHumanismoSoka: toBool(r.suscriptoHumanismoSoka), realizaZaimu: toBool(r.realizaZaimu),
+          updatedAt: Date.now(),
+        };
+        const i = personas.findIndex(x => x.id === id);
+        if (i >= 0) personas[i] = { ...personas[i], ...persona };
+        else personas.push(persona);
+      }
+      saveData();
+      renderCatalogsToSelects();
+      renderPersonas();
+      alert("Importación completada");
+      $("importCSV").value = "";
+    }
+  });
+});
+
+$("exportCSVBtn")?.addEventListener("click", () => {
+  const filtered = applyFilters(personas);
+  const data = filtered.map(p => ({
+    firstName: p.firstName ?? "", lastName: p.lastName ?? "", birthDate: p.birthDate ?? "",
+    address: p.address ?? "", city: p.city ?? "", phone: p.phone ?? "", email: p.email ?? "",
+    status: p.status ?? "", hanName: p.hanName ?? "", hanCity: p.hanCity ?? "",
+    grupoName: p.grupoName ?? "", frecuenciaSemanal: p.frecuenciaSemanal ?? "",
+    frecuenciaZadankai: p.frecuenciaZadankai ?? "", suscriptoHumanismoSoka: !!p.suscriptoHumanismoSoka,
+    realizaZaimu: !!p.realizaZaimu, uid: p.id ?? ""
+  }));
+  const csv = Papa.unparse(data);
+  const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "personas_filtrado.csv"; a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* ===== Visitas ===== */
+function renderVisitas() {
+  const tabla = $("visitasTable"); if (!tabla) return;
+  const tbody = tabla.querySelector("tbody"); if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const idx = Object.fromEntries(personas.map(p => [p.id, `${p.lastName ?? ""}, ${p.firstName ?? ""}`]));
+  visitas.forEach(v => {
+    const tr = document.createElement("tr");
+    const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0, 10) : "";
+    tr.innerHTML = `<td>${idx[v.personaId] ?? v.personaId ?? "-"}</td><td>${fecha}</td><td>${(v.obs ?? "").replace(/\n/g,"<br/>")}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+$("visitaForm")?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const personaId = $("visitaPersonaSelect").value;
+  const fechaStr  = $("visitaFecha").value;
+  const obs       = $("visitaObs").value.trim();
+  if (!personaId || !fechaStr) return;
+  visitas.push({ id:uid(), personaId, fecha:new Date(fechaStr).toISOString(), obs, createdBy:currentUser?.uid ?? "", createdAt:Date.now() });
+  saveData(); $("visitaForm").reset(); renderVisitas();
+});
+
+/* ===== Utils ===== */
+function fillSelect(selectEl, items, valueKey, labelKey, includeEmpty) {
+  if (!selectEl) return;
+  const current = selectEl.value; selectEl.innerHTML = "";
+  if (includeEmpty) { const opt = document.createElement("option"); opt.value=""; opt.textContent="Seleccionar..."; selectEl.appendChild(opt); }
+  (items ?? []).forEach(it => {
+    const v = typeof it === "object" ? it[valueKey] : it;
+    const l = typeof it === "object" ? it[labelKey] : String(it);
+    const opt = document.createElement("option"); opt.value = v ?? ""; opt.textContent = l ?? ""; selectEl.appendChild(opt);
+  });
+  if ([...selectEl.options].some(o => o.value === current)) selectEl.value = current;
+}
+function toBool(v) {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return ["true","1","sí","si","yes"].includes(v.trim().toLowerCase());
+  return !!v;
+}
+
