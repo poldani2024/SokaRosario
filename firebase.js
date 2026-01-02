@@ -1,6 +1,6 @@
 
 <!-- firebase.js -->
-<script>
+
 // firebase.js — AUTH ONLY (v8, sin Firestore)
 
 // ⚠️ Usá tus credenciales reales (las que ya tenés):
@@ -38,4 +38,4 @@ window.firebaseApp = firebase.app();
 
 // Log de dominio actual (útil para validar dominios autorizados)
 console.log("🌐 Dominio actual:", location.host);
-</script>
+
