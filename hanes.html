@@ -1,6 +1,4 @@
 
-<!-- hanes.html — Administración de Hanes con campo Sector (solo Admin) -->
-<!-- Basado en tu hanes.html actual (header + gating Admin). --> <!-- [5](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/hanes.html) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,8 +11,11 @@
     <h1>Administración de Hanes</h1>
     <nav>
       <a href="index.html">Inicio</a>
+      <a href="personas.html">Personas</a>
+      <a href="visitas.html">Visitas</a>
       <a href="grupos.html">Grupos</a>
     </nav>
+
     <div id="auth">
       <div id="login-form">
         <span>Acceso restringido. Iniciá sesión con Google.</span>
@@ -31,21 +32,43 @@
   <main>
     <p id="admin-notice" class="panel">Esta sección es solo para administradores.</p>
 
-    <section id="hanes" class="panel hidden">
-      <h2>Administrar Hanes</h2>
+    <!-- LISTADO DE HANES -->
+    <section id="hanes-list" class="panel">
+      <h2>Hanes cargados</h2>
 
+      <div class="grid">
+        <label>Buscar
+          <input id="hanSearch" type="text" placeholder="Nombre, localidad o sector" />
+        </label>
+      </div>
+
+      <table id="hanesTable">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Localidad</th>
+            <th>Sector</th>
+            <th>Domicilio</th>
+            <th>Teléfono</th>
+            <th>Líder</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- ALTA / EDICIÓN -->
+    <section id="hanes" class="panel">
+      <h2>Administrar Hanes</h2>
       <div class="grid">
         <label>Nombre del Han <input id="hanNameInput" type="text" /></label>
         <label>Localidad <input id="hanCityInput" type="text" /></label>
-
-        <!-- NUEVO: Sector -->
         <label>Sector <input id="hanSectorInput" type="text" placeholder="Centro, Norte, Oeste, ..." /></label>
-
         <label>Domicilio del Han <input id="hanAddressInput" type="text" /></label>
         <label>Teléfono de contacto <input id="hanPhoneInput" type="tel" /></label>
         <label>Líder del Han (miembro) <input id="hanLeaderInput" type="text" /></label>
       </div>
-
       <div class="actions">
         <button id="hanSaveBtn">Guardar Han</button>
         <button id="hanCancelBtn" class="secondary">Cancelar edición</button>
@@ -55,22 +78,16 @@
 
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
 
-<!-- SDKs: mantener orden v8 (antes de firebase.js) -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <!-- SDKs v8 (CDN gstatic) DEBEN ir antes de firebase.js -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <!-- Si usás Firestore aquí, cargalo también -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<!-- Si en Hanes vas a leer/escribir Firestore, añade también: -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- Init manual (config + window.auth); ya lo tenés -->
+  <script src="firebase.js"></script>
 
-<!-- Si vas a llamar Cloud Functions (no indispensable en Hanes): -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
-
-  <script src="firebase.js"></script> <!-- Auth init v8 --> <!-- [7](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/firebase.js) -->
-  <script src="admin.js"></script>    <!-- Header + gating Admin --> <!-- [2](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/admin.js) -->
-
-
-<script src="hanes.js"></script>     <!-- NUEVO: lógica de guardado -->
-
-
+  <!-- Lógica Hanes (listado + alta/edición) -->
+  <script src="hanes.js"></script>
 </body>
-</
+</html>
