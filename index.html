@@ -20,14 +20,16 @@
   </header>
 
   <section class="auth">
-    <div id="login-form" class="card" aria-live="polite">
-      <p class="muted">Ingresá con Google para acceder al menú.</p>
-      <button id="googleLoginBtn" class="btn primary">Ingresar con Google</button>
-    </div>
-    <div id="user-info" class="card" style="display:none;">
-      <span id="user-email" class="pill"></span>
-      <span id="role-badge" class="badge"></span>
-      <button id="logoutBtn" class="btn">Cerrar sesión</button>
+    <div id="auth">
+      <div id="login-form">
+        <span>Necesitás iniciar sesión con Google para acceder.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
     </div>
   </section>
 
