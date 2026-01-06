@@ -55,6 +55,16 @@
 
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
 
+<!-- SDKs: mantener orden v8 (antes de firebase.js) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+<!-- Si en Hanes vas a leer/escribir Firestore, añade también: -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<!-- Si vas a llamar Cloud Functions (no indispensable en Hanes): -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
+
   <script src="firebase.js"></script> <!-- Auth init v8 --> <!-- [7](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/firebase.js) -->
   <script src="admin.js"></script>    <!-- Header + gating Admin --> <!-- [2](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/admin.js) -->
 </body>
