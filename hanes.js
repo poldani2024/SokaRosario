@@ -1,34 +1,33 @@
 
-// hanes.js — guarda Han en localStorage (y opcionalmente en Firestore si está disponible)
+// hanes.js — listado + alta/edición (localStorage y opcional Firestore)
 (function () {
   const $ = (id) => document.getElementById(id);
   const STORAGE_KEYS = { hanes: 'soka_hanes' };
   const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-  function loadHanes() {
+  let hanes = [];
+  let editHanId = null; // para modo edición
+
+  /* =========================
+     Persistencia
+     ========================= */
+  function loadHanesLS() {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.hanes) ?? '[]'); }
     catch { return []; }
   }
-  function saveHanes(list) {
+  function saveHanesLS(list) {
     localStorage.setItem(STORAGE_KEYS.hanes, JSON.stringify(list ?? []));
   }
 
-  async function saveHanLocal({ id, name, city, sector, address, phone, leader }) {
-    let list = loadHanes();
-    if (id) {
-      const i = list.findIndex(h => h.id === id);
-      if (i >= 0) list[i] = { ...list[i], name, city, sector, address, phone, leader };
-      else list.push({ id, name, city, sector, address, phone, leader });
-    } else {
-      list.push({ id: uid(), name, city, sector, address, phone, leader });
-    }
-    saveHanes(list);
-    return list[list.length - 1].id;
+  async function loadHanesFS() {
+    if (!window.db) return null;
+    const snap = await db.collection('hanes').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
-  async function saveHanFirestore({ id, name, city, sector, address, phone, leader }) {
+  async function saveHanFS({ id, name, city, sector, address, phone, leader }) {
     if (!window.db) return null;
-    const coll = window.db.collection('hanes');
+    const coll = db.collection('hanes');
     if (id) {
       await coll.doc(id).set({ name, city, sector, address, phone, leader }, { merge: true });
       return id;
@@ -38,49 +37,166 @@
     }
   }
 
+  async function deleteHanFS(id) {
+    if (!window.db) return null;
+    await db.collection('hanes').doc(id).delete();
+    return true;
+  }
+
+  /* =========================
+     Carga + render
+     ========================= */
+  async function loadAndRenderHanes() {
+    try {
+      const fsList = await loadHanesFS();
+      if (Array.isArray(fsList)) {
+        hanes = fsList;
+        saveHanesLS(hanes); // opcional: sincroniza local como caché
+      } else {
+        hanes = loadHanesLS();
+      }
+    } catch (err) {
+      console.warn('[hanes] No se pudo leer Firestore. Uso localStorage.', err);
+      hanes = loadHanesLS();
+    }
+    renderHanesTable();
+  }
+
+  function renderHanesTable() {
+    const tbody = $('hanesTable')?.querySelector('tbody');
+    if (!tbody) return;
+    const q = ($('hanSearch')?.value ?? '').toLowerCase().trim();
+
+    const filtered = (hanes ?? []).filter(h => {
+      const txt = `${h.name ?? ''} ${h.city ?? ''} ${h.sector ?? ''}`.toLowerCase();
+      return !q || txt.includes(q);
+    });
+
+    tbody.innerHTML = '';
+    filtered.forEach(h => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${h.name ?? ''}</td>
+        <td>${h.city ?? ''}</td>
+        <td>${h.sector ?? ''}</td>
+        <td>${h.address ?? ''}</td>
+        <td>${h.phone ?? ''}</td>
+        <td>${h.leader ?? ''}</td>
+        <td class="actions">
+          <button data-action="edit" data-id="${h.id}">Editar</button>
+          <button data-action="delete" data-id="${h.id}" class="secondary">Eliminar</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Bind de botones Editar/Eliminar
+    tbody.querySelectorAll('button[data-action]').forEach(btn => {
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      btn.addEventListener('click', () => {
+        if (action === 'edit') onEditHan(id);
+        else if (action === 'delete') onDeleteHan(id);
+      });
+    });
+  }
+
+  /* =========================
+     Alta / Edición / Eliminar
+     ========================= */
+  function formValues() {
+    return {
+      name:   $('hanNameInput')?.value?.trim()   ?? '',
+      city:   $('hanCityInput')?.value?.trim()   ?? '',
+      sector: $('hanSectorInput')?.value?.trim() ?? '',
+      address:$('hanAddressInput')?.value?.trim()?? '',
+      phone:  $('hanPhoneInput')?.value?.trim()  ?? '',
+      leader: $('hanLeaderInput')?.value?.trim() ?? '',
+    };
+  }
+
   function clearForm() {
     ['hanNameInput','hanCityInput','hanSectorInput','hanAddressInput','hanPhoneInput','hanLeaderInput']
       .forEach(id => { const el = $(id); if (el) el.value = ''; });
+    editHanId = null;
+    $('hanSaveBtn')?.textContent && ($('hanSaveBtn').textContent = 'Guardar Han');
   }
 
   async function onSaveHan() {
-    // gating básico: requiere auth y rol Admin (ya lo maneja admin.js visualmente)
     if (!window.auth?.currentUser) { alert('Ingresá con Google primero.'); return; }
+    const vals = formValues();
+    if (!vals.name) { alert('Ingresá el nombre del Han.'); $('hanNameInput')?.focus(); return; }
 
-    const name = $('hanNameInput')?.value?.trim();
-    const city = $('hanCityInput')?.value?.trim();
-    const sector = $('hanSectorInput')?.value?.trim();
-    const address = $('hanAddressInput')?.value?.trim();
-    const phone = $('hanPhoneInput')?.value?.trim();
-    const leader = $('hanLeaderInput')?.value?.trim();
-
-    if (!name) { alert('Ingresá el nombre del Han.'); $('hanNameInput')?.focus(); return; }
-
-    // Primero intentar Firestore si está disponible; si no, Local
-    let savedId = null;
     try {
+      // Intentar Firestore primero si está disponible
+      let savedId = null;
       if (window.db) {
-        savedId = await saveHanFirestore({ id: null, name, city, sector, address, phone, leader });
+        savedId = await saveHanFS({ id: editHanId, ...vals });
       }
+      if (!savedId) {
+        // Persistencia local
+        let list = loadHanesLS();
+        if (editHanId) {
+          const i = list.findIndex(h => h.id === editHanId);
+          if (i >= 0) list[i] = { ...list[i], ...vals };
+          else list.push({ id: editHanId, ...vals });
+        } else {
+          list.push({ id: uid(), ...vals });
+          savedId = list[list.length - 1].id;
+          editHanId = savedId;
+        }
+        saveHanesLS(list);
+      }
+      await loadAndRenderHanes();
+      clearForm();
+      alert('Han guardado ✅');
     } catch (err) {
-      console.warn('[hanes] Firestore no disponible, usando localStorage.', err);
+      console.error('[hanes] Error al guardar', err);
+      alert('No se pudo guardar el Han.');
     }
-    if (!savedId) {
-      savedId = await saveHanLocal({ id: null, name, city, sector, address, phone, leader });
-    }
-
-    clearForm();
-    alert('Han guardado ✅');
   }
 
-  function onCancelEdit() {
-    clearForm();
+  function onCancelEdit() { clearForm(); }
+
+  function onEditHan(id) {
+    const h = (hanes ?? []).find(x => x.id === id);
+    if (!h) return;
+    editHanId = id;
+    $('hanNameInput').value   = h.name   ?? '';
+    $('hanCityInput').value   = h.city   ?? '';
+    $('hanSectorInput').value = h.sector ?? '';
+    $('hanAddressInput').value= h.address?? '';
+    $('hanPhoneInput').value  = h.phone  ?? '';
+    $('hanLeaderInput').value = h.leader ?? '';
+    $('hanSaveBtn').textContent = 'Actualizar Han';
   }
 
+  async function onDeleteHan(id) {
+    if (!confirm('¿Eliminar este Han?')) return;
+    try {
+      if (window.db) { await deleteHanFS(id); }
+      // Sincroniza local
+      const list = loadHanesLS().filter(h => h.id !== id);
+      saveHanesLS(list);
+      await loadAndRenderHanes();
+    } catch (err) {
+      console.error('[hanes] Error al eliminar', err);
+      alert('No se pudo eliminar el Han.');
+    }
+  }
+
+  /* =========================
+     Eventos
+     ========================= */
   document.addEventListener('DOMContentLoaded', () => {
-    const btnSave = $('hanSaveBtn');
-    const btnCancel = $('hanCancelBtn');
-    if (btnSave) btnSave.addEventListener('click', onSaveHan);
-    if (btnCancel) btnCancel.addEventListener('click', onCancelEdit);
+    // Render inicial
+    loadAndRenderHanes();
+
+    // Búsqueda
+    $('hanSearch')?.addEventListener('input', renderHanesTable);
+
+    // Botones del form
+    $('hanSaveBtn')?.addEventListener('click', onSaveHan);
+    $('hanCancelBtn')?.addEventListener('click', onCancelEdit);
   });
 })();
