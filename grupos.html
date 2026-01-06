@@ -3,17 +3,14 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Grupos — Soka Gakkai Tracker</title>
   <link rel="stylesheet" href="styles.css" />
-  <style>.hidden{display:none!important}.notice{padding:10px;border:1px solid #ddd;border-radius:8px;margin:8px 0}</style>
 </head>
 <body>
   <header>
     <h1>Administración de Grupos</h1>
     <nav>
       <a href="index.html">Inicio</a>
-      <a href="hanes.html" class="admin-only" style="display:none;">Hanes</a>
     </nav>
     <section class="auth">
     <div id="login-form" class="notice">
@@ -27,12 +24,13 @@
     <div id="admin-notice" class="notice hidden">Esta sección es solo para administradores.</div>
   </section>
   </header>
-
   <section id="grupos" class="hidden">
-    <h2>Grupos de Capacitación</h2>
-    <form id="grupoForm">
-      <label>Nombre del grupo <input id="grupoName" type="text" /></label>
-      <label>Líder del grupo (miembro) <input id="grupoLeader" type="text" /></label>
+    <div class="grid">
+      <h2>Grupos de Capacitación</h2>
+      <form id="grupoForm">
+        <label>Nombre del grupo <input id="grupoName" type="text" /></label>
+        <label>Líder del grupo (miembro) <input id="grupoLeader" type="text" /></label>
+    </div>
       <div class="actions">
         <button type="submit">Guardar Grupo</button>
         <button type="button" id="grupoClearBtn">Cancelar edición</button>
