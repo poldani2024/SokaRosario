@@ -1,64 +1,80 @@
 
-<!-- app (1).js -->
+/* ===== app.js (Roles + Comentarios + Sector en Han) =====
+   - Detección de rol (claims -> fallback email admin)
+   - Filtros por rol (LiderSector/LiderHan)
+   - Ocultar/mostrar columna Comentarios según rol
+   - Seeds con han.sector y persona.hanSector
+   - CSV con comentarios/hanSector
+   Basado en tu app.js previo (grilla, personas, visitas, CSV).  */
+/* Origen referenciado: estructura y funciones que ya tenías. */ // [3](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/app.js)
 
-/*******************************************************
- * INICIO — Soka Gakkai + Firebase Auth (Google) + localStorage
- * - Personas: filtros + grilla (click -> llenar Persona)
- * - Persona (unificado: alta/edición en el mismo form)
- * - Visitas: registro y listado
- *******************************************************/
+let currentUser = null;      // { email, displayName, uid }
+let currentRole = "Usuario"; // Admin, LiderCiudad, LiderSector, LiderHan, Usuario+, Usuario
+let roleDetails = { hanIds: [], sector: "", city: "" };
 
-/* ===== Estado ===== */
-let currentUser = null; // { email, displayName, uid }
-let currentRole = "Usuario"; // "Admin" | "Usuario"
 let hanes = [];
 let grupos = [];
-let personas= [];
+let personas = [];
 let visitas = [];
-let editPersonaId = null; // null => alta; id => edición
+let editPersonaId = null;
 
-const ADMIN_EMAILS = ["pedro.l.oldani@gmail.com"];
+const ADMIN_EMAILS = ["pedro.l.oldani@gmail.com", "pedro.loldani@gmail.com"]; // fallback rápido
 const STORAGE_KEYS = {
-  hanes:"soka_hanes", grupos:"soka_grupos", personas:"soka_personas",
-  visitas:"soka_visitas", session:"soka_session"
+  hanes: "soka_hanes",
+  grupos: "soka_grupos",
+  personas: "soka_personas",
+  visitas: "soka_visitas",
+  session: "soka_session"
 };
 
-/* ===== Helpers ===== */
 const $ = (id) => document.getElementById(id);
 const setHidden = (el, hidden) => { if (!el) return; el.classList.toggle("hidden", hidden); };
 const text = (id, value) => { const el = $(id); if (el) el.textContent = value; };
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+/* ===== Roles & gating ===== */
+function resolveRoleFromClaims(user) {
+  let role = "Usuario";
+  roleDetails = { hanIds: [], sector: "", city: "" };
+
+  if (!user) return { role, roleDetails };
+  const email = (user.email ?? "").toLowerCase();
+
+  return user.getIdTokenResult()
+    .then(token => {
+      const claims = token?.claims ?? {};
+      // Prioridad: claim 'role'
+      if (typeof claims.role === "string") role = claims.role;
+      // Fallback: lista de admins por email
+      if (ADMIN_EMAILS.includes(email)) role = "Admin";
+      // Detalles opcionales (para filtrar)
+      if (Array.isArray(claims.hanIds)) roleDetails.hanIds = claims.hanIds;
+      if (typeof claims.sector === "string") roleDetails.sector = claims.sector;
+      if (typeof claims.city === "string") roleDetails.city = claims.city;
+      return { role, roleDetails };
+    })
+    .catch(() => {
+      // Fallback en caso de error obteniendo token
+      if (ADMIN_EMAILS.includes(email)) role = "Admin";
+      return { role, roleDetails };
+    });
+}
+
 function applyRoleVisibility(role) {
+  // Admin-only UI (acciones) se mantienen como antes
   document.body.classList.toggle("role-admin", role === "Admin");
   document.body.classList.toggle("role-user", role !== "Admin");
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", role !== "Admin"));
 }
 
-function clearDatosPersonales() {
-  ["firstName","lastName","birthDate","address","city","phone","email"]
-    .forEach(id => { const el = $(id); if (el) el.value = ""; });
-  ["status","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai"]
-    .forEach(id => { const el = $(id); if (el) el.value = ""; });
-  ["suscriptoHumanismoSoka","realizaZaimu"]
-    .forEach(id => { const el = $(id); if (el) el.checked = false; });
-  $("hanLocalidad")?.value && ($("hanLocalidad").value = "");
+function canSeeVisitas(role) {
+  return ["Admin", "LiderCiudad", "LiderSector", "LiderHan"].includes(role);
+}
+function canSeeComentarios(role) {
+  return ["Admin", "LiderCiudad", "LiderSector", "LiderHan"].includes(role);
 }
 
-function toggleDatosPersonalesReadonly(readonly) {
-  const fields = [
-    "firstName","lastName","birthDate","address","city","phone","email","status",
-    "hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai",
-    "suscriptoHumanismoSoka","realizaZaimu"
-  ];
-  fields.forEach(id => {
-    const el = $(id);
-    if (!el) return;
-    el.disabled = !!readonly;
-  });
-}
-
-/* ===== localStorage ===== */
+/* ===== Datos en localStorage ===== */
 function loadData() {
   hanes = JSON.parse(localStorage.getItem(STORAGE_KEYS.hanes) ?? "[]");
   grupos = JSON.parse(localStorage.getItem(STORAGE_KEYS.grupos) ?? "[]");
@@ -71,12 +87,14 @@ function saveData() {
   localStorage.setItem(STORAGE_KEYS.personas, JSON.stringify(personas));
   localStorage.setItem(STORAGE_KEYS.visitas, JSON.stringify(visitas));
 }
+
+/* Seeds + migración suave (agrega sector y comentarios sin romper) */
 function ensureSeedData() {
   if (!hanes.length) {
     hanes = [
-      { id: uid(), name: "Han Centro", city: "Rosario" },
-      { id: uid(), name: "Han Norte", city: "Granadero Baigorria" },
-      { id: uid(), name: "Han Oeste", city: "Funes" }
+      { id: uid(), name: "Han Centro", city: "Rosario", sector: "Centro" },
+      { id: uid(), name: "Han Norte", city: "Granadero Baigorria", sector: "Norte" },
+      { id: uid(), name: "Han Oeste", city: "Funes", sector: "Oeste" }
     ];
   }
   if (!grupos.length) {
@@ -90,56 +108,75 @@ function ensureSeedData() {
     const h0 = hanes[0], g0 = grupos[0];
     personas = [
       { id: uid(), firstName: "Juan", lastName: "Pérez", email:"juan@ejemplo.com", status:"Miembro",
-        hanId:h0.id, hanName:h0.name, hanCity:h0.city, grupoId:g0.id, grupoName:g0.name,
+        hanId:h0.id, hanName:h0.name, hanCity:h0.city, hanSector:h0.sector,
+        grupoId:g0.id, grupoName:g0.name,
         frecuenciaSemanal:"Frecuentemente", frecuenciaZadankai:"Poco",
-        suscriptoHumanismoSoka:true, realizaZaimu:false, updatedAt:Date.now() },
+        suscriptoHumanismoSoka:true, realizaZaimu:false, comentarios:"",
+        updatedAt:Date.now() },
       { id: uid(), firstName: "Ana", lastName: "García", email:"ana@ejemplo.com", status:"Amigo Soka",
-        hanId:h0.id, hanName:h0.name, hanCity:h0.city, grupoId:g0.id, grupoName:g0.name,
+        hanId:h0.id, hanName:h0.name, hanCity:h0.city, hanSector:h0.sector,
+        grupoId:g0.id, grupoName:g0.name,
         frecuenciaSemanal:"Poco", frecuenciaZadankai:"Nunca",
-        suscriptoHumanismoSoka:false, realizaZaimu:false, updatedAt:Date.now() },
+        suscriptoHumanismoSoka:false, realizaZaimu:false, comentarios:"",
+        updatedAt:Date.now() },
       { id: uid(), firstName: "Luis", lastName: "Mendoza", email:"luis@ejemplo.com", status:"Miembro",
-        hanId:h0.id, hanName:h0.name, hanCity:h0.city, grupoId:g0.id, grupoName:g0.name,
+        hanId:h0.id, hanName:h0.name, hanCity:h0.city, hanSector:h0.sector,
+        grupoId:g0.id, grupoName:g0.name,
         frecuenciaSemanal:"Nunca", frecuenciaZadankai:"Frecuentemente",
-        suscriptoHumanismoSoka:true, realizaZaimu:true, updatedAt:Date.now() }
+        suscriptoHumanismoSoka:true, realizaZaimu:true, comentarios:"",
+        updatedAt:Date.now() }
     ];
   }
+
+  // Migración: completar hanSector y comentarios si faltan
+  const idxHan = Object.fromEntries(hanes.map(h => [h.id, h]));
+  personas = (personas ?? []).map(p => {
+    const h = idxHan[p.hanId];
+    return {
+      ...p,
+      hanSector: p.hanSector ?? h?.sector ?? "",
+      comentarios: typeof p.comentarios === "string" ? p.comentarios : ""
+    };
+  });
+
   saveData();
 }
 
 /* ===== Auth (Firebase v8) ===== */
-//const auth = window.auth;
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-const isSafari = /^(?!(chrome|android)).*safari/i.test(navigator.userAgent);
-
+// Conserva tu flujo actual y el header con IDs estándar
+// (firmado: muestra email/rol, sin sesión: muestra login).  // [3](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/app.js)
 $("logoutBtn")?.addEventListener("click", () => auth.signOut());
 
-// Refactor para actualizar UI con el usuario
 function applySignedInUser(user) {
   currentUser = user;
   const email = user.email?.toLowerCase() ?? "";
-  const role = ADMIN_EMAILS.includes(email) ? "Admin" : "Usuario";
-  currentRole = role;
 
-  localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({
-    email, displayName: user.displayName ?? email, uid: user.uid, role
-  }));
+  resolveRoleFromClaims(user).then(({ role, roleDetails: details }) => {
+    currentRole = role;
+    roleDetails = details;
 
-  text("user-email", email);
-  text("role-badge", role);
-  setHidden($("login-form"), true);
-  setHidden($("user-info"), false);
-  applyRoleVisibility(role);
+    localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({
+      email, displayName: user.displayName ?? email, uid: user.uid, role, roleDetails
+    }));
 
-  renderCatalogsToSelects();
-  renderPersonas();
-  renderVisitas();
+    text("user-email", email);
+    text("role-badge", role);
+    setHidden($("login-form"), true);
+    setHidden($("user-info"), false);
+    applyRoleVisibility(role);
 
-  loadMiPerfil(user.uid, email);
+    renderCatalogsToSelects();
+    renderPersonas();
+    renderVisitas();
+    loadMiPerfil(user.uid, email);
+  });
 }
 
 function applySignedOut() {
   currentUser = null;
   currentRole = "Usuario";
+  roleDetails = { hanIds: [], sector: "", city: "" };
+
   text("user-email", "");
   text("role-badge", "");
   setHidden($("login-form"), false);
@@ -148,10 +185,7 @@ function applySignedOut() {
   localStorage.removeItem(STORAGE_KEYS.session);
 }
 
-auth.onAuthStateChanged((user) => {
-  if (user) applySignedInUser(user);
-  else applySignedOut();
-});
+auth.onAuthStateChanged((user) => { if (user) applySignedInUser(user); else applySignedOut(); });
 
 /* ===== Init ===== */
 document.addEventListener("DOMContentLoaded", () => {
@@ -169,29 +203,28 @@ document.addEventListener("DOMContentLoaded", () => {
     setHidden($("login-form"), true);
     setHidden($("user-info"), false);
     applyRoleVisibility(s.role);
+    currentRole = s.role;
+    roleDetails = s.roleDetails ?? roleDetails;
   }
 
-  // Guard contra dobles llamadas de login
+  // Botón login (popup/redirect según navegador)  // [3](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/app.js)
   let isSigningIn = false;
-
-  // Listener del botón de login (UNA sola vez)
   const loginBtn = document.getElementById("googleLoginBtn");
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isSafari = /^(?!(chrome|android)).*safari/i.test(navigator.userAgent);
+
   if (loginBtn) {
     loginBtn.addEventListener("click", async () => {
       if (isSigningIn) return;
       isSigningIn = true;
       loginBtn.disabled = true;
-
       try {
         const provider = new firebase.auth.GoogleAuthProvider();
         if (isIOS || isSafari) {
-          // Redirect flow
           sessionStorage.setItem("soka_signin", "1");
           await auth.signInWithRedirect(provider);
         } else {
-          // Popup flow
           await auth.signInWithPopup(provider);
-          // Si el popup resolvió, onAuthStateChanged disparará applySignedInUser
           loginBtn.disabled = false;
           isSigningIn = false;
         }
@@ -203,27 +236,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-
-  // Al volver del redirect: consolidar sesión y limpiar flags
   auth.getRedirectResult()
-    .then((result) => {
-      if (result && result.user) {
-        applySignedInUser(result.user);
-      }
-    })
-    .catch((err) => {
-      console.error("[auth] getRedirectResult error:", err);
-      // Mensajes útiles de proveedor/dominio
-      if (err && err.code) {
-        alert("Error de autenticación: " + err.code);
-      }
-    })
-    .finally(() => {
-      // Limpia el flag de redirect, re-habilita botón
-      sessionStorage.removeItem("soka_signin");
-      if (loginBtn) loginBtn.disabled = false;
-      isSigningIn = false;
-    });
+    .then((result) => { if (result && result.user) applySignedInUser(result.user); })
+    .catch((err) => { console.error("[auth] getRedirectResult error:", err); })
+    .finally(() => { sessionStorage.removeItem("soka_signin"); if (loginBtn) loginBtn.disabled = false; isSigningIn = false; });
 
   // Alta rápida (solo Admin)
   $("newPersonaBtn")?.addEventListener("click", () => {
@@ -233,7 +249,6 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleDatosPersonalesReadonly(false);
     $("firstName")?.focus();
   });
-
   // Limpiar form
   $("personaClearBtn")?.addEventListener("click", () => {
     editPersonaId = null;
@@ -246,7 +261,6 @@ document.addEventListener("DOMContentLoaded", () => {
 function renderCatalogsToSelects() {
   fillSelect($("hanSelect"), hanes, "id", "name", true);
   fillSelect($("grupoSelect"), grupos, "id", "name", true);
-
   fillSelect($("filtroHan"), [{ id:"", name:"Todos" }, ...hanes], "id", "name", false);
   fillSelect($("filtroGrupo"), [{ id:"", name:"Todos" }, ...grupos], "id", "name", false);
 
@@ -257,10 +271,29 @@ function renderCatalogsToSelects() {
   });
 }
 
-/* ===== Persona (antes Mi Perfil) ===== */
+/* ===== Persona (form) ===== */
+function clearDatosPersonales() {
+  ["firstName","lastName","birthDate","address","city","phone","email"]
+    .forEach(id => { const el = $(id); if (el) el.value = ""; });
+  ["status","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai"]
+    .forEach(id => { const el = $(id); if (el) el.value = ""; });
+  ["suscriptoHumanismoSoka","realizaZaimu"]
+    .forEach(id => { const el = $(id); if (el) el.checked = false; });
+  $("hanLocalidad")?.value && ($("hanLocalidad").value = "");
+  $("comentarios")?.value && ($("comentarios").value = "");
+}
+function toggleDatosPersonalesReadonly(readonly) {
+  const fields = [
+    "firstName","lastName","birthDate","address","city","phone","email","status",
+    "hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai",
+    "suscriptoHumanismoSoka","realizaZaimu","comentarios"
+  ];
+  fields.forEach(id => { const el = $(id); if (!el) return; el.disabled = !!readonly; });
+}
+
 function loadMiPerfil(uid, email) {
   $("email").value = email;
-  const p = personas.find(x => x.uid === uid || x.email === email);
+  const p = personas.find(x => (x.uid && x.uid === uid) || x.email === email);
   if (p) {
     editPersonaId = p.id;
     populateDatosPersonales(p, { readonly: false });
@@ -277,7 +310,7 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
   const hanId = $("hanSelect").value ?? "";
   const hanObj = hanes.find(h => h.id === hanId);
   const grupoId = $("grupoSelect").value ?? "";
-  const grupoObj= grupos.find(g => g.id === grupoId);
+  const grupoObj = grupos.find(g => g.id === grupoId);
 
   const base = {
     firstName: $("firstName").value.trim(),
@@ -288,13 +321,14 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
     phone: $("phone").value.trim(),
     email: $("email").value.trim(),
     status: $("status").value ?? "Miembro",
-    hanId, hanName: hanObj?.name ?? "", hanCity: hanObj?.city ?? "",
+    hanId, hanName: hanObj?.name ?? "", hanCity: hanObj?.city ?? "", hanSector: hanObj?.sector ?? "",
     grupoId, grupoName: grupoObj?.name ?? "",
     frecuenciaSemanal: $("frecuenciaSemanal").value ?? "",
     frecuenciaZadankai: $("frecuenciaZadankai").value ?? "",
     suscriptoHumanismoSoka: $("suscriptoHumanismoSoka").checked,
     realizaZaimu: $("realizaZaimu").checked,
-    updatedAt: Date.now(),
+    comentarios: $("comentarios")?.value?.trim() ?? "",
+    updatedAt: Date.now()
   };
 
   if (editPersonaId) {
@@ -314,34 +348,50 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
     personas.push(nueva);
     editPersonaId = nueva.id;
   }
-
   saveData();
   renderPersonas();
   alert("Persona guardada");
 });
 
-/* ===== Personas: filtros + grilla ===== */
+/* ===== Filtros ===== */ // [3](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/app.js)
 ["filtroHan","filtroGrupo","filtroEstado","filtroFreqSemanal","filtroFreqZadankai","buscarTexto"]
   .forEach(id => $(id)?.addEventListener("input", () => renderPersonas()));
 
-function applyFilters(list) {
+function applyFiltersBase(list) {
   const fHan = $("filtroHan")?.value ?? "";
   const fGrupo = $("filtroGrupo")?.value ?? "";
-  const fEstado= $("filtroEstado")?.value ?? "";
+  const fEstado = $("filtroEstado")?.value ?? "";
   const fSem = $("filtroFreqSemanal")?.value ?? "";
   const fZad = $("filtroFreqZadankai")?.value ?? "";
   const qText = ($("buscarTexto")?.value ?? "").toLowerCase();
 
   return (list ?? []).filter(p => {
-    const okHan   = !fHan   || p.hanId === fHan;
+    const okHan = !fHan || p.hanId === fHan;
     const okGrupo = !fGrupo || p.grupoId === fGrupo;
-    const okEst   = !fEstado|| (p.status ?? "") === fEstado;
-    const okSem   = !fSem   || (p.frecuenciaSemanal ?? "") === fSem;
-    const okZad   = !fZad   || (p.frecuenciaZadankai ?? "") === fZad;
+    const okEst = !fEstado || (p.status ?? "") === fEstado;
+    const okSem = !fSem || (p.frecuenciaSemanal ?? "") === fSem;
+    const okZad = !fZad || (p.frecuenciaZadankai ?? "") === fZad;
     const txt = `${p.lastName ?? ""} ${p.firstName ?? ""} ${p.email ?? ""}`.toLowerCase();
-    const okText  = !qText || txt.includes(qText);
+    const okText = !qText || txt.includes(qText);
     return okHan && okGrupo && okEst && okSem && okZad && okText;
   });
+}
+
+/* Filtro por rol */
+function filterByRolePersonas(list) {
+  switch (currentRole) {
+    case "Admin":
+    case "LiderCiudad":
+      return list;
+    case "LiderSector":
+      return list.filter(p => (p.hanSector ?? "") === (roleDetails.sector ?? ""));
+    case "LiderHan":
+      return list.filter(p => (roleDetails.hanIds ?? []).includes(p.hanId));
+    case "Usuario+":
+    case "Usuario":
+    default:
+      return list; // pueden ver personas (sin comentarios)
+  }
 }
 
 function renderPersonas() {
@@ -350,8 +400,13 @@ function renderPersonas() {
   const tbody = table.querySelector("tbody");
   if (!tbody) return;
 
+  // mostrar/ocultar columna Comentarios (th + tds)
+  const thComentarios = table.querySelector("thead th.th-comentarios");
+  if (thComentarios) thComentarios.style.display = canSeeComentarios(currentRole) ? "" : "none";
+
   tbody.innerHTML = "";
-  const filtered = applyFilters(personas);
+  const base = applyFiltersBase(personas);
+  const filtered = filterByRolePersonas(base);
 
   filtered.forEach(p => {
     const tr = document.createElement("tr");
@@ -365,12 +420,19 @@ function renderPersonas() {
       <td>${p.frecuenciaZadankai ?? ""}</td>
       <td>${p.suscriptoHumanismoSoka ? "Sí" : "No"}</td>
       <td>${p.realizaZaimu ? "Sí" : "No"}</td>
+      <td class="td-comentarios">${canSeeComentarios(currentRole) ? (p.comentarios ?? "").replace(/\n/g,"<br/>") : "—"}</td>
       <td class="acciones-admin"><div class="actions"></div></td>
     `;
+    // Ocultar td comentarios si no corresponde
+    const tdC = tr.querySelector(".td-comentarios");
+    if (tdC) tdC.style.display = canSeeComentarios(currentRole) ? "" : "none";
 
     tr.addEventListener("click", () => {
       editPersonaId = p.id;
-      const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
+      const readonly = !(
+        currentRole === "Admin" ||
+        (currentUser && (p.uid === currentUser.uid))
+      );
       populateDatosPersonales(p, { readonly });
     });
 
@@ -390,31 +452,10 @@ function renderPersonas() {
       actions.appendChild(btnEdit);
       actions.appendChild(btnDel);
     }
-
     tbody.appendChild(tr);
   });
 
-  tbody.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      const id = btn.dataset.id;
-      const action = btn.dataset.action;
-      const p = personas.find(x => x.id === id);
-      if (!p) return;
-
-      if (action === "edit-persona") {
-        editPersonaId = p.id;
-        const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
-        populateDatosPersonales(p, { readonly });
-      } else if (action === "delete-persona") {
-        if (!confirm(`¿Eliminar persona "${p.lastName ?? ""}, ${p.firstName ?? ""}"?`)) return;
-        personas = personas.filter(x => x.id !== id);
-        saveData();
-        renderPersonas();
-      }
-    });
-  });
-
+  // llenar select de visitas (si existe en esta página)
   fillSelect(
     $("visitaPersonaSelect"),
     personas.map(p => ({ id:p.id, name:`${p.lastName ?? ""}, ${p.firstName ?? ""}` })),
@@ -438,11 +479,11 @@ function populateDatosPersonales(p, { readonly }) {
   $("frecuenciaZadankai").value = p.frecuenciaZadankai ?? "";
   $("suscriptoHumanismoSoka").checked = !!p.suscriptoHumanismoSoka;
   $("realizaZaimu").checked = !!p.realizaZaimu;
-
+  if ($("comentarios")) $("comentarios").value = p.comentarios ?? "";
   toggleDatosPersonalesReadonly(!!readonly);
 }
 
-/* ===== Import / Export CSV ===== */
+/* ===== CSV Import / Export ===== */  // [3](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/app.js)
 $("importCSV")?.addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
@@ -452,10 +493,11 @@ $("importCSV")?.addEventListener("change", async (e) => {
     complete: (res) => {
       const rows = res.data;
       for (const r of rows) {
+        // Han: puede venir sector
         let hanId = "";
         if (r.hanName) {
           let ex = hanes.find(h => h.name === r.hanName && (!r.hanCity || h.city === r.hanCity));
-          if (!ex) { ex = { id: uid(), name: r.hanName, city: r.hanCity ?? "" }; hanes.push(ex); }
+          if (!ex) { ex = { id: uid(), name: r.hanName, city: r.hanCity ?? "", sector: r.hanSector ?? "" }; hanes.push(ex); }
           hanId = ex.id;
         }
         let grupoId = "";
@@ -471,9 +513,11 @@ $("importCSV")?.addEventListener("change", async (e) => {
           address: r.address ?? "", city: r.city ?? "", phone: r.phone ?? "",
           email: r.email ?? "", status: r.status ?? "Miembro",
           hanId, hanName: r.hanName ?? "", hanCity: r.hanCity ?? "",
+          hanSector: r.hanSector ?? (hanes.find(h => h.id === hanId)?.sector ?? ""),
           grupoId, grupoName: r.grupoName ?? "",
           frecuenciaSemanal: r.frecuenciaSemanal ?? "", frecuenciaZadankai: r.frecuenciaZadankai ?? "",
           suscriptoHumanismoSoka: toBool(r.suscriptoHumanismoSoka), realizaZaimu: toBool(r.realizaZaimu),
+          comentarios: r.comentarios ?? "",
           updatedAt: Date.now(),
         };
         const i = personas.findIndex(x => x.id === id);
@@ -490,14 +534,17 @@ $("importCSV")?.addEventListener("change", async (e) => {
 });
 
 $("exportCSVBtn")?.addEventListener("click", () => {
-  const filtered = applyFilters(personas);
+  const filtered = applyFiltersBase(filterByRolePersonas(personas));
   const data = filtered.map(p => ({
     firstName: p.firstName ?? "", lastName: p.lastName ?? "", birthDate: p.birthDate ?? "",
     address: p.address ?? "", city: p.city ?? "", phone: p.phone ?? "", email: p.email ?? "",
-    status: p.status ?? "", hanName: p.hanName ?? "", hanCity: p.hanCity ?? "",
-    grupoName: p.grupoName ?? "", frecuenciaSemanal: p.frecuenciaSemanal ?? "",
-    frecuenciaZadankai: p.frecuenciaZadankai ?? "", suscriptoHumanismoSoka: !!p.suscriptoHumanismoSoka,
-    realizaZaimu: !!p.realizaZaimu, uid: p.id ?? ""
+    status: p.status ?? "",
+    hanName: p.hanName ?? "", hanCity: p.hanCity ?? "", hanSector: p.hanSector ?? "",
+    grupoName: p.grupoName ?? "",
+    frecuenciaSemanal: p.frecuenciaSemanal ?? "", frecuenciaZadankai: p.frecuenciaZadankai ?? "",
+    suscriptoHumanismoSoka: !!p.suscriptoHumanismoSoka, realizaZaimu: !!p.realizaZaimu,
+    comentarios: p.comentarios ?? "",
+    uid: p.id ?? ""
   }));
   const csv = Papa.unparse(data);
   const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
@@ -507,14 +554,46 @@ $("exportCSVBtn")?.addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
-/* ===== Visitas ===== */
-function renderVisitas() {
-  const tabla = $("visitasTable"); if (!tabla) return;
-  const tbody = tabla.querySelector("tbody"); if (!tbody) return;
-  tbody.innerHTML = "";
+/* ===== Visitas (en páginas que lo incluyan) ===== */  // [3](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/app.js)
+function filterByRoleVisitas(list) {
+  if (!canSeeVisitas(currentRole)) return [];
+  switch (currentRole) {
+    case "Admin":
+    case "LiderCiudad":
+      return list;
+    case "LiderSector":
+      return list.filter(v => {
+        const p = personas.find(x => x.id === v.personaId);
+        return (p?.hanSector ?? "") === (roleDetails.sector ?? "");
+      });
+    case "LiderHan":
+      return list.filter(v => {
+        const p = personas.find(x => x.id === v.personaId);
+        return (roleDetails.hanIds ?? []).includes(p?.hanId);
+      });
+    default:
+      return [];
+  }
+}
 
+function renderVisitas() {
+  const tabla = $("visitasTable");
+  const form = $("visitaForm");
+  if (!tabla || !form) return;
+
+  // gating de sección según rol
+  const allow = canSeeVisitas(currentRole);
+  tabla.style.display = allow ? "" : "none";
+  form.style.display = allow ? "" : "none";
+
+  const tbody = tabla.querySelector("tbody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
   const idx = Object.fromEntries(personas.map(p => [p.id, `${p.lastName ?? ""}, ${p.firstName ?? ""}`]));
-  visitas.forEach(v => {
+  const visibles = filterByRoleVisitas(visitas);
+
+  visibles.forEach(v => {
     const tr = document.createElement("tr");
     const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0, 10) : "";
     tr.innerHTML = `<td>${idx[v.personaId] ?? v.personaId ?? "-"}</td><td>${fecha}</td><td>${(v.obs ?? "").replace(/\n/g,"<br/>")}</td>`;
@@ -524,15 +603,16 @@ function renderVisitas() {
 
 $("visitaForm")?.addEventListener("submit", (e) => {
   e.preventDefault();
+  if (!canSeeVisitas(currentRole)) return alert("Tu rol no puede registrar visitas.");
   const personaId = $("visitaPersonaSelect").value;
-  const fechaStr  = $("visitaFecha").value;
-  const obs       = $("visitaObs").value.trim();
+  const fechaStr = $("visitaFecha").value;
+  const obs = $("visitaObs").value.trim();
   if (!personaId || !fechaStr) return;
   visitas.push({ id:uid(), personaId, fecha:new Date(fechaStr).toISOString(), obs, createdBy:currentUser?.uid ?? "", createdAt:Date.now() });
   saveData(); $("visitaForm").reset(); renderVisitas();
 });
 
-/* ===== Utils ===== */
+/* ===== Utils ===== */  // [3](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/app.js)
 function fillSelect(selectEl, items, valueKey, labelKey, includeEmpty) {
   if (!selectEl) return;
   const current = selectEl.value; selectEl.innerHTML = "";
@@ -549,4 +629,3 @@ function toBool(v) {
   if (typeof v === "string") return ["true","1","sí","si","yes"].includes(v.trim().toLowerCase());
   return !!v;
 }
-
