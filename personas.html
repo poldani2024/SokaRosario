@@ -164,8 +164,18 @@
 
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
 
-  <!-- Orden de scripts como ya lo usás (Firebase SDKs en el HTML) -->
-  firebase.js</script> <!-- Auth init v8, window.auth --> <!-- [7](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/firebase.js) -->
-  <script src="app.js"></script>      <!-- Lógica Personas/Visitas/CSV (actualizada con Roles) -->
+  
+<!-- SDKs v8: deben ir ANTES de tu firebase.js -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<!-- Si esta página llama callable functions: -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
+
+<!-- Tu init: define window.auth = firebase.auth() -->
+<script src="firebase.js"></script>
+
+<!-- Lógica de la página que usa window.auth / populate selects -->
+<script src="app.js"></script>
+
 </body>
 </html>
