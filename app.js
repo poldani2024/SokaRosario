@@ -9,7 +9,7 @@
 */
 
 let currentUser = null;      // { email, displayName, uid }
-let currentRole = "Usuario"; // Admin, LiderCiudad, LiderSector, LiderHan, Usuario+, Usuario
+let currentRole = "Admin"; // Admin, LiderCiudad, LiderSector, LiderHan, Usuario+, Usuario
 let roleDetails = { hanIds: [], sector: "", city: "" };
 
 let hanes = [];
