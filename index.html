@@ -94,17 +94,17 @@
     <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
   </footer>
 
-  
-<!-- ✅ Cargar SDKs desde gstatic (orden v8) -->
+<!-- SDKs v8: deben ir ANTES de tu firebase.js -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<!-- Si esta página usa Firestore/Functions, añádelos también: -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
+<!-- <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script> -->
 
-<!-- ✅ Tu init manual (firebase.js) con la configuración real del proyecto -->
+<!-- Tu init manual (define window.auth = firebase.auth()) -->
 <script src="firebase.js"></script>
-<!-- ✅ Tu lógica (app.js / admin.js / visitas.js...) -->
-<script src="app.js"></script>
+
+<!-- Tu lógica de la vista home (si existe), por ejemplo: -->
+<!-- <script src="home.js"></script> -->
+
 
 </body>
 </html>
