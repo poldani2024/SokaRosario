@@ -16,17 +16,15 @@
       <a href="grupos.html">Grupos</a>
     </nav>
 
-    <div id="auth">
-      <div id="login-form">
-        <span>Acceso restringido. Iniciá sesión con Google.</span>
-        <button id="googleLoginBtn">Ingresar con Google</button>
-      </div>
-      <div id="user-info" class="hidden">
-        <span id="user-email"></span>
-        <span id="role-badge" class="badge"></span>
-        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
-      </div>
+     <div id="login-form" class="notice">
+      <p>Acceso restringido. Iniciá sesión con Google.</p>
+      <button id="googleLoginBtn">Ingresar con Google</button>
     </div>
+    <div id="user-info" class="hidden">
+      <span id="user-email"></span> — <strong id="role-badge"></strong>
+      <button id="logoutBtn" style="margin-left:8px;">Cerrar sesión</button>
+    </div>
+    <div id="admin-notice" class="notice hidden">Esta sección es solo para administradores.</div>
   </header>
 
   <main>
