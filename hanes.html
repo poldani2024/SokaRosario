@@ -1,57 +1,61 @@
 
+<!-- hanes.html — Administración de Hanes con campo Sector (solo Admin) -->
+<!-- Basado en tu hanes.html actual (header + gating Admin). --> <!-- [5](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/hanes.html) -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8" />
   <title>Hanes — Soka Gakkai Tracker</title>
   <link rel="stylesheet" href="styles.css" />
-  <style>.hidden{display:none!important}.notice{padding:10px;border:1px solid #ddd;border-radius:8px;margin:8px 0}</style>
 </head>
 <body>
   <header>
     <h1>Administración de Hanes</h1>
+    <div id="auth">
+      <div id="login-form">
+        <span>Acceso restringido. Iniciá sesión con Google.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
     <nav>
       <a href="index.html">Inicio</a>
-      <a href="grupos.html" class="admin-only" style="display:none;">Grupos</a>
+      <a href="grupos.html">Grupos</a>
     </nav>
   </header>
 
-  <section class="auth">
-    <div id="login-form" class="notice">
-      <p>Acceso restringido. Iniciá sesión con Google.</p>
-      <button id="googleLoginBtn">Ingresar con Google</button>
-    </div>
-    <div id="user-info" class="hidden">
-      <span id="user-email"></span> — <strong id="role-badge"></strong>
-      <button id="logoutBtn" style="margin-left:8px;">Cerrar sesión</button>
-    </div>
-    <div id="admin-notice" class="notice hidden">Esta sección es solo para administradores.</div>
-  </section>
+  <main>
+    <p id="admin-notice" class="panel">Esta sección es solo para administradores.</p>
 
-  <section id="hanes" class="hidden">
-    <h2>Administrar Hanes</h2>
-    <form id="hanForm">
-      <label>Nombre del Han <input id="hanName" type="text" /></label>
-      <label>Localidad <input id="hanCity" type="text" /></label>
-      <label>Domicilio del Han <input id="hanAddress" type="text" /></label>
-      <label>Teléfono de contacto <input id="hanPhone" type="tel" /></label>
-      <label>Líder del Han (miembro) <input id="hanLeader" type="text" /></label>
-      <div class="actions">
-        <button type="submit">Guardar Han</button>
-        <button type="button" id="hanClearBtn">Cancelar edición</button>
+    <section id="hanes" class="panel hidden">
+      <h2>Administrar Hanes</h2>
+
+      <div class="grid">
+        <label>Nombre del Han <input id="hanNameInput" type="text" /></label>
+        <label>Localidad <input id="hanCityInput" type="text" /></label>
+
+        <!-- NUEVO: Sector -->
+        <label>Sector <input id="hanSectorInput" type="text" placeholder="Centro, Norte, Oeste, ..." /></label>
+
+        <label>Domicilio del Han <input id="hanAddressInput" type="text" /></label>
+        <label>Teléfono de contacto <input id="hanPhoneInput" type="tel" /></label>
+        <label>Líder del Han (miembro) <input id="hanLeaderInput" type="text" /></label>
       </div>
-    </form>
-  </section>
 
-  <footer>
-    <p>Hecho con ❤️ — Soka Gakkai Tracker</p>
-  </footer>
+      <div class="actions">
+        <button id="hanSaveBtn">Guardar Han</button>
+        <button id="hanCancelBtn" class="secondary">Cancelar edición</button>
+      </div>
+    </section>
+  </main>
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="firebase.js"></script>
-  <script src="admin.js"></script>
+  <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
+
+  <script src="firebase.js"></script> <!-- Auth init v8 --> <!-- [7](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/firebase.js) -->
+  <script src="admin.js"></script>    <!-- Header + gating Admin --> <!-- [2](https://cargillonline-my.sharepoint.com/personal/pedro_oldani_cargill_com/Documents/Microsoft%20Copilot%20Chat%20Files/admin.js) -->
 </body>
-</html>
-``
+</
