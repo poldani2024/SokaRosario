@@ -294,8 +294,14 @@ function toggleDatosPersonalesReadonly(readonly) {
   fields.forEach(id => { const el = $(id); if (!el) return; el.disabled = !!readonly; });
 }
 
+
+// --- Reemplazar la función loadMiPerfil por esta ---
 function loadMiPerfil(uid, email) {
-  $("email").value = email;
+  // Solo si existe el campo #email (página Personas)
+  const emailInput = $("email");
+  if (!emailInput) return;  // Guard: en Home no hay este input
+  emailInput.value = email;
+
   const p = personas.find(x => (x.uid && x.uid === uid) || x.email === email);
   if (p) {
     editPersonaId = p.id;
@@ -305,6 +311,126 @@ function loadMiPerfil(uid, email) {
     toggleDatosPersonalesReadonly(!(currentRole === "Admin"));
   }
 }
+
+// --- Reemplazar renderCatalogsToSelects por esta versión robusta ---
+function renderCatalogsToSelects() {
+  if (!Array.isArray(hanes) || !Array.isArray(grupos)) return;
+
+  const selHan    = $("hanSelect");
+  const selGrupo  = $("grupoSelect");
+  const filHan    = $("filtroHan");
+  const filGrupo  = $("filtroGrupo");
+  const hanLoc    = $("hanLocalidad");
+
+  if (selHan)   fillSelect(selHan,   hanes,  "id","name", true);
+  if (selGrupo) fillSelect(selGrupo, grupos, "id","name", true);
+
+  if (filHan)   fillSelect(filHan,   [{ id:"", name:"Todos" }, ...hanes],  "id","name", false);
+  if (filGrupo) fillSelect(filGrupo, [{ id:"", name:"Todos" }, ...grupos], "id","name", false);
+
+  // sincroniza localidad del Han si ambos existen
+  if (selHan && hanLoc) {
+    selHan.addEventListener("change", () => {
+      const h = hanes.find(x => x.id === selHan.value);
+      hanLoc.value = h?.city ?? "";
+    });
+  }
+}
+
+// --- Reemplazar renderPersonas por esta (con guard de existencia) ---
+function renderPersonas() {
+  const table = $("personasTable");
+  if (!table) return; // Guard: solo corre en Personas
+
+  const tbody = table.querySelector("tbody");
+  if (!tbody) return;
+
+  const thComentarios = table.querySelector("thead th.th-comentarios");
+  if (thComentarios) thComentarios.style.display = canSeeComentarios(currentRole) ? "" : "none";
+
+  tbody.innerHTML = "";
+  const base = applyFiltersBase(personas);
+  const filtered = filterByRolePersonas(base);
+
+  filtered.forEach(p => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.firstName ?? ""}</td>
+      <td>${p.lastName  ?? ""}</td>
+      <td>${p.status    ?? ""}</td>
+      <td>${p.hanName   ?? ""}</td>
+      <td>${p.grupoName ?? ""}</td>
+      <td>${p.frecuenciaSemanal   ?? ""}</td>
+      <td>${p.frecuenciaZadankai  ?? ""}</td>
+      <td>${p.suscriptoHumanismoSoka ? "Sí" : "No"}</td>
+      <td>${p.realizaZaimu            ? "Sí" : "No"}</td>
+      <td class="td-comentarios">${canSeeComentarios(currentRole) ? (p.comentarios ?? "").replace(/\n/g,"<br/>") : "—"}</td>
+      <td class="acciones-admin"><div class="actions"></div></td>
+    `;
+    const tdC = tr.querySelector(".td-comentarios");
+    if (tdC) tdC.style.display = canSeeComentarios(currentRole) ? "" : "none";
+
+    tr.addEventListener("click", () => {
+      editPersonaId = p.id;
+      const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
+      populateDatosPersonales(p, { readonly });
+    });
+
+    const actions = tr.querySelector(".actions");
+    if (actions) {
+      const btnEdit = document.createElement("button");
+      btnEdit.textContent = "Editar";
+      btnEdit.dataset.action = "edit-persona";
+      btnEdit.dataset.id = p.id;
+
+      const btnDel = document.createElement("button");
+      btnDel.textContent = "Eliminar";
+      btnDel.className   = "secondary";
+      btnDel.dataset.action = "delete-persona";
+      btnDel.dataset.id     = p.id;
+
+      actions.appendChild(btnEdit);
+      actions.appendChild(btnDel);
+    }
+    tbody.appendChild(tr);
+  });
+
+  // llenar select de visitas si está presente en esta página
+  const visitaSel = $("visitaPersonaSelect");
+  if (visitaSel) {
+    fillSelect(
+      visitaSel,
+      personas.map(p => ({ id:p.id, name:`${p.lastName ?? ""}, ${p.firstName ?? ""}` })),
+      "id","name", true
+    );
+  }
+}
+
+// --- Reemplazar renderVisitas por esta (igual con guard) ---
+function renderVisitas() {
+  const tabla = $("visitasTable");
+  const form  = $("visitaForm");
+  if (!tabla || !form) return; // Guard: solo corre en Visitas
+
+  const allow = canSeeVisitas(currentRole);
+  tabla.style.display = allow ? "" : "none";
+  form.style.display  = allow ? "" : "none";
+
+  const tbody = tabla.querySelector("tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  const idx = Object.fromEntries(personas.map(p => [p.id, `${p.lastName ?? ""}, ${p.firstName ?? ""}`]));
+  const visibles = filterByRoleVisitas(visitas);
+
+  visibles.forEach(v => {
+    const tr = document.createElement("tr");
+    const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0, 10) : "";
+    tr.innerHTML = `<td>${idx[v.personaId] ?? v.personaId ?? "-"}</td><td>${fecha}</td><td>${(v.obs ?? "").replace(/\n/g,"<br/>")}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
 
 $("miPerfilForm")?.addEventListener("submit", (e) => {
   e.preventDefault();
