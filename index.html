@@ -1,10 +1,12 @@
 
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Inicio — Soka Gakkai Tracker</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="home.css" />
 </head>
 <body>
   <header class="hdr">
@@ -12,36 +14,88 @@
     <nav class="top-links">
       <a href="personas.html">Personas</a>
       <a href="visitas.html">Visitas</a>
-      <a href="hanes.html">Hanes</a>
-      <a href="grupos.html">Grupos</a>
+      <a href="hanes.html" class="admin-only-link" style="display:none;">Hanes</a>
+      <a href="grupos.html" class="admin-only-link" style="display:none;">Grupos</a>
     </nav>
   </header>
 
-  <main class="auth">
-    <div id="login-form" class="card">
-      <span>Ingresá con Google para acceder al menú.</span>
+  <section class="auth">
+    <div id="login-form" class="card" aria-live="polite">
+      <p class="muted">Ingresá con Google para acceder al menú.</p>
       <button id="googleLoginBtn" class="btn primary">Ingresar con Google</button>
     </div>
-
-    <div id="user-info" class="card hidden">
+    <div id="user-info" class="card" style="display:none;">
       <span id="user-email" class="pill"></span>
       <span id="role-badge" class="badge"></span>
       <button id="logoutBtn" class="btn">Cerrar sesión</button>
     </div>
+  </section>
 
-    <section class="lotus-wrap">
-      <div class="cards">
-        <a class="card-link" href="personas.html">Registro de Personas</a>
-        <a class="card-link" href="visitas.html">Visitas</a>
-        <a class="card-link admin-only" href="hanes.html">Administración de Hanes</a>
-        <a class="card-link admin-only" href="grupos.html">Grupos de Capacitación</a>
-      </div>
-    </section>
+  <main class="lotus-wrap" aria-label="Menú principal">
+    <svg class="lotus" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Flor de loto con opciones de menú">
+      <defs>
+        <radialGradient id="petalGrad" cx="50%" cy="40%" r="70%">
+          <stop offset="0%" stop-color="#d9f0ff" />
+          <stop offset="60%" stop-color="#a7d6ff" />
+          <stop offset="100%" stop-color="#6fb6f7" />
+        </radialGradient>
+        <radialGradient id="petalGrad2" cx="50%" cy="40%" r="70%">
+          <stop offset="0%" stop-color="#ffe4f0" />
+          <stop offset="60%" stop-color="#f7b6d0" />
+          <stop offset="100%" stop-color="#ea7dad" />
+        </radialGradient>
+        <radialGradient id="centerGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff8e1" />
+          <stop offset="80%" stop-color="#ffd54f" />
+          <stop offset="100%" stop-color="#ffb300" />
+        </radialGradient>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.2" />
+        </filter>
+      </defs>
+
+      <!-- Pétalo 1: Personas -->
+      <a href="personas.html" aria-label="Registro de Personas">
+        <path class="petal" d="M200,60 C240,80 270,130 200,180 C130,130 160,80 200,60 Z" fill="url(#petalGrad)" filter="url(#shadow)" />
+        <text x="200" y="120" class="petal-label" aria-hidden="true">Personas</text>
+      </a>
+
+      <!-- Pétalo 2: Visitas -->
+      <a href="visitas.html" aria-label="Visitas">
+        <path class="petal" d="M340,200 C320,240 270,270 220,200 C270,130 320,160 340,200 Z" fill="url(#petalGrad2)" filter="url(#shadow)" />
+        <text x="290" y="210" class="petal-label" aria-hidden="true">Visitas</text>
+      </a>
+
+      <!-- Pétalo 3: Hanes (Admin) -->
+      <a href="hanes.html" aria-label="Administración de Hanes" class="admin-only-link" style="display:none;">
+        <path class="petal" d="M200,340 C160,320 130,270 200,220 C270,270 240,320 200,340 Z" fill="url(#petalGrad)" filter="url(#shadow)" />
+        <text x="200" y="300" class="petal-label" aria-hidden="true">Hanes</text>
+      </a>
+
+      <!-- Pétalo 4: Grupos (Admin) -->
+      <a href="grupos.html" aria-label="Grupos de Capacitación" class="admin-only-link" style="display:none;">
+        <path class="petal" d="M60,200 C80,160 130,130 180,200 C130,270 80,240 60,200 Z" fill="url(#petalGrad2)" filter="url(#shadow)" />
+        <text x="110" y="210" class="petal-label" aria-hidden="true">Grupos</text>
+      </a>
+
+      <!-- Centro -->
+      <circle cx="200" cy="200" r="40" fill="url(#centerGrad)" />
+      <text x="200" y="206" class="center-label" aria-hidden="true">Menú</text>
+    </svg>
+
+    <div class="cards" aria-label="Opciones de menú (lista)">
+      <a class="card-link" href="personas.html">Registro de Personas</a>
+      <a class="card-link" href="visitas.html">Visitas</a>
+      <a class="card-link admin-only-link" href="hanes.html" style="display:none;">Administración de Hanes</a>
+      <a class="card-link admin-only-link" href="grupos.html" style="display:none;">Grupos de Capacitación</a>
+    </div>
   </main>
 
-  <footer class="ftr">Hecho con ❤️ — Soka Gakkai Tracker</footer>
+  <footer class="ftr">
+    <small>Hecho con ❤️ — Soka Gakkai Tracker</small>
+  </footer>
 
-  <!-- SDKs v8 (CDN gstatic) — DEBEN ir antes de firebase.js -->
+<!-- SDKs v8 (CDN gstatic) — DEBEN ir antes de firebase.js -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
@@ -50,5 +104,6 @@
 
   <!-- Lógica de la página (usa window.auth) -->
   <script src="app.js"></script>
+
 </body>
 </html>
