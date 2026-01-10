@@ -53,8 +53,8 @@
         <td>${g.name ?? ''}</td>
         <td>${g.leader ?? ''}</td>
         <td class="actions">
-          editEditar</button>
-          deleteEliminar</button>
+          <button>Editar</button>
+          <button>Eliminar</button>
         </td>
       `;
       tbody.appendChild(tr);
