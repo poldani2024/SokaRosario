@@ -1,5 +1,3 @@
-
-<script>
 /* grupos.js — listado + alta/edición (localStorage y opcional Firestore) */
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -139,4 +137,3 @@
     }
   });
 })();
-</script>
