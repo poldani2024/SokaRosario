@@ -101,26 +101,7 @@ function ensureSeedData() {
   }
   if (!personas.length) {
     const h0 = hanes[0], g0 = grupos[0];
-    personas = [
-      { id: uid(), firstName: "Juan", lastName: "Pérez",  email:"juan@ejemplo.com", status:"Miembro",
-        hanId:h0.id, hanName:h0.name, hanCity:h0.city, hanSector:h0.sector,
-        grupoId:g0.id, grupoName:g0.name,
-        frecuenciaSemanal:"Frecuentemente", frecuenciaZadankai:"Poco",
-        suscriptoHumanismoSoka:true, realizaZaimu:false, comentarios:"",
-        updatedAt:Date.now() },
-      { id: uid(), firstName: "Ana",  lastName: "García", email:"ana@ejemplo.com", status:"Amigo Soka",
-        hanId:h0.id, hanName:h0.name, hanCity:h0.city, hanSector:h0.sector,
-        grupoId:g0.id, grupoName:g0.name,
-        frecuenciaSemanal:"Poco", frecuenciaZadankai:"Nunca",
-        suscriptoHumanismoSoka:false, realizaZaimu:false, comentarios:"",
-        updatedAt:Date.now() },
-      { id: uid(), firstName: "Luis", lastName: "Mendoza", email:"luis@ejemplo.com", status:"Miembro",
-        hanId:h0.id, hanName:h0.name, hanCity:h0.city, hanSector:h0.sector,
-        grupoId:g0.id, grupoName:g0.name,
-        frecuenciaSemanal:"Nunca", frecuenciaZadankai:"Frecuentemente",
-        suscriptoHumanismoSoka:true, realizaZaimu:true, comentarios:"",
-        updatedAt:Date.now() }
-    ];
+    personas = [0];
   }
   // Migración: completar hanSector y comentarios si faltan
   const idxHan = Object.fromEntries(hanes.map(h => [h.id, h]));
