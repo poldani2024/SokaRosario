@@ -96,6 +96,7 @@
         </thead>
         <tbody></tbody>
       </table>
+      <p id="personasEmpty" class="muted hidden">No hay personas cargadas aún.</p>
     </section>
 
     <section class="panel">
@@ -170,7 +171,7 @@
           </label>
 
           <label>Comentarios
-            <textarea id="comentarios" rows="4" placeholder="Observaciones/seguimiento internas"></textarea>
+            <textarea id="comentarios" rows="4" placeholder="Observaciones internas"></textarea>
           </label>
         </div>
 
@@ -184,14 +185,15 @@
 
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
 
-  <!-- SDKs v8 (CDN gstatic) — DEBEN ir antes de firebase.js -->
+  <!-- SDKs v8 (CDN gstatic) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
-  <!-- Tu init manual -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- Init manual -->
   <script src="firebase.js"></script>
-
-  <!-- Lógica común (usa window.auth) -->
+  <!-- Header común (opcional) -->
+  <script src="auth-ui.js"></script>
+  <!-- Lógica principal -->
   <script src="app.js"></script>
 </body>
 </html>
