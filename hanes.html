@@ -16,30 +16,29 @@
       <a href="grupos.html">Grupos</a>
     </nav>
 
-     <div id="login-form" class="notice">
-      <p>Acceso restringido. Iniciá sesión con Google.</p>
-      <button id="googleLoginBtn">Ingresar con Google</button>
+    <div id="auth">
+      <div id="login-form">
+        <span>Acceso restringido. Iniciá sesión con Google.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
     </div>
-    <div id="user-info" class="hidden">
-      <span id="user-email"></span> — <strong id="role-badge"></strong>
-      <button id="logoutBtn" style="margin-left:8px;">Cerrar sesión</button>
-    </div>
-    <div id="admin-notice" class="notice hidden">Esta sección es solo para administradores.</div>
   </header>
 
   <main>
     <p id="admin-notice" class="panel">Esta sección es solo para administradores.</p>
 
-    <!-- LISTADO DE HANES -->
     <section id="hanes-list" class="panel">
       <h2>Hanes cargados</h2>
-
       <div class="grid">
         <label>Buscar
           <input id="hanSearch" type="text" placeholder="Nombre, localidad o sector" />
         </label>
       </div>
-
       <table id="hanesTable">
         <thead>
           <tr>
@@ -56,7 +55,6 @@
       </table>
     </section>
 
-    <!-- ALTA / EDICIÓN -->
     <section id="hanes" class="panel">
       <h2>Administrar Hanes</h2>
       <div class="grid">
@@ -76,14 +74,15 @@
 
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
 
-  <!-- SDKs v8 (CDN gstatic) DEBEN ir antes de firebase.js -->
+  <!-- SDKs v8 (CDN gstatic) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
-  <!-- Init manual (config + window.auth); ya lo tenés -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- Init manual -->
   <script src="firebase.js"></script>
-
-  <!-- Lógica Hanes (listado + alta/edición) -->
+  <!-- Header común de login -->
+  <script src="auth-ui.js"></script>
+  <!-- Lógica Hanes -->
   <script src="hanes.js"></script>
 </body>
 </html>

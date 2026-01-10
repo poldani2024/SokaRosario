@@ -4,7 +4,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>Grupos — Soka Gakkai Tracker</title>
-  <!-- Tus estilos -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -33,16 +32,13 @@
   <main>
     <p id="admin-notice" class="panel">Esta sección es solo para administradores.</p>
 
-    <!-- LISTADO DE GRUPOS -->
     <section id="grupos-list" class="panel">
       <h2>Grupos cargados</h2>
-
       <div class="grid">
         <label>Buscar
           <input id="grupoSearch" type="text" placeholder="Nombre o líder" />
         </label>
       </div>
-
       <table id="gruposTable">
         <thead>
           <tr>
@@ -55,16 +51,11 @@
       </table>
     </section>
 
-    <!-- ALTA / EDICIÓN -->
     <section id="grupos" class="panel">
       <h2>Administrar Grupos</h2>
       <div class="grid">
-        <label>Nombre del grupo
-          <input id="grupoNameInput" type="text" />
-        </label>
-        <label>Líder del grupo (miembro)
-          <input id="grupoLeaderInput" type="text" />
-        </label>
+        <label>Nombre del grupo <input id="grupoNameInput" type="text" /></label>
+        <label>Líder del grupo (miembro) <input id="grupoLeaderInput" type="text" /></label>
       </div>
       <div class="actions">
         <button id="grupoSaveBtn">Guardar Grupo</button>
@@ -75,18 +66,15 @@
 
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
 
-  <!-- SDKs v8 (CDN gstatic) DEBEN ir antes de firebase.js -->
+  <!-- SDKs v8 (CDN gstatic) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
-
-  <!-- Init manual (config + window.auth); ya lo tenés -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- Init manual -->
   <script src="firebase.js"></script>
-
-  <!-- Header común de login (nuevo) -->
- <script src="auth-ui.js"></script>
-
-  <!-- Lógica Grupos (listado + alta/edición) -->
+  <!-- Header común de login -->
+  <script src="auth-ui.js"></script>
+  <!-- Lógica Grupos -->
   <script src="grupos.js"></script>
 </body>
 </html>

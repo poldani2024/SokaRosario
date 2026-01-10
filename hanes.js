@@ -6,75 +6,33 @@
   const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
   let hanes = [];
-  let editHanId = null; // para modo edición
+  let editHanId = null;
 
-  /* =========================
-     Persistencia
-     ========================= */
-  function loadHanesLS() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.hanes) ?? '[]'); }
-    catch { return []; }
-  }
-  function saveHanesLS(list) {
-    localStorage.setItem(STORAGE_KEYS.hanes, JSON.stringify(list ?? []));
-  }
+  function loadHanesLS() { try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.hanes) ?? '[]'); } catch { return []; } }
+  function saveHanesLS(list) { localStorage.setItem(STORAGE_KEYS.hanes, JSON.stringify(list ?? [])); }
 
-  async function loadHanesFS() {
-    if (!window.db) return null;
-    const snap = await db.collection('hanes').get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  }
-
+  async function loadHanesFS() { if (!window.db) return null; const snap = await db.collection('hanes').get(); return snap.docs.map(d => ({ id: d.id, ...d.data() })); }
   async function saveHanFS({ id, name, city, sector, address, phone, leader }) {
-    if (!window.db) return null;
-    const coll = db.collection('hanes');
-    if (id) {
-      await coll.doc(id).set({ name, city, sector, address, phone, leader }, { merge: true });
-      return id;
-    } else {
-      const docRef = await coll.add({ name, city, sector, address, phone, leader });
-      return docRef.id;
-    }
+    if (!window.db) return null; const coll = db.collection('hanes');
+    if (id) { await coll.doc(id).set({ name, city, sector, address, phone, leader }, { merge: true }); return id; }
+    const docRef = await coll.add({ name, city, sector, address, phone, leader }); return docRef.id;
   }
+  async function deleteHanFS(id) { if (!window.db) return null; await db.collection('hanes').doc(id).delete(); return true; }
 
-  async function deleteHanFS(id) {
-    if (!window.db) return null;
-    await db.collection('hanes').doc(id).delete();
-    return true;
-  }
-
-  /* =========================
-     Carga + render
-     ========================= */
   async function loadAndRenderHanes() {
-    try {
-      const fsList = await loadHanesFS();
-      if (Array.isArray(fsList)) {
-        hanes = fsList;
-        saveHanesLS(hanes); // opcional: sincroniza local como caché
-      } else {
-        hanes = loadHanesLS();
-      }
-    } catch (err) {
-      console.warn('[hanes] No se pudo leer Firestore. Uso localStorage.', err);
-      hanes = loadHanesLS();
-    }
+    try { const fsList = await loadHanesFS(); hanes = Array.isArray(fsList) ? fsList : loadHanesLS(); if (Array.isArray(fsList)) saveHanesLS(hanes); }
+    catch (err) { console.warn('[hanes] Firestore no disponible, usando localStorage.', err); hanes = loadHanesLS(); }
     renderHanesTable();
   }
 
   function renderHanesTable() {
-    const tbody = $('hanesTable')?.querySelector('tbody');
-    if (!tbody) return;
+    const tbody = $('hanesTable')?.querySelector('tbody'); if (!tbody) return;
     const q = ($('hanSearch')?.value ?? '').toLowerCase().trim();
-
-    const filtered = (hanes ?? []).filter(h => {
-      const txt = `${h.name ?? ''} ${h.city ?? ''} ${h.sector ?? ''}`.toLowerCase();
-      return !q || txt.includes(q);
-    });
+    const filtered = (hanes ?? []).filter(h => { const txt = `${h.name ?? ''} ${h.city ?? ''} ${h.sector ?? ''}`.toLowerCase(); return !q || txt.includes(q); });
 
     tbody.innerHTML = '';
     filtered.forEach(h => {
-      const tr = document.createElement('tr');
+      const tr = document.createElement('tr'); tr.dataset.id = h.id;
       tr.innerHTML = `
         <td>${h.name ?? ''}</td>
         <td>${h.city ?? ''}</td>
@@ -83,27 +41,13 @@
         <td>${h.phone ?? ''}</td>
         <td>${h.leader ?? ''}</td>
         <td class="actions">
-          <button data-action="edit" data-id="${h.id}">Editar</button>
-          <button data-action="delete" data-id="${h.id}" class="secondary">Eliminar</button>
-        </td>
-      `;
+          editEditar</button>
+          deleteEliminar</button>
+        </td>`;
       tbody.appendChild(tr);
-    });
-
-    // Bind de botones Editar/Eliminar
-    tbody.querySelectorAll('button[data-action]').forEach(btn => {
-      const action = btn.dataset.action;
-      const id = btn.dataset.id;
-      btn.addEventListener('click', () => {
-        if (action === 'edit') onEditHan(id);
-        else if (action === 'delete') onDeleteHan(id);
-      });
     });
   }
 
-  /* =========================
-     Alta / Edición / Eliminar
-     ========================= */
   function formValues() {
     return {
       name:   $('hanNameInput')?.value?.trim()   ?? '',
@@ -114,54 +58,29 @@
       leader: $('hanLeaderInput')?.value?.trim() ?? '',
     };
   }
-
   function clearForm() {
     ['hanNameInput','hanCityInput','hanSectorInput','hanAddressInput','hanPhoneInput','hanLeaderInput']
       .forEach(id => { const el = $(id); if (el) el.value = ''; });
-    editHanId = null;
-    $('hanSaveBtn')?.textContent && ($('hanSaveBtn').textContent = 'Guardar Han');
+    editHanId = null; $('hanSaveBtn')?.textContent && ($('hanSaveBtn').textContent = 'Guardar Han');
   }
-
   async function onSaveHan() {
     if (!window.auth?.currentUser) { alert('Ingresá con Google primero.'); return; }
-    const vals = formValues();
-    if (!vals.name) { alert('Ingresá el nombre del Han.'); $('hanNameInput')?.focus(); return; }
-
+    const vals = formValues(); if (!vals.name) { alert('Ingresá el nombre del Han.'); $('hanNameInput')?.focus(); return; }
     try {
-      // Intentar Firestore primero si está disponible
-      let savedId = null;
-      if (window.db) {
-        savedId = await saveHanFS({ id: editHanId, ...vals });
-      }
-      if (!savedId) {
-        // Persistencia local
-        let list = loadHanesLS();
-        if (editHanId) {
+      let savedId = null; if (window.db) savedId = await saveHanFS({ id: editHanId, ...vals });
+      if (!savedId) { let list = loadHanesLS(); if (editHanId) {
           const i = list.findIndex(h => h.id === editHanId);
-          if (i >= 0) list[i] = { ...list[i], ...vals };
-          else list.push({ id: editHanId, ...vals });
-        } else {
-          list.push({ id: uid(), ...vals });
-          savedId = list[list.length - 1].id;
-          editHanId = savedId;
-        }
+          if (i >= 0) list[i] = { ...list[i], ...vals }; else list.push({ id: editHanId, ...vals });
+        } else { list.push({ id: uid(), ...vals }); editHanId = list[list.length - 1].id; }
         saveHanesLS(list);
       }
-      await loadAndRenderHanes();
-      clearForm();
-      alert('Han guardado ✅');
-    } catch (err) {
-      console.error('[hanes] Error al guardar', err);
-      alert('No se pudo guardar el Han.');
-    }
+      await loadAndRenderHanes(); clearForm(); alert('Han guardado ✅');
+    } catch (err) { console.error('[hanes] Error al guardar', err); alert('No se pudo guardar el Han.'); }
   }
-
-  function onCancelEdit() { clearForm(); }
+  function onCancelEdit(){ clearForm(); }
 
   function onEditHan(id) {
-    const h = (hanes ?? []).find(x => x.id === id);
-    if (!h) return;
-    editHanId = id;
+    const h = (hanes ?? []).find(x => x.id === id); if (!h) return; editHanId = id;
     $('hanNameInput').value   = h.name   ?? '';
     $('hanCityInput').value   = h.city   ?? '';
     $('hanSectorInput').value = h.sector ?? '';
@@ -170,33 +89,24 @@
     $('hanLeaderInput').value = h.leader ?? '';
     $('hanSaveBtn').textContent = 'Actualizar Han';
   }
-
   async function onDeleteHan(id) {
     if (!confirm('¿Eliminar este Han?')) return;
-    try {
-      if (window.db) { await deleteHanFS(id); }
-      // Sincroniza local
-      const list = loadHanesLS().filter(h => h.id !== id);
-      saveHanesLS(list);
-      await loadAndRenderHanes();
-    } catch (err) {
-      console.error('[hanes] Error al eliminar', err);
-      alert('No se pudo eliminar el Han.');
-    }
+    try { if (window.db) await deleteHanFS(id); const list = loadHanesLS().filter(h => h.id !== id); saveHanesLS(list); await loadAndRenderHanes(); }
+    catch (err) { console.error('[hanes] Error al eliminar', err); alert('No se pudo eliminar el Han.'); }
   }
 
-  /* =========================
-     Eventos
-     ========================= */
   document.addEventListener('DOMContentLoaded', () => {
-    // Render inicial
-    loadAndRenderHanes();
-
-    // Búsqueda
-    $('hanSearch')?.addEventListener('input', renderHanesTable);
-
-    // Botones del form
-    $('hanSaveBtn')?.addEventListener('click', onSaveHan);
+    loadAndRenderHanes(); $('hanSearch')?.addEventListener('input', renderHanesTable);
+    $('hanSaveBtn') ?.addEventListener('click', onSaveHan);
     $('hanCancelBtn')?.addEventListener('click', onCancelEdit);
+
+    const tbody = $('hanesTable')?.querySelector('tbody');
+    if (tbody) {
+      tbody.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (btn) { const id = btn.dataset.id; const action = btn.dataset.action; if (action === 'edit') onEditHan(id); if (action === 'delete') onDeleteHan(id); return; }
+        const tr = e.target.closest('tr[data-id]'); if (tr?.dataset?.id) onEditHan(tr.dataset.id);
+      });
+    }
   });
 })();
