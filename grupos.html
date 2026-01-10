@@ -15,7 +15,6 @@
       <a href="visitas.html">Visitas</a>
       <a href="hanes.html">Hanes</a>
     </nav>
-
     <div id="auth">
       <div id="login-form">
         <span>Acceso restringido. Iniciá sesión con Google.</span>
@@ -28,10 +27,7 @@
       </div>
     </div>
   </header>
-
   <main>
-    <p id="admin-notice" class="panel">Esta sección es solo para administradores.</p>
-
     <section id="grupos-list" class="panel">
       <h2>Grupos cargados</h2>
       <div class="grid">
@@ -49,6 +45,7 @@
         </thead>
         <tbody></tbody>
       </table>
+      <p id="gruposEmpty" class="muted hidden">No hay grupos cargados aún.</p>
     </section>
 
     <section id="grupos" class="panel">
@@ -63,7 +60,6 @@
       </div>
     </section>
   </main>
-
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
 
   <!-- SDKs v8 (CDN gstatic) -->
@@ -72,7 +68,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <!-- Init manual -->
   <script src="firebase.js"></script>
-  <!-- Header común de login -->
+  <!-- Header común de login (si lo usás) -->
   <script src="auth-ui.js"></script>
   <!-- Lógica Grupos -->
   <script src="grupos.js"></script>

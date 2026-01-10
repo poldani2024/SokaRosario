@@ -1,5 +1,4 @@
 
-// hanes.js — listado + alta/edición (localStorage y opcional Firestore)
 (function () {
   const $ = (id) => document.getElementById(id);
   const STORAGE_KEYS = { hanes: 'soka_hanes' };
@@ -19,6 +18,13 @@
   }
   async function deleteHanFS(id) { if (!window.db) return null; await db.collection('hanes').doc(id).delete(); return true; }
 
+  function renderEmptyState(list) {
+    const empty = $('hanesEmpty'); const table = $('hanesTable');
+    const hasData = Array.isArray(list) && list.length > 0;
+    if (empty) empty.classList.toggle('hidden', hasData);
+    if (table) table.classList.toggle('hidden', !hasData);
+  }
+
   async function loadAndRenderHanes() {
     try { const fsList = await loadHanesFS(); hanes = Array.isArray(fsList) ? fsList : loadHanesLS(); if (Array.isArray(fsList)) saveHanesLS(hanes); }
     catch (err) { console.warn('[hanes] Firestore no disponible, usando localStorage.', err); hanes = loadHanesLS(); }
@@ -30,6 +36,7 @@
     const q = ($('hanSearch')?.value ?? '').toLowerCase().trim();
     const filtered = (hanes ?? []).filter(h => { const txt = `${h.name ?? ''} ${h.city ?? ''} ${h.sector ?? ''}`.toLowerCase(); return !q || txt.includes(q); });
 
+    renderEmptyState(filtered);
     tbody.innerHTML = '';
     filtered.forEach(h => {
       const tr = document.createElement('tr'); tr.dataset.id = h.id;
@@ -41,8 +48,8 @@
         <td>${h.phone ?? ''}</td>
         <td>${h.leader ?? ''}</td>
         <td class="actions">
-          editEditar</button>
-          deleteEliminar</button>
+          <button data-action="edit" data-id="${h.id}">Editar</button>
+          <button data-action="delete" data-id="${h.id}">Eliminar</button>
         </td>`;
       tbody.appendChild(tr);
     });
@@ -91,8 +98,12 @@
   }
   async function onDeleteHan(id) {
     if (!confirm('¿Eliminar este Han?')) return;
-    try { if (window.db) await deleteHanFS(id); const list = loadHanesLS().filter(h => h.id !== id); saveHanesLS(list); await loadAndRenderHanes(); }
-    catch (err) { console.error('[hanes] Error al eliminar', err); alert('No se pudo eliminar el Han.'); }
+    try {
+      if (window.db) await deleteHanFS(id);
+      const list = loadHanesLS().filter(h => h.id !== id);
+      saveHanesLS(list);
+      await loadAndRenderHanes();
+    } catch (err) { console.error('[hanes] Error al eliminar', err); alert('No se pudo eliminar el Han.'); }
   }
 
   document.addEventListener('DOMContentLoaded', () => {

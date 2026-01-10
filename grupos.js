@@ -1,5 +1,4 @@
 
-/* grupos.js — listado + alta/edición (localStorage y opcional Firestore) */
 (function () {
   const $ = (id) => document.getElementById(id);
   const STORAGE_KEYS = { grupos: 'soka_grupos' };
@@ -19,6 +18,13 @@
   }
   async function deleteGrupoFS(id){ if (!window.db) return null; await db.collection('grupos').doc(id).delete(); return true; }
 
+  function renderEmptyState(list) {
+    const empty = $('gruposEmpty'); const table = $('gruposTable');
+    const hasData = Array.isArray(list) && list.length > 0;
+    if (empty) empty.classList.toggle('hidden', hasData);
+    if (table) table.classList.toggle('hidden', !hasData);
+  }
+
   async function loadAndRenderGrupos() {
     try { const fsList = await loadGruposFS(); grupos = Array.isArray(fsList) ? fsList : loadGruposLS(); if (Array.isArray(fsList)) saveGruposLS(grupos); }
     catch (err) { console.warn('[grupos] Firestore no disponible, usando localStorage.', err); grupos = loadGruposLS(); }
@@ -30,6 +36,7 @@
     const q = ($('grupoSearch')?.value ?? '').toLowerCase().trim();
     const filtered = (grupos ?? []).filter(g => { const txt = `${g.name ?? ''} ${g.leader ?? ''}`.toLowerCase(); return !q || txt.includes(q); });
 
+    renderEmptyState(filtered);
     tbody.innerHTML = '';
     filtered.forEach(g => {
       const tr = document.createElement('tr'); tr.dataset.id = g.id;
@@ -37,8 +44,8 @@
         <td>${g.name ?? ''}</td>
         <td>${g.leader ?? ''}</td>
         <td class="actions">
-          editEditar</button>
-          deleteEliminar</button>
+          <button data-action="edit" data-id="${g.id}">Editar</button>
+          <button data-action="delete" data-id="${g.id}">Eliminar</button>
         </td>`;
       tbody.appendChild(tr);
     });
