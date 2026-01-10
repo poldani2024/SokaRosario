@@ -4,47 +4,86 @@
 <head>
   <meta charset="UTF-8" />
   <title>Grupos — Soka Gakkai Tracker</title>
+  <!-- Tus estilos -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header>
-    <h1>Administración de Grupos de Capacitación</h1>
+    <h1>Grupos de Capacitación</h1>
     <nav>
       <a href="index.html">Inicio</a>
+      <a href="personas.html">Personas</a>
+      <a href="visitas.html">Visitas</a>
+      <a href="hanes.html">Hanes</a>
     </nav>
-    <section class="auth">
-    <div id="login-form" class="notice">
-      <p>Acceso restringido. Iniciá sesión con Google.</p>
-      <button id="googleLoginBtn">Ingresar con Google</button>
-    </div>
-    <div id="user-info" class="hidden">
-      <span id="user-email"></span> — <strong id="role-badge"></strong>
-      <button id="logoutBtn" style="margin-left:8px;">Cerrar sesión</button>
-    </div>
-    <div id="admin-notice" class="notice hidden">Esta sección es solo para administradores.</div>
-  </section>
-  </header>
-  <section id="grupos" class="panel hidden">
-    <h2>Grupos de Capacitación</h2>
-    <div class="grid">
-      <form id="grupoForm">
-        <label>Nombre del grupo <input id="grupoName" type="text" /></label>
-        <label>Líder del grupo (miembro) <input id="grupoLeader" type="text" /></label>
-    </div>
-      <div class="actions">
-        <button type="submit">Guardar Grupo</button>
-        <button type="button" id="grupoClearBtn">Cancelar edición</button>
+
+    <div id="auth">
+      <div id="login-form">
+        <span>Acceso restringido. Iniciá sesión con Google.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
       </div>
-    </form>
-  </section>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
 
-  <footer>
-    <p>Hecho con ❤️ — Soka Gakkai Tracker</p>
-  </footer>
+  <main>
+    <p id="admin-notice" class="panel">Esta sección es solo para administradores.</p>
 
+    <!-- LISTADO DE GRUPOS -->
+    <section id="grupos-list" class="panel">
+      <h2>Grupos cargados</h2>
+
+      <div class="grid">
+        <label>Buscar
+          <input id="grupoSearch" type="text" placeholder="Nombre o líder" />
+        </label>
+      </div>
+
+      <table id="gruposTable">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Líder</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- ALTA / EDICIÓN -->
+    <section id="grupos" class="panel">
+      <h2>Administrar Grupos</h2>
+      <div class="grid">
+        <label>Nombre del grupo
+          <input id="grupoNameInput" type="text" />
+        </label>
+        <label>Líder del grupo (miembro)
+          <input id="grupoLeaderInput" type="text" />
+        </label>
+      </div>
+      <div class="actions">
+        <button id="grupoSaveBtn">Guardar Grupo</button>
+        <button id="grupoCancelBtn" class="secondary">Cancelar edición</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
+
+  <!-- SDKs v8 (CDN gstatic) DEBEN ir antes de firebase.js -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+ 
+
+  <!-- Init manual (config + window.auth); ya lo tenés -->
   <script src="firebase.js"></script>
-  <script src="admin.js"></script>
+
+  <!-- Lógica Grupos (listado + alta/edición) -->
+  <script src="grupos.js"></script>
 </body>
 </html>
