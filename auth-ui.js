@@ -1,5 +1,3 @@
-
-<script>
 /* auth-ui.js — Header común de login */
 (function(){
   const $ = (id) => document.getElementById(id);
@@ -63,4 +61,4 @@
       .catch(err => console.error('[auth-ui] getRedirectResult error:', err));
   });
 })();
-</script>
+
