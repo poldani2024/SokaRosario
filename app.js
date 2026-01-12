@@ -291,20 +291,20 @@ function renderPersonas() {
   filtered.forEach(p => {
     const tr = document.createElement("tr"); tr.dataset.id = p.id;
     tr.innerHTML = `
-      <td>${p.firstName ?? ""}</td>
-      <td>${p.lastName  ?? ""}</td>
-      <td>${p.status    ?? ""}</td>
-      <td>${p.hanName   ?? ""}</td>
-      <td>${p.grupoName ?? ""}</td>
-      <td>${p.frecuenciaSemanal   ?? ""}</td>
-      <td>${p.frecuenciaZadankai  ?? ""}</td>
-      <td>${p.suscriptoHumanismoSoka ? "Sí" : "No"}</td>
-      <td>${p.realizaZaimu            ? "Sí" : "No"}</td>
-      <td class="td-comentarios">${canSeeComentarios(currentRole) ? (p.comentarios ?? "").replace(/g,"<br/>") : "—"}</td>
-      <td class="acciones-admin">
-        <button data-action="edit-persona" data-id="${p.id}">Editar</button>
-        <button data-action="delete-persona" data-id="${p.id}">Eliminar</button>
-      </td>`;
+  <td>${escapeHtml(p.firstName)}</td>
+  <td>${escapeHtml(p.lastName)}</td>
+  <td>${escapeHtml(p.status)}</td>
+  <td>${escapeHtml(p.hanName)}</td>
+  <td>${escapeHtml(p.grupoName)}</td>
+  <td>${escapeHtml(p.frecuenciaSemanal)}</td>
+  <td>${escapeHtml(p.frecuenciaZadankai)}</td>
+  <td>${p.suscriptoHumanismoSoka ? "Sí" : "No"}</td>
+  <td>${p.realizaZaimu ? "Sí" : "No"}</td>
+  <td class="td-comentarios">${canSeeComentarios(currentRole) ? `<span class="comentarios" style="white-space: pre-line">${escapeHtml(p.comentarios)}</span>` : "-"}</td>
+  <td class="acciones-admin">
+    <button data-action="edit-persona" data-id="${p.id}">Editar</button>
+    <button data-action="delete-persona" data-id="${p.id}">Eliminar</button>
+  </td>`
     const tdC = tr.querySelector(".td-comentarios"); if (tdC) tdC.style.display = canSeeComentarios(currentRole) ? "" : "none";
     tbody.appendChild(tr);
   });
