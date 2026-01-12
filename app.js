@@ -300,8 +300,7 @@ function renderPersonas() {
       <td>${p.frecuenciaZadankai  ?? ""}</td>
       <td>${p.suscriptoHumanismoSoka ? "Sí" : "No"}</td>
       <td>${p.realizaZaimu            ? "Sí" : "No"}</td>
-      <td class="td-comentarios">${canSeeComentarios(currentRole) ? (p.comentarios ?? "").replace(/
-/g,"<br/>") : "—"}</td>
+      <td class="td-comentarios">${canSeeComentarios(currentRole) ? (p.comentarios ?? "").replace(/g,"<br/>") : "—"}</td>
       <td class="acciones-admin">
         <button data-action="edit-persona" data-id="${p.id}">Editar</button>
         <button data-action="delete-persona" data-id="${p.id}">Eliminar</button>
