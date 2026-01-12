@@ -342,8 +342,7 @@ function renderVisitas() {
   const tbody = tabla.querySelector("tbody"); if (!tbody) return; tbody.innerHTML = "";
   const idx = Object.fromEntries(personas.map(p => [p.id, `${p.lastName ?? ""}, ${p.firstName ?? ""}`]));
   const visibles = filterByRoleVisitas(visitas);
-  visibles.forEach(v => { const tr = document.createElement("tr"); const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0, 10) : ""; tr.innerHTML = `<td>${idx[v.personaId] ?? v.personaId ?? "-"}</td><td>${fecha}</td><td>${(v.obs ?? "").replace(/
-/g,"<br/>")}</td>`; tbody.appendChild(tr); });
+  visibles.forEach(v => { const tr = document.createElement("tr"); const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0, 10) : ""; tr.innerHTML = `<td>${idx[v.personaId] ?? v.personaId ?? "-"}</td><td>${fecha}</td><td>${(v.obs ?? "").replace(//g,"<br/>")}</td>`; tbody.appendChild(tr); });
 }
 $("visitaForm")?.addEventListener("submit", (e) => {
   e.preventDefault(); if (!canSeeVisitas(currentRole)) return alert("Tu rol no puede registrar visitas.");
