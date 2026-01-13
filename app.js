@@ -87,6 +87,59 @@ function ensureSeedData() {
   saveData();
 }
 
+/**
+ * Llena el formulario de Datos Personales con el objeto 'p'
+ * @param {Object} p - Persona
+ * @param {{readonly?: boolean}} opts - Opciones (readonly)
+ */
+function populateDatosPersonales(p, opts = {}) {
+  const readonly = !!opts.readonly;
+
+  // Campos de texto
+  const mapText = {
+    firstName: p.firstName ?? '',
+    lastName: p.lastName ?? '',
+    birthDate: p.birthDate ?? '',
+    address: p.address ?? '',
+    city: p.city ?? '',
+    phone: p.phone ?? '',
+    email: p.email ?? ''
+  };
+  Object.entries(mapText).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  });
+
+  // Selects
+  const selStatus = document.getElementById('status');
+  if (selStatus) selStatus.value = p.status ?? 'Miembro';
+  const selHan = document.getElementById('hanSelect');
+  if (selHan) selHan.value = p.hanId ?? '';
+  const selGrupo = document.getElementById('grupoSelect');
+  if (selGrupo) selGrupo.value = p.grupoId ?? '';
+  const freqSem = document.getElementById('frecuenciaSemanal');
+  if (freqSem) freqSem.value = p.frecuenciaSemanal ?? '';
+  const freqZad = document.getElementById('frecuenciaZadankai');
+  if (freqZad) freqZad.value = p.frecuenciaZadankai ?? '';
+
+  // Checkboxes
+  const chkHs = document.getElementById('suscriptoHumanismoSoka');
+  if (chkHs) chkHs.checked = !!p.suscriptoHumanismoSoka;
+  const chkZ = document.getElementById('realizaZaimu');
+  if (chkZ) chkZ.checked = !!p.realizaZaimu;
+
+  // Derivados
+  const hanLoc = document.getElementById('hanLocalidad');
+  if (hanLoc) hanLoc.value = p.hanCity ?? '';
+
+  // Comentarios
+  const com = document.getElementById('comentarios');
+  if (com) com.value = p.comentarios ?? '';
+
+  // Readonly
+  toggleDatosPersonalesReadonly(readonly);
+}
+
 /* ===== Auth (Firebase v8) ===== */
 $("logoutBtn")?.addEventListener("click", () => auth.signOut());
 function applySignedInUser(user) {
