@@ -343,8 +343,7 @@ function renderVisitas() {
   const tbody = tabla.querySelector('tbody'); if (!tbody) return; tbody.innerHTML = '';
   const idx = Object.fromEntries((personas ?? []).map(p => [p.id, `${escapeHtml(p.lastName ?? '')}, ${escapeHtml(p.firstName ?? '')}`]));
   const visibles = filterByRoleVisitas(visitas ?? []);
-  visibles.forEach(v => { const tr = document.createElement('tr'); const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0, 10) : ''; const obsSafe = escapeHtml(v.obs ?? '').replace(/?
-/g,'<br/>'); tr.innerHTML = `<td>${idx[v.personaId] ?? escapeHtml(v.personaId ?? '-')}</td><td>${escapeHtml(fecha)}</td><td><span class="visita-obs" style="white-space: pre-line">${obsSafe}</span></td>`; tbody.appendChild(tr); });
+  visibles.forEach(v => { const tr = document.createElement('tr'); const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0, 10) : ''; const obsSafe = escapeHtml(v.obs ?? '').replace(/?/g,'<br/>'); tr.innerHTML = `<td>${idx[v.personaId] ?? escapeHtml(v.personaId ?? '-')}</td><td>${escapeHtml(fecha)}</td><td><span class="visita-obs" style="white-space: pre-line">${obsSafe}</span></td>`; tbody.appendChild(tr); });
 }
 $("visitaForm")?.addEventListener("submit", (e) => {
   e.preventDefault(); if (!canSeeVisitas(currentRole)) return alert("Tu rol no puede registrar visitas.");
