@@ -1,4 +1,3 @@
-
 /* Modal de visita */
 #visitaModal {
   position: fixed;
@@ -135,3 +134,47 @@ footer { padding: 16px; text-align: center; color: var(--muted); }
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px; border-bottom: 1px solid var(--border);
 }
+
+
+/* === Responsive additions (mobile-first) === */
+:root {
+  --tap: 44px; /* Min tappable size */
+}
+
+/* Make nav flexible and wrap on small screens */
+header nav { display: flex; gap: 8px; flex-wrap: wrap; }
+header nav a { padding: 6px 10px; display: inline-block; }
+
+/* Responsive forms */
+label { display: flex; flex-direction: column; gap: 6px; }
+input, select, textarea, button { width: 100%; max-width: 100%; }
+.actions { flex-wrap: wrap; }
+
+/* Tables: horizontal scroll on small screens */
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-wrap table { min-width: 640px; }
+
+/* Smaller min-width for narrow tables */
+#personasTable, #hanesTable, #gruposTable, #visitasTable { width: 100%; }
+
+/* Hide less critical columns on very small screens (optional) */
+@media (max-width: 480px) {
+  /* Personas: hide Han/Grupo columns to gain space; adjust if needed */
+  #personasTable thead th:nth-child(4),
+  #personasTable tbody td:nth-child(4),
+  #personasTable thead th:nth-child(5),
+  #personasTable tbody td:nth-child(5) { display: none; }
+}
+
+/* Typographic scaling */
+@media (max-width: 640px) {
+  h1 { font-size: 1.25rem; }
+  h2 { font-size: 1.05rem; }
+  body { font-size: 16px; }
+}
+
+/* Touch-friendly buttons */
+button, .btn { min-height: var(--tap); }
+
+/* Footer spacing */
+footer { padding: 12px; }
