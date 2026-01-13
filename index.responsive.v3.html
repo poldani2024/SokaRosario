@@ -1,0 +1,114 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8" />
+  <title>Inicio — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+   <link rel=\"stylesheet\" href=\"styles.mobile.v3.css\">
+<!-- nuevo -->
+</head>
+<body>
+   <header>
+    <h1>Soka Gakkai Rosario</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="visitas.html">Visitas</a>
+      <a href="hanes.html">Hanes</a>
+      <a href="grupos.html">Grupos</a>
+    </nav>
+
+    <div id="auth">
+      <div id="login-form">
+        <span>Necesitás iniciar sesión con Google para acceder.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+
+  <main>
+
+ <!-- Lotus Menu -->
+  <main class="lotus-wrap" aria-label="Menú principal">
+    <svg class="lotus" viewBox="0 0 400 400" role="group" aria-label="Flor de loto con opciones de menú">
+      <!-- Sombra y fondo -->
+      <defs>
+        <radialGradient id="petalGrad" cx="50%" cy="40%" r="70%">
+          <stop offset="0%" stop-color="#d9f0ff" />
+          <stop offset="60%" stop-color="#a7d6ff" />
+          <stop offset="100%" stop-color="#6fb6f7" />
+        </radialGradient>
+        <radialGradient id="petalGrad2" cx="50%" cy="40%" r="70%">
+          <stop offset="0%" stop-color="#ffe4f0" />
+          <stop offset="60%" stop-color="#f7b6d0" />
+          <stop offset="100%" stop-color="#ea7dad" />
+        </radialGradient>
+        <radialGradient id="centerGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#fff8e1" />
+          <stop offset="80%" stop-color="#ffd54f" />
+          <stop offset="100%" stop-color="#ffb300" />
+        </radialGradient>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.2" />
+        </filter>
+      </defs>
+
+      <!-- Petalo 1: Registro de Personas -->
+      <a xlink:href="personas.html" aria-label="Registro de Personas">
+        <path class="petal" d="M200,60 C240,80 270,130 200,180 C130,130 160,80 200,60 Z" fill="url(#petalGrad)" filter="url(#shadow)" />
+        <text x="180" y="120" class="petal-label" aria-hidden="true">Personas</text>
+      </a>
+
+      <!-- Petalo 2: Visitas -->
+      <a xlink:href="visitas.html" aria-label="Visitas">
+        <path class="petal" d="M340,200 C320,240 270,270 220,200 C270,130 320,160 340,200 Z" fill="url(#petalGrad2)" filter="url(#shadow)" />
+        <text x="270" y="210" class="petal-label" aria-hidden="true">Visitas</text>
+      </a>
+
+      <!-- Petalo 3: Administración de Hanes -->
+      <a xlink:href="hanes.html" aria-label="Administración de Hanes" class="admin-only-link">
+        <path class="petal" d="M200,340 C160,320 130,270 200,220 C270,270 240,320 200,340 Z" fill="url(#petalGrad)" filter="url(#shadow)" />
+        <text x="180" y="300" class="petal-label" aria-hidden="true">Hanes</text>
+      </a>
+
+      <!-- Petalo 4: Grupos de Capacitación -->
+      <a xlink:href="grupos.html" aria-label="Grupos de Capacitación" class="admin-only-link">
+        <path class="petal" d="M60,200 C80,160 130,130 180,200 C130,270 80,240 60,200 Z" fill="url(#petalGrad2)" filter="url(#shadow)" />
+        <text x="90" y="210" class="petal-label" aria-hidden="true">Grupos</text>
+      </a>
+
+      <!-- Centro -->
+      <circle cx="200" cy="200" r="40" fill="url(#centerGrad)" />
+      <text x="180" y="206" class="center-label" aria-hidden="true">Menú</text>
+    </svg>
+<section class="lotus-wrap">
+      <h2>Menú</h2>
+      <div class="cards">
+        <a class="card" href="personas.html">Registro de Personas</a>
+        <a class="card admin-only" href="visitas.html">Visitas</a>
+        <a class="card admin-only" href="hanes.html">Administración de Hanes</a>
+        <a class="card admin-only" href="grupos.html">Grupos de Capacitación</a>
+      </div>
+      <p class="muted">Hecho con ❤️ — Soka Gakkai Tracker</p>
+    </section>
+  </main>
+
+  <!-- SDKs v8 (CDN gstatic) — DEBEN ir antes de firebase.js -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+  <!-- Tu init manual (config + window.auth) -->
+  <script src="firebase.js"></script>
+
+  <!-- Lógica común (usa window.auth) -->
+  <script src="app.js"></script>
+</body>
+</html>
+
