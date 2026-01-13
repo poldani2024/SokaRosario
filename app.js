@@ -61,6 +61,8 @@ function canSeeComentarios(role) { return ["Admin","LiderCiudad","LiderSector","
 /* ===== Firestore integration (v8) ===== */
 const useDb = !!window.db; // true si firebase-firestore.js está cargado y window.db existe
 
+function genId() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
 async function hydrateFromDb() {
   if (!useDb) return;
   try {
@@ -79,8 +81,6 @@ async function hydrateFromDb() {
     console.warn('[DB] No se pudo leer desde Firestore. Usando localStorage.', err);
   }
 }
-
-function genId() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 
 async function savePersonaToDb(p) {
   if (!useDb) return;
@@ -135,6 +135,59 @@ function ensureSeedData() {
     comentarios: typeof p.comentarios === "string" ? p.comentarios : ""
   }));
   saveData();
+}
+
+/**
+ * Llena el formulario de Datos Personales con el objeto 'p'
+ * @param {Object} p - Persona
+ * @param {{readonly?: boolean}} opts - Opciones (readonly)
+ */
+function populateDatosPersonales(p, opts = {}) {
+  const readonly = !!opts.readonly;
+
+  // Campos de texto
+  const mapText = {
+    firstName: p.firstName ?? '',
+    lastName: p.lastName ?? '',
+    birthDate: p.birthDate ?? '',
+    address: p.address ?? '',
+    city: p.city ?? '',
+    phone: p.phone ?? '',
+    email: p.email ?? ''
+  };
+  Object.entries(mapText).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  });
+
+  // Selects
+  const selStatus = document.getElementById('status');
+  if (selStatus) selStatus.value = p.status ?? 'Miembro';
+  const selHan = document.getElementById('hanSelect');
+  if (selHan) selHan.value = p.hanId ?? '';
+  const selGrupo = document.getElementById('grupoSelect');
+  if (selGrupo) selGrupo.value = p.grupoId ?? '';
+  const freqSem = document.getElementById('frecuenciaSemanal');
+  if (freqSem) freqSem.value = p.frecuenciaSemanal ?? '';
+  const freqZad = document.getElementById('frecuenciaZadankai');
+  if (freqZad) freqZad.value = p.frecuenciaZadankai ?? '';
+
+  // Checkboxes
+  const chkHs = document.getElementById('suscriptoHumanismoSoka');
+  if (chkHs) chkHs.checked = !!p.suscriptoHumanismoSoka;
+  const chkZ = document.getElementById('realizaZaimu');
+  if (chkZ) chkZ.checked = !!p.realizaZaimu;
+
+  // Derivados
+  const hanLoc = document.getElementById('hanLocalidad');
+  if (hanLoc) hanLoc.value = p.hanCity ?? '';
+
+  // Comentarios
+  const com = document.getElementById('comentarios');
+  if (com) com.value = p.comentarios ?? '';
+
+  // Readonly
+  toggleDatosPersonalesReadonly(readonly);
 }
 
 /* ===== Auth (Firebase v8) ===== */
@@ -242,6 +295,16 @@ function renderCatalogsToSelects() {
   }
 }
 
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+window.escapeHtml = escapeHtml; // si otros scripts lo usan
+
 /* ===== Persona (form) ===== */
 function clearDatosPersonales() {
   ["firstName","lastName","birthDate","address","city","phone","email"].forEach(id => { const el = $(id); if (el) el.value = ""; });
@@ -344,21 +407,20 @@ function renderPersonas() {
   filtered.forEach(p => {
     const tr = document.createElement("tr"); tr.dataset.id = p.id;
     tr.innerHTML = `
-      <td>${p.firstName ?? ""}</td>
-      <td>${p.lastName  ?? ""}</td>
-      <td>${p.status    ?? ""}</td>
-      <td>${p.hanName   ?? ""}</td>
-      <td>${p.grupoName ?? ""}</td>
-      <td>${p.frecuenciaSemanal   ?? ""}</td>
-      <td>${p.frecuenciaZadankai  ?? ""}</td>
-      <td>${p.suscriptoHumanismoSoka ? "Sí" : "No"}</td>
-      <td>${p.realizaZaimu            ? "Sí" : "No"}</td>
-      <td class="td-comentarios">${canSeeComentarios(currentRole) ? (p.comentarios ?? "").replace(/
-/g,"<br/>") : "—"}</td>
-      <td class="acciones-admin">
-        <button data-action="edit-persona" data-id="${p.id}">Editar</button>
-        <button data-action="delete-persona" data-id="${p.id}">Eliminar</button>
-      </td>`;
+  <td>${escapeHtml(p.firstName)}</td>
+  <td>${escapeHtml(p.lastName)}</td>
+  <td>${escapeHtml(p.status)}</td>
+  <td>${escapeHtml(p.hanName)}</td>
+  <td>${escapeHtml(p.grupoName)}</td>
+  <td>${escapeHtml(p.frecuenciaSemanal)}</td>
+  <td>${escapeHtml(p.frecuenciaZadankai)}</td>
+  <td>${p.suscriptoHumanismoSoka ? 'Sí' : 'No'}</td>
+  <td>${p.realizaZaimu ? 'Sí' : 'No'}</td>
+  <td class="td-comentarios">${canSeeComentarios(currentRole) ? `<span class="comentarios" style="white-space: pre-line">${escapeHtml(p.comentarios)}</span>` : '-'}</td>
+  <td class="acciones-admin">
+    <button data-action="edit-persona" data-id="${p.id}">Editar</button>
+    <button data-action="delete-persona" data-id="${p.id}">Eliminar</button>
+  </td>`
     const tdC = tr.querySelector(".td-comentarios"); if (tdC) tdC.style.display = canSeeComentarios(currentRole) ? "" : "none";
     tbody.appendChild(tr);
   });
@@ -372,7 +434,10 @@ function renderPersonas() {
 function onDeletePersona(id) {
   const i = personas.findIndex(x => x.id === id); if (i < 0) return;
   const esDueno = (personas[i].uid && currentUser && personas[i].uid === currentUser.uid);
-  if (!esDueno && currentRole !== "Admin") { alert("No tenés permisos para eliminar esta persona."); return; 
+  if (!esDueno && currentRole !== "Admin") { alert("No tenés permisos para eliminar esta persona."); return; }
+  if (!confirm("¿Eliminar la persona seleccionada?")) return;
+  // (Opcional) eliminar visitas asociadas
+  
 }/* ===== Visitas ===== */
 function filterByRoleVisitas(list) {
   if (!canSeeVisitas(currentRole)) return [];
@@ -386,12 +451,27 @@ function filterByRoleVisitas(list) {
 }
 function renderVisitas() {
   const tabla = $("visitasTable"); const form = $("visitaForm"); if (!tabla || !form) return;
-  const allow = canSeeVisitas(currentRole); tabla.style.display = allow ? "" : "none"; form.style.display = allow ? "" : "none";
-  const tbody = tabla.querySelector("tbody"); if (!tbody) return; tbody.innerHTML = "";
-  const idx = Object.fromEntries(personas.map(p => [p.id, `${p.lastName ?? ""}, ${p.firstName ?? ""}`]));
-  const visibles = filterByRoleVisitas(visitas);
-  visibles.forEach(v => { const tr = document.createElement("tr"); const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0, 10) : ""; tr.innerHTML = `<td>${idx[v.personaId] ?? v.personaId ?? "-"}</td><td>${fecha}</td><td>${(v.obs ?? "").replace(/
-/g,"<br/>")}</td>`; tbody.appendChild(tr); });
+  const allow = canSeeVisitas(currentRole); tabla.style.display = allow ? '' : 'none'; form.style.display = allow ? '' : 'none';
+  if (!allow) return;
+  const tbody = tabla.querySelector('tbody'); if (!tbody) return; tbody.innerHTML = '';
+  const idx = Object.fromEntries((personas ?? []).map(p => [p.id, `${escapeHtml(p.lastName ?? '')}, ${escapeHtml(p.firstName ?? '')}`]));
+  const visibles = filterByRoleVisitas(visitas ?? []);
+   
+   visibles.forEach(v => {
+     const tr = document.createElement('tr');
+     const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0, 10) : '';
+   
+     // ✅ Escapar HTML y convertir saltos de línea
+     const obsSafe = escapeHtml(v.obs ?? '').replace(/\r?\n/g, '<br/>');
+   
+     tr.innerHTML = `
+       <td>${idx[v.personaId] ?? escapeHtml(v.personaId ?? '-')}</td>
+       <td>${escapeHtml(fecha)}</td>
+       <td><span class="visita-obs" style="white-space: pre-line">${obsSafe}</span></td>
+     `;
+     tbody.appendChild(tr);
+   });
+  
 }
 $("visitaForm")?.addEventListener("submit", (e) => {
   e.preventDefault(); if (!canSeeVisitas(currentRole)) return alert("Tu rol no puede registrar visitas.");
