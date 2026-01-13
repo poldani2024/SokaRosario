@@ -1,0 +1,56 @@
+/* styles.mobile.css — Complemento responsive universal para móviles y tablets */
+/* Cárgalo DESPUÉS de styles.css en todas las páginas */
+
+/* ===== Reset y base ===== */
+:root {
+  --tap: 44px;            /* tamaño mínimo táctil */
+  --font-mobile: 18px;    /* tamaño base móvil */
+}
+
+/* Tipografía y controles más grandes en pantallas pequeñas */
+@media (max-width: 480px) {
+  html, body { font-size: var(--font-mobile); }
+  input, select, textarea, button { font-size: 17px; }
+  button, .btn { min-height: var(--tap); }
+}
+
+/* ===== Navegación ===== */
+header nav { display: flex; gap: 8px; flex-wrap: wrap; }
+header nav a { padding: 6px 10px; display: inline-block; }
+
+/* ===== Formularios ===== */
+label { display: flex; flex-direction: column; gap: 6px; }
+input, select, textarea, button { width: 100%; max-width: 100%; }
+.actions { flex-wrap: wrap; }
+
+/* ===== Tablas responsivas ===== */
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-wrap table { min-width: 520px; } /* más flexible que 640px */
+
+/* En pantallas muy pequeñas, aún más angosto */
+@media (max-width: 480px) {
+  .table-wrap table { min-width: 480px; }
+}
+
+/* Ocultar columnas de baja prioridad en pantallas muy chicas (ajustable) */
+@media (max-width: 480px) {
+  /* Personas: ocultar Han (4) y Grupo (5). Cambia nth-child si lo necesitás. */
+  #personasTable thead th:nth-child(4),
+  #personasTable tbody td:nth-child(4),
+  #personasTable thead th:nth-child(5),
+  #personasTable tbody td:nth-child(5) { display: none; }
+}
+
+/* ===== Lotus (SVG del menú) ===== */
+.lotus { width: 100%; max-width: 340px; height: auto; }
+.lotus-wrap { display: flex; justify-content: center; padding: 8px; }
+@media (max-width: 390px) { .lotus { max-width: 300px; } }
+
+/* ===== Tipografía de títulos ===== */
+@media (max-width: 640px) {
+  h1 { font-size: 1.25rem; }
+  h2 { font-size: 1.05rem; }
+}
+
+/* ===== Footer ===== */
+footer { padding: 12px; }
