@@ -7,30 +7,30 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="hdr">
-    <h1 class="app-title">Seguimiento Soka Gakkai</h1>
-    <nav class="top-links">
-      <a href="personas.html">Personas</a>
+   <header>
+    <h1>Registro de Personas</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
       <a href="visitas.html">Visitas</a>
       <a href="hanes.html">Hanes</a>
       <a href="grupos.html">Grupos</a>
     </nav>
-  </header>
 
-  <main>
-    <!-- Bloque de login esperado por app.js -->
     <div id="auth">
-      <div id="login-form" class="card">
+      <div id="login-form">
         <span>Necesitás iniciar sesión con Google para acceder.</span>
-        <button id="googleLoginBtn" class="btn primary">Ingresar con Google</button>
+        <button id="googleLoginBtn">Ingresar con Google</button>
       </div>
-
-      <div id="user-info" class="card hidden">
-        <span id="user-email" class="pill"></span>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
         <span id="role-badge" class="badge"></span>
-        <button id="logoutBtn" class="btn">Cerrar sesión</button>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
       </div>
     </div>
+  </header>
+
+
+  <main>
 
  <!-- Lotus Menu -->
   <main class="lotus-wrap" aria-label="Menú principal">
