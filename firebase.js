@@ -32,6 +32,11 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     console.warn("⚠️ No se pudo establecer persistencia LOCAL:", err?.message || err);
   });
 
+
+// 👉 Firestore (v8) — habilitar DB en la app
+const db = firebase.firestore();             // 👈 NUEVO
+window.db = db;                              // 👈 NUEVO (clave para que tus scripts usen DB)
+
 // Exponer auth global
 window.auth = auth;
 window.firebaseApp = firebase.app();
