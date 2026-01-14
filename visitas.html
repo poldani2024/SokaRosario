@@ -2,12 +2,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
- <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-      
-      <link rel="stylesheet" href="styles.css" />
-      <link rel="stylesheet" href="styles.mobile.v3.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Visitas — Soka Gakkai Tracker</title>
-
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.mobile.v3.css">
 </head>
 <body>
   <header>
@@ -16,38 +15,48 @@
       <a href="index.html">Inicio</a>
       <a href="personas.html">Personas</a>
     </nav>
+    <section class="auth">
+      <div id="login-form">
+        <p>Necesitás iniciar sesión con Google para acceder.</p>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span> — <strong id="role-badge"></strong>
+        <button id="logoutBtn" class="secondary" style="margin-left:8px;">Cerrar sesión</button>
+      </div>
+    </section>
   </header>
 
-  <section class="auth">
-    <div id="login-form">
-      <p>Necesitás iniciar sesión con Google para acceder.</p>
-      <button id="googleLoginBtn">Ingresar con Google</button>
-    </div>
-    <div id="user-info" style="display:none;">
-      <span id="user-email"></span> — <strong id="role-badge"></strong>
-      <button id="logoutBtn" style="margin-left:8px;">Cerrar sesión</button>
-    </div>
-  </section>
+  <main class="container">
+    <section id="visitas" class="panel">
+      <h2>Visitas</h2>
+      <form id="visitaForm" class="card">
+        <label>Persona
+          <select id="visitaPersonaSelect"></select>
+        </label>
+        <label>Fecha de visita
+          <input id="visitaFecha" type="date">
+        </label>
+        <label>Observaciones
+          <textarea id="visitaObs" rows="3"></textarea>
+        </label>
+        <button type="submit">Registrar visita</button>
+      </form>
 
-  <section id="visitas">
-    <h2>Visitas</h2>
-    <form id="visitaForm">
-      <label>Persona <select id="visitaPersonaSelect"></select></label>
-      <label>Fecha de visita <input id="visitaFecha" type="date" /></label>
-      <label>Observaciones <textarea id="visitaObs" rows="3"></textarea></label>
-      <button type="submit">Registrar visita</button>
-    </form>
-    <div class="table-wrap"><table id="visitasTable">
-      <thead>
-        <tr>
-          <th>Persona</th>
-          <th>Fecha</th>
-          <th>Observaciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table></div>
-  </section>
+      <div class="table-wrap">
+        <table id="visitasTable">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Fecha</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
   <footer>
     <p>Hecho con ❤️ — Soka Gakkai Tracker</p>
