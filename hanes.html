@@ -2,10 +2,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Hanes — Soka Gakkai Tracker</title>
-      <link rel="stylesheet" href="styles.css" />
-      <link rel="stylesheet" href="styles.mobile.v3.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.mobile.v3.css">
 </head>
 <body>
   <header>
@@ -28,40 +29,57 @@
       </div>
     </div>
   </header>
-  <main>
+
+  <main class="container">
     <section id="hanes-list" class="panel">
       <h2>Hanes cargados</h2>
       <div class="grid">
         <label>Buscar
-          <input id="hanSearch" type="text" placeholder="Nombre, localidad o sector" />
+          <input id="hanSearch" type="text" placeholder="Nombre, localidad o sector">
         </label>
       </div>
-      <div class="table-wrap"><table id="hanesTable">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Localidad</th>
-            <th>Sector</th>
-            <th>Domicilio</th>
-            <th>Teléfono</th>
-            <th>Líder</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table></div>
+
+      <div class="table-wrap">
+        <table id="hanesTable">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Localidad</th>
+              <th>Sector</th>
+              <th>Domicilio</th>
+              <th>Teléfono</th>
+              <th>Líder</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
       <p id="hanesEmpty" class="muted hidden">No hay hanes cargados aún.</p>
     </section>
 
     <section id="hanes" class="panel">
       <h2>Administrar Hanes</h2>
-      <div class="grid">
-        <label>Nombre del Han <input id="hanNameInput" type="text" /></label>
-        <label>Localidad <input id="hanCityInput" type="text" /></label>
-        <label>Sector <input id="hanSectorInput" type="text" placeholder="Centro, Norte, Oeste, ..." /></label>
-        <label>Domicilio del Han <input id="hanAddressInput" type="text" /></label>
-        <label>Teléfono de contacto <input id="hanPhoneInput" type="tel" /></label>
-        <label>Líder del Han (miembro) <input id="hanLeaderInput" type="text" /></label>
+      <div class="grid card">
+        <label>Nombre del Han
+          <input id="hanNameInput" type="text">
+        </label>
+        <label>Localidad
+          <input id="hanCityInput" type="text">
+        </label>
+        <label>Sector
+          <input id="hanSectorInput" type="text" placeholder="Centro, Norte, Oeste, ...">
+        </label>
+        <label>Domicilio del Han
+          <input id="hanAddressInput" type="text">
+        </label>
+        <label>Teléfono de contacto
+          <input id="hanPhoneInput" type="tel">
+        </label>
+        <label>Líder del Han (miembro)
+          <input id="hanLeaderInput" type="text">
+        </label>
       </div>
       <div class="actions">
         <button id="hanSaveBtn">Guardar Han</button>
@@ -69,6 +87,7 @@
       </div>
     </section>
   </main>
+
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
 
   <!-- SDKs v8 (CDN gstatic) -->
