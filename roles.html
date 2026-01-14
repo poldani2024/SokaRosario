@@ -1,0 +1,265 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin de Roles — Soka</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,sans-serif;line-height:1.35;margin:0;background:#f7f7fb;color:#222}
+    header{background:#0b5fff;color:#fff;padding:14px 18px}
+    header h1{margin:0;font-size:18px}
+    main{max-width:920px;margin:20px auto;padding:0 16px}
+    .card{background:#fff;border:1px solid #e6e6ef;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:16px;margin-bottom:16px}
+    label{display:block;margin:10px 0 6px;font-weight:600}
+    input,select,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #d7d7e2;background:#fff}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    button{appearance:none;border:0;border-radius:8px;background:#0b5fff;color:#fff;padding:10px 14px;font-weight:600;cursor:pointer}
+    button.secondary{background:#eef1ff;color:#17337b}
+    .muted{color:#666}
+    .hidden{display:none}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef1ff;color:#17337b;font-size:12px;font-weight:700}
+    .error{background:#ffe9e9;color:#7a0310;border:1px solid #ffd0d0;padding:10px;border-radius:8px}
+    .ok{background:#e9ffef;color:#064d1a;border:1px solid #c8f5d5;padding:10px;border-radius:8px}
+    .flex{display:flex;gap:8px;align-items:center}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Admin de Roles <span id="user-badge" class="pill hidden"></span></h1>
+  </header>
+  <main>
+    <div id="msg" class="card hidden"></div>
+
+    <div class="card">
+      <h2>1) Conectar con Firebase</h2>
+      <p class="muted">Editá este archivo y pegá tu configuración de Firebase en la sección <strong>CONFIGURACIÓN</strong> de más abajo.</p>
+      <p class="muted">Asegurate de haber agregado <code>poldani2024.github.io</code> (o tu dominio) en <em>Authentication → Settings → Authorized domains</em>.</p>
+    </div>
+
+    <div class="card">
+      <h2>2) Sesión</h2>
+      <div class="flex">
+        <button id="googleSignIn">Iniciar sesión con Google</button>
+        <button id="signOut" class="secondary">Cerrar sesión</button>
+        <span id="whoami" class="muted"></span>
+      </div>
+      <p id="adminGuard" class="error hidden">Necesitás ser <strong>Admin</strong> para editar <code>roles/{uid}</code>. Iniciá sesión con una cuenta con rol Admin.</p>
+    </div>
+
+    <div class="card">
+      <h2>3) Buscar usuario</h2>
+      <div class="row">
+        <div>
+          <label for="searchUid">UID</label>
+          <input id="searchUid" placeholder="p.ej. 9Qm0x..." />
+        </div>
+        <div>
+          <label for="searchEmail">Email (opcional)</label>
+          <input id="searchEmail" placeholder="usuario@dominio.com" />
+        </div>
+      </div>
+      <div class="flex" style="margin-top:10px">
+        <button id="btnLoad">Cargar rol</button>
+        <button id="btnClear" class="secondary">Limpiar</button>
+      </div>
+      <p class="muted">Tip: si tenés colección <code>personas</code>, podés buscar el UID por email desde tu propia UI y pegarlo aquí.</p>
+    </div>
+
+    <div class="card">
+      <h2>4) Rol del usuario</h2>
+      <div class="row">
+        <div>
+          <label for="role">Rol</label>
+          <select id="role">
+            <option value="Usuario">Usuario</option>
+            <option value="Usuario+">Usuario+</option>
+            <option value="LiderHan">LiderHan</option>
+            <option value="LiderSector">LiderSector</option>
+            <option value="LiderCiudad">LiderCiudad</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
+        <div>
+          <label for="sector">Sector</label>
+          <input id="sector" placeholder="p.ej. Rosario" />
+        </div>
+      </div>
+      <label for="hanIds">Han IDs (separados por coma)</label>
+      <input id="hanIds" placeholder="han-001, han-002" />
+      <div class="flex" style="margin-top:10px">
+        <button id="btnSave">Guardar</button>
+        <button id="btnDelete" class="secondary">Eliminar doc de rol</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>5) Estado</h2>
+      <pre id="state" style="white-space:pre-wrap;background:#0b1220;color:#cbd5e1;padding:12px;border-radius:8px;overflow:auto"></pre>
+    </div>
+  </main>
+
+  <!-- ======================== CONFIGURACIÓN: Pegar aquí tu config ======================== -->
+  <!-- Firebase v8 (compat con tu app actual) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <script>
+    // TODO: Reemplazar por TU configuración
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROJECT_ID.firebaseapp.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_PROJECT_ID.appspot.com",
+      messagingSenderId: "000000000000",
+      appId: "1:000000000000:web:xxxxxxxxxxxxxxxxxxxxxx"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // ======================== Helpers UI ========================
+    const $ = (id) => document.getElementById(id);
+    const show = (el, on) => el.classList.toggle('hidden', !on);
+    const setMsg = (html, cls='') => { const m=$('msg'); m.innerHTML=html; m.className = `card ${cls}`; show(m,true); };
+
+    let me = null;           // firebase.User
+    let meRole = 'Usuario';  // rol del usuario logueado (para habilitar la pantalla)
+
+    async function getMyRole() {
+      try {
+        const snap = await db.collection('roles').doc(me.uid).get();
+        if (snap.exists) {
+          return (snap.data().role || 'Usuario');
+        }
+      } catch (_) {}
+      return 'Usuario';
+    }
+
+    function readForm() {
+      const role   = $('role').value || 'Usuario';
+      const sector = $('sector').value.trim();
+      const hanIds = ($('hanIds').value || '').split(',').map(x=>x.trim()).filter(Boolean);
+      return { role, sector, hanIds };
+    }
+
+    function writeForm(data) {
+      $('role').value = data.role || 'Usuario';
+      $('sector').value = data.sector || '';
+      $('hanIds').value = (Array.isArray(data.hanIds)?data.hanIds:[]).join(', ');
+    }
+
+    function dumpState(obj) {
+      $('state').textContent = JSON.stringify(obj, null, 2);
+    }
+
+    // ======================== Auth ========================
+    auth.onAuthStateChanged(async (user) => {
+      me = user || null;
+      if (!me) {
+        $('whoami').textContent = 'No autenticado';
+        show($('user-badge'), false);
+        show($('adminGuard'), false);
+        return;
+      }
+      $('whoami').textContent = `${me.email} — uid: ${me.uid}`;
+      $('user-badge').textContent = 'Conectado';
+      show($('user-badge'), true);
+
+      meRole = await getMyRole();
+      dumpState({ me: {email: me.email, uid: me.uid}, meRole });
+      const isAdmin = meRole === 'Admin';
+      show($('adminGuard'), !isAdmin);
+      if (!isAdmin) {
+        setMsg('Estás autenticado, pero tu rol no es <strong>Admin</strong>. Solo Admin puede crear/editar <code>roles/{uid}</code>.', 'error');
+      } else {
+        setMsg('Listo. Podés crear o editar documentos en <code>roles/{uid}</code>.', 'ok');
+      }
+    });
+
+    $('googleSignIn').addEventListener('click', async () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try {
+        await auth.signInWithPopup(provider);
+      } catch (e) {
+        setMsg('No se pudo iniciar sesión: ' + (e && e.message ? e.message : e), 'error');
+      }
+    });
+    $('signOut').addEventListener('click', () => auth.signOut());
+
+    // ======================== Cargar / Guardar / Eliminar ========================
+    $('btnLoad').addEventListener('click', async () => {
+      const uid = $('searchUid').value.trim();
+      const email = $('searchEmail').value.trim().toLowerCase();
+      if (!uid && !email) { setMsg('Ingresá <strong>UID</strong> o <strong>Email</strong> para buscar.', 'error'); return; }
+
+      try {
+        let targetUid = uid;
+        if (!targetUid && email) {
+          // Buscar en colección personas por email → obtener id/uid si lo usás
+          const qs = await db.collection('personas').where('email', '==', email).limit(1).get();
+          if (!qs.empty) {
+            const doc = qs.docs[0];
+            // Si guardás el UID real en el campo uid del doc persona, úsalo; si no, usá doc.id
+            targetUid = (doc.data().uid || doc.id);
+            $('searchUid').value = targetUid;
+          }
+        }
+        if (!targetUid) { setMsg('No se encontró el usuario por email. Pegá el UID manualmente.', 'error'); return; }
+
+        const rs = await db.collection('roles').doc(targetUid).get();
+        if (rs.exists) {
+          writeForm(rs.data());
+          setMsg(`Rol cargado para UID <code>${targetUid}</code>.`, 'ok');
+        } else {
+          writeForm({ role: 'Usuario', sector: '', hanIds: [] });
+          setMsg(`No existe doc en roles/<code>${targetUid}</code>. Se muestra default.`, 'ok');
+        }
+        dumpState({ action: 'load', uid: targetUid, data: readForm() });
+      } catch(e) {
+        setMsg('Error al cargar: ' + (e && e.message ? e.message : e), 'error');
+      }
+    });
+
+    $('btnClear').addEventListener('click', () => {
+      $('searchUid').value = '';
+      $('searchEmail').value = '';
+      writeForm({ role: 'Usuario', sector: '', hanIds: [] });
+      dumpState({ action: 'clear' });
+    });
+
+    $('btnSave').addEventListener('click', async () => {
+      if (meRole !== 'Admin') { setMsg('Solo Admin puede guardar roles.', 'error'); return; }
+      const targetUid = $('searchUid').value.trim();
+      if (!targetUid) { setMsg('Ingresá el <strong>UID</strong> del usuario a editar.', 'error'); return; }
+      const data = readForm();
+      try {
+        await db.collection('roles').doc(targetUid).set(data, { merge: true });
+        setMsg(`Guardado OK en roles/<code>${targetUid}</code>.`, 'ok');
+        dumpState({ action: 'save', uid: targetUid, data });
+      } catch(e) {
+        setMsg('Error al guardar: ' + (e && e.message ? e.message : e), 'error');
+      }
+    });
+
+    $('btnDelete').addEventListener('click', async () => {
+      if (meRole !== 'Admin') { setMsg('Solo Admin puede eliminar roles.', 'error'); return; }
+      const targetUid = $('searchUid').value.trim();
+      if (!targetUid) { setMsg('Ingresá el <strong>UID</strong> del usuario a eliminar.', 'error'); return; }
+      if (!confirm('¿Eliminar el documento roles/' + targetUid + ' ?')) return;
+      try {
+        await db.collection('roles').doc(targetUid).delete();
+        writeForm({ role: 'Usuario', sector: '', hanIds: [] });
+        setMsg(`Eliminado roles/<code>${targetUid}</code>. El usuario quedará con rol "Usuario" (default).`, 'ok');
+        dumpState({ action: 'delete', uid: targetUid });
+      } catch(e) {
+        setMsg('Error al eliminar: ' + (e && e.message ? e.message : e), 'error');
+      }
+    });
+  </script>
+</body>
+</html>
