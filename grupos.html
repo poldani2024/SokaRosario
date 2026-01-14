@@ -2,10 +2,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
-      <title>Grupos — Soka Gakkai Tracker</title>
-      <link rel="stylesheet" href="styles.css" />
-      <link rel="stylesheet" href="styles.mobile.v3.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grupos — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.mobile.v3.css">
 </head>
 <body>
   <header>
@@ -28,32 +29,41 @@
       </div>
     </div>
   </header>
-  <main>
+
+  <main class="container">
     <section id="grupos-list" class="panel">
       <h2>Grupos cargados</h2>
       <div class="grid">
         <label>Buscar
-          <input id="grupoSearch" type="text" placeholder="Nombre o líder" />
+          <input id="grupoSearch" type="text" placeholder="Nombre o líder">
         </label>
       </div>
-      <div class="table-wrap"><table id="gruposTable">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Líder</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table></div>
+
+      <div class="table-wrap">
+        <table id="gruposTable">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Líder</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
       <p id="gruposEmpty" class="muted hidden">No hay grupos cargados aún.</p>
     </section>
 
     <section id="grupos" class="panel">
       <h2>Administrar Grupos</h2>
-      <div class="grid">
-        <label>Nombre del grupo <input id="grupoNameInput" type="text" /></label>
-        <label>Líder del grupo (miembro) <input id="grupoLeaderInput" type="text" /></label>
+      <div class="grid card">
+        <label>Nombre del grupo
+          <input id="grupoNameInput" type="text">
+        </label>
+        <label>Líder del grupo (miembro)
+          <input id="grupoLeaderInput" type="text">
+        </label>
       </div>
       <div class="actions">
         <button id="grupoSaveBtn">Guardar Grupo</button>
@@ -61,6 +71,7 @@
       </div>
     </section>
   </main>
+
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
 
   <!-- SDKs v8 (CDN gstatic) -->
