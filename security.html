@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Seguridad y Roles — Soka Gakkai Tracker</title>
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .multi-hint { font-size: .85rem; color: #666; margin-top: 4px; }
+    select[multiple] { min-height: 120px; }
+  </style>
 </head>
 <body>
   <header>
@@ -36,9 +40,15 @@
       <h2>Roles y niveles (scope)</h2>
       <form id="roleForm">
         <div class="grid">
-          <label>UID del usuario
-            <input id="uid" type="text" placeholder="UID Firebase" required />
+          <label>Usuario
+            <select id="userSelect"></select>
+            <span class="multi-hint">Seleccioná un usuario para cargar su UID y rol actual.</span>
           </label>
+
+          <label>UID del usuario
+            <input id="uid" type="text" placeholder="UID Firebase" required readonly />
+          </label>
+
           <label>Rol
             <select id="role" required>
               <option value="Admin">Admin</option>
@@ -50,17 +60,25 @@
               <option value="Usuario">Usuario</option>
             </select>
           </label>
-          <label>Subregiones (IDs, coma)
-            <input id="subregionIds" type="text" placeholder="sr-1,sr-2" />
+
+          <label>Subregiones (múltiple)
+            <select id="subregionIds" multiple></select>
+            <span class="multi-hint">Ctrl/Cmd + click para múltiple selección.</span>
           </label>
-          <label>Ciudades (IDs, coma)
-            <input id="cityIds" type="text" placeholder="ci-rosario" />
+
+          <label>Ciudades (múltiple)
+            <select id="cityIds" multiple></select>
+            <span class="multi-hint">Ciudades disponibles según datos existentes.</span>
           </label>
-          <label>Sectores (IDs, coma)
-            <input id="sectorIds" type="text" placeholder="sec-centro" />
+
+          <label>Sectores (múltiple)
+            <select id="sectorIds" multiple></select>
+            <span class="multi-hint">Sectores disponibles según datos existentes.</span>
           </label>
-          <label>Hanes (IDs, coma)
-            <input id="hanIds" type="text" placeholder="han-001,han-002" />
+
+          <label>Hanes (múltiple)
+            <select id="hanIds" multiple></select>
+            <span class="multi-hint">Incluye ID y nombre del Han.</span>
           </label>
         </div>
         <div class="actions">
@@ -85,12 +103,17 @@
               <option value="Usuario">Usuario</option>
             </select>
           </label>
-          <label>Campos permitidos (coma)
-            <input id="allowedFields" type="text" placeholder="nombre,telefono,hanId,zaimu" />
+
+          <label>Campos permitidos (múltiple)
+            <select id="allowedFields" multiple></select>
+            <span class="multi-hint">Basado en los campos de la pantalla Personas.</span>
           </label>
-          <label>Campos ocultos entre mismo rol (coma)
-            <input id="sameRoleHiddenFields" type="text" placeholder="zaimu" />
+
+          <label>Campos ocultos entre mismo rol (múltiple)
+            <select id="sameRoleHiddenFields" multiple></select>
+            <span class="multi-hint">Ejemplo: ocultar <code>realizaZaimu</code> entre pares del mismo rol.</span>
           </label>
+
           <label>Ver miembros del mismo rol
             <select id="canViewSameRole">
               <option value="true">Sí</option>
