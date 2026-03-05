@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seguridad y Roles — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Administración de Seguridad</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="admin.html">Administración</a>
+    </nav>
+    <div id="auth">
+      <div id="login-form">
+        <span>Iniciá sesión para administrar roles y permisos.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" id="guardPanel">
+      <h2>Control de acceso</h2>
+      <p id="guardMsg" class="muted">Validando permisos...</p>
+    </section>
+
+    <section class="panel" id="rolesPanel">
+      <h2>Roles y niveles (scope)</h2>
+      <form id="roleForm">
+        <div class="grid">
+          <label>UID del usuario
+            <input id="uid" type="text" placeholder="UID Firebase" required />
+          </label>
+          <label>Rol
+            <select id="role" required>
+              <option value="Admin">Admin</option>
+              <option value="SubRegion">SubRegión</option>
+              <option value="LiderCiudad">Líder Ciudad</option>
+              <option value="LiderSector">Líder Sector</option>
+              <option value="LiderHan">Responsable Han</option>
+              <option value="Usuario+">Usuario+</option>
+              <option value="Usuario">Usuario</option>
+            </select>
+          </label>
+          <label>Subregiones (IDs, coma)
+            <input id="subregionIds" type="text" placeholder="sr-1,sr-2" />
+          </label>
+          <label>Ciudades (IDs, coma)
+            <input id="cityIds" type="text" placeholder="ci-rosario" />
+          </label>
+          <label>Sectores (IDs, coma)
+            <input id="sectorIds" type="text" placeholder="sec-centro" />
+          </label>
+          <label>Hanes (IDs, coma)
+            <input id="hanIds" type="text" placeholder="han-001,han-002" />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar rol</button>
+        </div>
+      </form>
+      <p class="muted">Se guarda en <code>roles/{uid}</code> para administrar niveles y alcance.</p>
+    </section>
+
+    <section class="panel" id="fieldsPanel">
+      <h2>Políticas de campos por rol</h2>
+      <form id="policyForm">
+        <div class="grid">
+          <label>Rol objetivo
+            <select id="targetRole" required>
+              <option value="Admin">Admin</option>
+              <option value="SubRegion">SubRegión</option>
+              <option value="LiderCiudad">Líder Ciudad</option>
+              <option value="LiderSector">Líder Sector</option>
+              <option value="LiderHan">Responsable Han</option>
+              <option value="Usuario+">Usuario+</option>
+              <option value="Usuario">Usuario</option>
+            </select>
+          </label>
+          <label>Campos permitidos (coma)
+            <input id="allowedFields" type="text" placeholder="nombre,telefono,hanId,zaimu" />
+          </label>
+          <label>Campos ocultos entre mismo rol (coma)
+            <input id="sameRoleHiddenFields" type="text" placeholder="zaimu" />
+          </label>
+          <label>Ver miembros del mismo rol
+            <select id="canViewSameRole">
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar política de campos</button>
+        </div>
+      </form>
+      <p class="muted">Se guarda en <code>fieldPolicies/{role}</code>.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Último resultado</h2>
+      <pre id="resultBox" style="white-space: pre-wrap;"></pre>
+    </section>
+  </main>
+
+  <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase.js"></script>
+  <script src="security.js"></script>
+</body>
+</html>
