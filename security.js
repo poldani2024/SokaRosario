@@ -78,6 +78,53 @@
 
     $('inviteLinkOut').value = inviteLink;
     dump({ action: 'createInvite', inviteId: ref.id, inviteLink, payload });
+    await loadPendingInvites();
+  }
+
+
+  function formatInviteDate(value) {
+    try {
+      if (!value) return '';
+      if (typeof value?.toDate === 'function') return value.toDate().toLocaleString('es-AR');
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleString('es-AR');
+    } catch {
+      return '';
+    }
+  }
+
+  async function loadPendingInvites() {
+    const box = $('pendingInvitesList');
+    if (!box) return;
+
+    const snap = await db.collection('userInvites').where('status', '==', 'pending').get().catch(() => ({ docs: [] }));
+    const items = snap.docs
+      .map((doc) => ({ id: doc.id, ...(doc.data() || {}) }))
+      .sort((a, b) => {
+        const ta = (a.createdAt && typeof a.createdAt.toMillis === 'function') ? a.createdAt.toMillis() : 0;
+        const tb = (b.createdAt && typeof b.createdAt.toMillis === 'function') ? b.createdAt.toMillis() : 0;
+        return tb - ta;
+      });
+
+    box.innerHTML = '';
+    if (!items.length) {
+      const empty = document.createElement('span');
+      empty.className = 'tag';
+      empty.textContent = 'No hay invitaciones pendientes.';
+      box.appendChild(empty);
+      return;
+    }
+
+    items.forEach((inv) => {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      const fullName = `${inv.firstName || ''} ${inv.lastName || ''}`.trim() || '(sin nombre)';
+      const email = inv.email || '(sin email)';
+      const when = formatInviteDate(inv.createdAt);
+      tag.textContent = when ? `${fullName} — ${email} · invitado ${when}` : `${fullName} — ${email}`;
+      box.appendChild(tag);
+    });
   }
 
   async function copyInviteLink() {
@@ -380,6 +427,7 @@
     await loadUsers();
     await loadMasterDataAndScopeOptions();
     loadFieldOptions();
+    await loadPendingInvites();
 
     $('userSelect').addEventListener('change', async (e) => {
       const uid = e.target.value || '';

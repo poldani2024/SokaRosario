@@ -115,7 +115,11 @@
           <input id="inviteLinkOut" type="text" readonly placeholder="Acá se mostrará el link de invitación" />
         </label>
       </form>
-      <p class="muted">El pre-registro se guarda en <code>userInvites/{inviteId}</code> con estado <code>pending</code>.</p>
+      <div>
+        <h3>Pendientes de registro</h3>
+        <p class="muted">Usuarios invitados que todavía no completaron su registro.</p>
+        <div id="pendingInvitesList" class="list-tags"></div>
+      </div>
     </section>
 
     <section class="panel" id="rolesPanel">
