@@ -12,6 +12,7 @@ let hanes = [];
 let grupos = [];
 let personas = [];
 let visitas = [];
+let localidades = [];
 let editPersonaId = null;
 
 const ADMIN_EMAILS = ["pedro.l.oldani@gmail.com", "pedro.loldani@gmail.com"]; // fallback rápido
@@ -20,6 +21,7 @@ const STORAGE_KEYS = {
   grupos: "soka_grupos",
   personas: "soka_personas",
   visitas: "soka_visitas",
+  localidades: "soka_localidades",
   session: "soka_session"
 };
 
@@ -74,9 +76,16 @@ async function hydrateFromDb() {
     const vSnap = await window.db.collection('visitas').get();
     const vList = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (Array.isArray(vList)) visitas = vList;
+    // Localidades (maestro ciudades)
+    try {
+      const cSnap = await window.db.collection('ciudades').get();
+      const cList = cSnap.docs.map(d => (d.data()?.name || d.id || '').trim()).filter(Boolean);
+      if (Array.isArray(cList) && cList.length) localidades = Array.from(new Set(cList)).sort();
+    } catch {}
+
     // Opcional: sincronizar a local como backup
     saveData();
-    console.info('[DB] Datos cargados desde Firestore', { personas: personas.length, visitas: visitas.length });
+    console.info('[DB] Datos cargados desde Firestore', { personas: personas.length, visitas: visitas.length, localidades: localidades.length });
   } catch (err) {
     console.warn('[DB] No se pudo leer desde Firestore. Usando localStorage.', err);
   }
@@ -113,12 +122,14 @@ function loadData() {
   grupos   = JSON.parse(localStorage.getItem(STORAGE_KEYS.grupos)   ?? "[]");
   personas = JSON.parse(localStorage.getItem(STORAGE_KEYS.personas) ?? "[]");
   visitas  = JSON.parse(localStorage.getItem(STORAGE_KEYS.visitas)  ?? "[]");
+  localidades = JSON.parse(localStorage.getItem(STORAGE_KEYS.localidades) ?? "[]");
 }
 function saveData() {
   localStorage.setItem(STORAGE_KEYS.hanes,    JSON.stringify(hanes));
   localStorage.setItem(STORAGE_KEYS.grupos,   JSON.stringify(grupos));
   localStorage.setItem(STORAGE_KEYS.personas, JSON.stringify(personas));
   localStorage.setItem(STORAGE_KEYS.visitas,  JSON.stringify(visitas));
+  localStorage.setItem(STORAGE_KEYS.localidades, JSON.stringify(localidades));
 }
 
 /* ===== Normalización SIN seeds ===== */
@@ -127,6 +138,7 @@ function ensureSeedData() {
   hanes    = Array.isArray(hanes)    ? hanes    : [];
   grupos   = Array.isArray(grupos)   ? grupos   : [];
   personas = Array.isArray(personas) ? personas : [];
+  localidades = Array.isArray(localidades) ? localidades : [];
 
   const idxHan = Object.fromEntries((hanes ?? []).map(h => [h.id, h]));
   personas = (personas ?? []).map(p => ({
@@ -153,7 +165,9 @@ function populateDatosPersonales(p, opts = {}) {
     address: p.address ?? '',
     city: p.city ?? '',
     phone: p.phone ?? '',
-    email: p.email ?? ''
+    phoneFixed: p.phoneFixed ?? '',
+    email: p.email ?? '',
+    fechaIngreso: p.fechaIngreso ?? ''
   };
   Object.entries(mapText).forEach(([id, val]) => {
     const el = document.getElementById(id);
@@ -163,6 +177,14 @@ function populateDatosPersonales(p, opts = {}) {
   // Selects
   const selStatus = document.getElementById('status');
   if (selStatus) selStatus.value = p.status ?? 'Miembro';
+  const selDivision = document.getElementById('division');
+  if (selDivision) selDivision.value = p.division ?? '';
+  const selExamen = document.getElementById('nivelExamen');
+  if (selExamen) selExamen.value = p.nivelExamen ?? '';
+  const selCargo = document.getElementById('cargo');
+  if (selCargo) selCargo.value = p.cargo ?? '';
+  const selGohonzo = document.getElementById('gohonzo');
+  if (selGohonzo) selGohonzo.value = p.gohonzo ?? '';
   const selHan = document.getElementById('hanSelect');
   if (selHan) selHan.value = p.hanId ?? '';
   const selGrupo = document.getElementById('grupoSelect');
@@ -180,7 +202,7 @@ function populateDatosPersonales(p, opts = {}) {
 
   // Derivados
   const hanLoc = document.getElementById('hanLocalidad');
-  if (hanLoc) hanLoc.value = p.hanCity ?? '';
+  if (hanLoc) hanLoc.value = p.hanCity ?? p.city ?? '';
 
   // Comentarios
   const com = document.getElementById('comentarios');
@@ -200,7 +222,6 @@ function applySignedInUser(user) {
     localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, displayName: user.displayName ?? email, uid: user.uid, role, roleDetails }));
     text("user-email", email); text("role-badge", role);
     setHidden($("login-form"), true); setHidden($("user-info"), false); applyRoleVisibility(role);
-      if (useDb) { await hydrateFromDb(); }
       if (useDb) { await hydrateFromDb(); }
   renderCatalogsToSelects(); renderPersonas(); renderVisitas(); loadMiPerfil(user.uid, email);
   });
@@ -284,14 +305,23 @@ function renderCatalogsToSelects() {
   const filHan    = $("filtroHan");
   const filGrupo  = $("filtroGrupo");
   const hanLoc    = $("hanLocalidad");
+  const citySel   = $("city");
 
   if (selHan)   fillSelect(selHan,   hanes,  "id","name", true);
   if (selGrupo) fillSelect(selGrupo, grupos, "id","name", true);
   if (filHan)   fillSelect(filHan,   [{ id:"", name:"Todos" }, ...hanes],  "id","name", false);
   if (filGrupo) fillSelect(filGrupo, [{ id:"", name:"Todos" }, ...grupos], "id","name", false);
 
+  const locSet = new Set([...(localidades || []), ...(hanes || []).map(h => h.city || '').filter(Boolean), ...(personas || []).map(p => p.city || '').filter(Boolean)]);
+  const locItems = Array.from(locSet).sort((a,b)=>a.localeCompare(b,'es')).map(x => ({ id:x, name:x }));
+  if (citySel) fillSelect(citySel, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
+  if (hanLoc) fillSelect(hanLoc, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
+
   if (selHan && hanLoc) {
-    selHan.addEventListener('change', () => { const h = hanes.find(x => x.id === selHan.value); hanLoc.value = h?.city ?? ''; });
+    selHan.onchange = () => {
+      const h = hanes.find(x => x.id === selHan.value);
+      if (h?.city) hanLoc.value = h.city;
+    };
   }
 }
 
@@ -307,13 +337,13 @@ window.escapeHtml = escapeHtml; // si otros scripts lo usan
 
 /* ===== Persona (form) ===== */
 function clearDatosPersonales() {
-  ["firstName","lastName","birthDate","address","city","phone","email"].forEach(id => { const el = $(id); if (el) el.value = ""; });
-  ["status","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai"].forEach(id => { const el = $(id); if (el) el.value = ""; });
+  ["firstName","lastName","birthDate","address","city","phone","phoneFixed","email","fechaIngreso"].forEach(id => { const el = $(id); if (el) el.value = ""; });
+  ["status","division","nivelExamen","cargo","gohonzo","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai"].forEach(id => { const el = $(id); if (el) el.value = ""; });
   ["suscriptoHumanismoSoka","realizaZaimu"].forEach(id => { const el = $(id); if (el) el.checked = false; });
-  $("hanLocalidad")?.value && ($("hanLocalidad").value = ""); $("comentarios")?.value && ($("comentarios").value = "");
+  $("comentarios")?.value && ($("comentarios").value = "");
 }
 function toggleDatosPersonalesReadonly(readonly) {
-  const fields = ["firstName","lastName","birthDate","address","city","phone","email","status","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai","suscriptoHumanismoSoka","realizaZaimu","comentarios"];
+  const fields = ["firstName","lastName","birthDate","address","city","phone","phoneFixed","email","status","division","nivelExamen","fechaIngreso","cargo","gohonzo","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai","suscriptoHumanismoSoka","realizaZaimu","comentarios"];
   fields.forEach(id => { const el = $(id); if (!el) return; el.disabled = !!readonly; });
 }
 function loadMiPerfil(uid, email) {
@@ -330,9 +360,15 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
   const grupoId = $("grupoSelect").value ?? "";const grupoObj= grupos.find(g => g.id === grupoId);
   const base = {
     firstName: $("firstName").value.trim(), lastName:  $("lastName").value.trim(), birthDate: $("birthDate").value ?? "",
-    address:   $("address").value.trim(),   city:      $("city").value.trim(),     phone:     $("phone").value.trim(),
+    address:   $("address").value.trim(),   city:      $("city").value ?? "",     phone:     $("phone").value.trim(),
+    phoneFixed: $("phoneFixed").value.trim(),
     email:     $("email").value.trim(),     status:    $("status").value ?? "Miembro",
-    hanId, hanName: hanObj?.name ?? "", hanCity: hanObj?.city ?? "", hanSector: hanObj?.sector ?? "",
+    division:  $("division").value ?? "",
+    nivelExamen: $("nivelExamen").value ?? "",
+    fechaIngreso: $("fechaIngreso").value ?? "",
+    cargo: $("cargo").value ?? "",
+    gohonzo: $("gohonzo").value ?? "",
+    hanId, hanName: hanObj?.name ?? "", hanCity: $("hanLocalidad").value ?? hanObj?.city ?? "", hanSector: hanObj?.sector ?? "",
     grupoId, grupoName: grupoObj?.name ?? "",
     frecuenciaSemanal:  $("frecuenciaSemanal").value ?? "",
     frecuenciaZadankai: $("frecuenciaZadankai").value ?? "",
@@ -358,12 +394,13 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
 });
 
 /* ===== Listado + Filtros ===== */
-["filtroHan","filtroGrupo","filtroEstado","filtroFreqSemanal","filtroFreqZadankai","buscarTexto"].forEach(id => $(id)?.addEventListener("input", () => renderPersonas()));
+["filtroHan","filtroGrupo","filtroEstado","filtroDivision","filtroFreqSemanal","filtroFreqZadankai","buscarTexto"].forEach(id => $(id)?.addEventListener("input", () => renderPersonas()));
 
 function applyFiltersBase(list) {
   const fHan   = $("filtroHan")?.value ?? "";
   const fGrupo = $("filtroGrupo")?.value ?? "";
   const fEstado= $("filtroEstado")?.value ?? "";
+  const fDivision = $("filtroDivision")?.value ?? "";
   const fSem   = $("filtroFreqSemanal")?.value ?? "";
   const fZad   = $("filtroFreqZadankai")?.value ?? "";
   const qText  = ($("buscarTexto")?.value ?? "").toLowerCase();
@@ -371,11 +408,12 @@ function applyFiltersBase(list) {
     const okHan   = !fHan   || p.hanId === fHan;
     const okGrupo = !fGrupo || p.grupoId === fGrupo;
     const okEst   = !fEstado|| (p.status ?? "") === fEstado;
+    const okDivision = !fDivision || (p.division ?? "") === fDivision;
     const okSem   = !fSem   || (p.frecuenciaSemanal   ?? "") === fSem;
     const okZad   = !fZad   || (p.frecuenciaZadankai ?? "") === fZad;
     const txt = `${p.lastName ?? ""} ${p.firstName ?? ""} ${p.email ?? ""}`.toLowerCase();
     const okText  = !qText  || txt.includes(qText);
-    return okHan && okGrupo && okEst && okSem && okZad && okText;
+    return okHan && okGrupo && okEst && okDivision && okSem && okZad && okText;
   });
 }
 function filterByRolePersonas(list) {
@@ -410,6 +448,10 @@ function renderPersonas() {
   <td>${escapeHtml(p.firstName)}</td>
   <td>${escapeHtml(p.lastName)}</td>
   <td>${escapeHtml(p.status)}</td>
+  <td>${escapeHtml(p.division)}</td>
+  <td>${escapeHtml(p.nivelExamen)}</td>
+  <td>${escapeHtml(p.cargo)}</td>
+  <td>${escapeHtml(p.gohonzo)}</td>
   <td>${escapeHtml(p.hanName)}</td>
   <td>${escapeHtml(p.grupoName)}</td>
   <td>${escapeHtml(p.frecuenciaSemanal)}</td>
@@ -479,6 +521,132 @@ $("visitaForm")?.addEventListener("submit", (e) => {
   if (!personaId || !fechaStr) return; visitas.push({ id:uid(), personaId, fecha:new Date(fechaStr).toISOString(), obs, createdBy:currentUser?.uid ?? "", createdAt:Date.now() });
   (async () => { try { if (useDb) await saveVisitaToDb(visitas[visitas.length-1]); } catch(err){ console.error('[DB] No se pudo guardar visita en Firestore:', err);} })();
  saveData(); $("visitaForm").reset(); renderVisitas();
+});
+
+
+/* ===== Import/Export CSV Personas ===== */
+function normalizeHeader(h) {
+  return String(h || '').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9]+/g, '');
+}
+function parseDelimitedCsv(text) {
+  const firstLine = text.split('\n')[0] || '';
+  const sep = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+  const rows = [];
+  let cur = '', row = [], q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      if (q && text[i + 1] === '"') { cur += '"'; i++; }
+      else q = !q;
+    } else if (ch === sep && !q) {
+      row.push(cur); cur = '';
+    } else if ((ch === '\n' || ch === '\r') && !q) {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cur); rows.push(row); row = []; cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.length || row.length) { row.push(cur); rows.push(row); }
+  if (!rows.length) return [];
+  const headers = rows.shift().map(h => normalizeHeader(h));
+  return rows.filter(r => r.some(c => String(c).trim())).map(r => {
+    const o = {}; headers.forEach((h, idx) => o[h] = String(r[idx] || '').trim()); return o;
+  });
+}
+function csvPick(row, keys) {
+  for (const k of keys) {
+    const nk = normalizeHeader(k);
+    if (row[nk]) return row[nk];
+  }
+  return '';
+}
+function parseCsvDate(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) {
+    const d = m[1].padStart(2, '0'); const mo = m[2].padStart(2, '0');
+    const y = m[3].length === 2 ? `19${m[3]}` : m[3];
+    return `${y}-${mo}-${d}`;
+  }
+  return s;
+}
+function mapCsvToPersona(row) {
+  const firstName = csvPick(row, ['nombres','nombre']);
+  const lastName = csvPick(row, ['apellido','apellidos']);
+  const division = csvPick(row, ['division','d']);
+  const hanNameRaw = csvPick(row, ['hannucleo','han','hannucleo']);
+  const city = csvPick(row, ['localidad']);
+  const address = csvPick(row, ['domicilio']);
+  const phoneFixed = csvPick(row, ['telefono','telfono']);
+  const phone = csvPick(row, ['movil','celular']);
+  const birthDate = parseCsvDate(csvPick(row, ['fechanac','fechanacimiento']));
+  const fechaIngreso = parseCsvDate(csvPick(row, ['fechaingre','fechaingreso']));
+  const nivelExamen = csvPick(row, ['grcapacitaci','gradocapacitacion']) || '';
+  const comentarios = csvPick(row, ['observaciones']);
+  const gohonzo = csvPick(row, ['miembro','gohonzo','gohonzon']);
+
+  const han = hanes.find(h => normalizeHeader(h.name || '') === normalizeHeader(hanNameRaw));
+  const grupo = grupos.find(g => normalizeHeader(g.name || '') === normalizeHeader(nivelExamen));
+
+  return {
+    id: uid(),
+    uid: '',
+    firstName, lastName, birthDate,
+    address, city,
+    phone, phoneFixed,
+    email: '',
+    status: 'Miembro',
+    division,
+    nivelExamen,
+    fechaIngreso,
+    cargo: '',
+    gohonzo,
+    hanId: han?.id || '', hanName: han?.name || hanNameRaw || '', hanCity: han?.city || '', hanSector: han?.sector || '',
+    grupoId: grupo?.id || '', grupoName: grupo?.name || '',
+    frecuenciaSemanal: '', frecuenciaZadankai: '',
+    suscriptoHumanismoSoka: false,
+    realizaZaimu: false,
+    comentarios,
+    updatedAt: Date.now(),
+  };
+}
+
+document.getElementById('importCSV')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const text = await file.text();
+  const rows = parseDelimitedCsv(text);
+  const imported = rows.map(mapCsvToPersona).filter(p => p.firstName || p.lastName);
+  if (!imported.length) return alert('No se encontraron filas válidas en el CSV.');
+  personas = [...personas, ...imported];
+  saveData();
+  if (useDb) {
+    for (const p of imported) {
+      try { await savePersonaToDb(p); } catch (err) { console.warn('No se pudo subir persona a Firestore', err); }
+    }
+  }
+  renderPersonas();
+  alert(`Importación completa: ${imported.length} personas.`);
+  e.target.value = '';
+});
+
+document.getElementById('exportCSVBtn')?.addEventListener('click', () => {
+  const rows = filterByRolePersonas(applyFiltersBase(personas));
+  const headers = ['Apellido','Nombres','División','Estado','NivelExamen','FechaIngreso','Cargo','Gohonzon','Han','Grupo','Localidad','Domicilio','TelefonoFijo','Movil','FechaNac','Observaciones'];
+  const lines = [headers.join(';')];
+  rows.forEach(p => {
+    const vals = [p.lastName,p.firstName,p.division,p.status,p.nivelExamen,p.fechaIngreso,p.cargo,p.gohonzo,p.hanName,p.grupoName,p.city,p.address,p.phoneFixed,p.phone,p.birthDate,p.comentarios]
+      .map(v => `"${String(v ?? '').replaceAll('"','""')}"`);
+    lines.push(vals.join(';'));
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'personas_filtrado.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
 });
 
 /* ===== Utils ===== */

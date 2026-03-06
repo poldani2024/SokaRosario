@@ -49,6 +49,16 @@
             <option>Sakubuku</option>
           </select>
         </label>
+        <label>División
+          <select id="filtroDivision">
+            <option value="">Todas</option>
+            <option value="DS">DS (División Señores)</option>
+            <option value="DD">DD (División Damas)</option>
+            <option value="DJM">DJM (División Juvenil Masculina)</option>
+            <option value="DJF">DJF (División Juvenil Femenina)</option>
+            <option value="MH">MH (Mirai Hombu)</option>
+          </select>
+        </label>
         <label>Reuniones semanales
           <select id="filtroFreqSemanal">
             <option value="">Todas</option>
@@ -85,6 +95,10 @@
             <th>Nombre</th>
             <th>Apellido</th>
             <th>Estado</th>
+            <th>División</th>
+            <th>Examen</th>
+            <th>Cargo</th>
+            <th>Gohonzon</th>
             <th>Han</th>
             <th>Grupo</th>
             <th>Reuniones semanales</th>
@@ -117,13 +131,63 @@
             <input id="address" type="text" />
           </label>
           <label>Localidad
-            <input id="city" type="text" />
+            <select id="city"></select>
           </label>
           <label>Teléfono
             <input id="phone" type="tel" />
           </label>
           <label>Email
             <input id="email" type="email" />
+          </label>
+          <label>Teléfono fijo
+            <input id="phoneFixed" type="tel" />
+          </label>
+
+          <label>División
+            <select id="division">
+              <option value="">Seleccionar...</option>
+              <option value="DS">DS (División Señores)</option>
+              <option value="DD">DD (División Damas)</option>
+              <option value="DJM">DJM (División Juvenil Masculina)</option>
+              <option value="DJF">DJF (División Juvenil Femenina)</option>
+              <option value="MH">MH (Mirai Hombu)</option>
+            </select>
+          </label>
+
+          <label>Nivel de examen de Budismo
+            <select id="nivelExamen">
+              <option value="">Seleccionar...</option>
+              <option>Amigo Soka</option>
+              <option>1er Nivel</option>
+              <option>2do Nivel</option>
+              <option>3er Nivel</option>
+              <option>4to Nivel</option>
+            </select>
+          </label>
+
+          <label>Fecha de ingreso
+            <input id="fechaIngreso" type="date" />
+          </label>
+
+          <label>Cargo
+            <select id="cargo">
+              <option value="">Seleccionar...</option>
+              <option>Admin</option>
+              <option>SubRegion</option>
+              <option>LiderCiudad</option>
+              <option>LiderSector</option>
+              <option>LiderHan</option>
+              <option>Usuario+</option>
+              <option>Usuario</option>
+            </select>
+          </label>
+
+          <label>Gohonzon
+            <select id="gohonzo">
+              <option value="">Seleccionar...</option>
+              <option>Titular</option>
+              <option>Miembro</option>
+            </select>
           </label>
 
           <label>Estado
@@ -138,7 +202,7 @@
             <select id="hanSelect"></select>
           </label>
           <label>Localidad del Han
-            <input id="hanLocalidad" type="text" readonly />
+            <select id="hanLocalidad"></select>
           </label>
 
           <label>Grupo de capacitación
