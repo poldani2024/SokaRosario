@@ -282,23 +282,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   // Limpiar form
   $("personaClearBtn")?.addEventListener("click", () => { editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(!(currentRole === "Admin")); renderPersonas(); });
+  $("personaDeleteBtn")?.addEventListener("click", () => {
+    if (!editPersonaId) return alert("Seleccioná una persona de la grilla para eliminar.");
+    const deletingId = editPersonaId;
+    onDeletePersona(deletingId);
+    editPersonaId = null;
+    clearDatosPersonales();
+    toggleDatosPersonalesReadonly(!(currentRole === "Admin"));
+    renderPersonas();
+  });
 
   // === EVENT DELEGATION en tbody de Personas ===
   const tbodyPersonas = $("personasTable")?.querySelector("tbody");
   if (tbodyPersonas) {
     tbodyPersonas.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-action]");
-      if (btn) {
-        const id = btn.dataset.id; const action = btn.dataset.action;
-        if (action === "edit-persona") {
-          const p = personas.find(x => x.id === id); if (p) {
-            editPersonaId = id; const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
-            populateDatosPersonales(p, { readonly });
-            renderPersonas();
-          }
-        } else if (action === "delete-persona") { onDeletePersona(id); }
-        return;
-      }
       const tr = e.target.closest("tr[data-id]");
       if (tr?.dataset?.id) {
         const id = tr.dataset.id; const p = personas.find(x => x.id === id); if (p) {
@@ -476,11 +473,7 @@ function renderPersonas() {
   <td>${escapeHtml(p.frecuenciaZadankai)}</td>
   <td>${p.suscriptoHumanismoSoka ? 'Sí' : 'No'}</td>
   <td>${p.realizaZaimu ? 'Sí' : 'No'}</td>
-  <td class="td-comentarios">${canSeeComentarios(currentRole) ? `<span class="comentarios" style="white-space: pre-line">${escapeHtml(p.comentarios)}</span>` : '-'}</td>
-  <td class="acciones-admin">
-    <button data-action="edit-persona" data-id="${p.id}">Editar</button>
-    <button data-action="delete-persona" data-id="${p.id}">Eliminar</button>
-  </td>`
+  <td class="td-comentarios">${canSeeComentarios(currentRole) ? `<span class="comentarios" style="white-space: pre-line">${escapeHtml(p.comentarios)}</span>` : '-'}</td>`
     const tdC = tr.querySelector(".td-comentarios"); if (tdC) tdC.style.display = canSeeComentarios(currentRole) ? "" : "none";
     tbody.appendChild(tr);
   });
