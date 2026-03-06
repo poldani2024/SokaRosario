@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seguridad y Roles — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .multi-hint { font-size: .85rem; color: #666; margin-top: 4px; }
+    .check-group {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+      padding: 10px;
+      max-height: 180px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+    }
+    .check-item { display: flex !important; flex-direction: row !important; align-items: center; justify-content: flex-start; gap: 8px; font-size: .95rem; line-height: 1.2; }
+    .check-item input[type="checkbox"] { margin: 0; width: 16px; height: 16px; flex: 0 0 auto; }
+    .check-item span { display: inline; }
+    .inline-form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+    .inline-form input { min-width: 180px; }
+    .list-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .tag { background: #eef2ff; color: #1e40af; border-radius: 999px; padding: 4px 8px; font-size: .85rem; border: 1px solid #c7d2fe; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Administración de Seguridad</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="admin.html">Administración</a>
+    </nav>
+    <div id="auth">
+      <div id="login-form">
+        <span>Iniciá sesión para administrar roles y permisos.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" id="guardPanel">
+      <h2>Control de acceso</h2>
+      <p id="guardMsg" class="muted">Validando permisos...</p>
+    </section>
+
+    <section class="panel" id="masterPanel">
+      <h2>Maestro de Configuración</h2>
+      <p class="muted">Desde acá das de alta la base para Seguridad: <strong>SubRegiones</strong>, <strong>Ciudades</strong> y <strong>Sectores</strong>.</p>
+
+      <div class="grid">
+        <div>
+          <h3>SubRegiones</h3>
+          <form id="subregionForm" class="inline-form">
+            <label>Nombre
+              <input id="subregionName" type="text" placeholder="Ej: Rosario Norte" required />
+            </label>
+            <button type="submit">Agregar</button>
+          </form>
+          <div id="subregionList" class="list-tags"></div>
+        </div>
+
+        <div>
+          <h3>Ciudades</h3>
+          <form id="cityForm" class="inline-form">
+            <label>Nombre
+              <input id="cityName" type="text" placeholder="Ej: Rosario" required />
+            </label>
+            <button type="submit">Agregar</button>
+          </form>
+          <div id="cityList" class="list-tags"></div>
+        </div>
+
+        <div>
+          <h3>Sectores</h3>
+          <form id="sectorForm" class="inline-form">
+            <label>Nombre
+              <input id="sectorName" type="text" placeholder="Ej: Centro" required />
+            </label>
+            <button type="submit">Agregar</button>
+          </form>
+          <div id="sectorList" class="list-tags"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="onboardingPanel">
+      <h2>Alta de usuarios (pre-registro)</h2>
+      <p class="muted">Completá nombre, apellido y email. Se genera un link de acceso para enviar al usuario. Cuando ingrese con Google usando ese email, se confirma el alta inicial en Firestore.</p>
+      <form id="onboardingForm">
+        <div class="grid">
+          <label>Nombre
+            <input id="newUserFirstName" type="text" required />
+          </label>
+          <label>Apellido
+            <input id="newUserLastName" type="text" required />
+          </label>
+          <label>Email
+            <input id="newUserEmail" type="email" required />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Generar link</button>
+          <button id="copyInviteBtn" type="button" class="secondary">Copiar link</button>
+        </div>
+        <label>Link generado
+          <input id="inviteLinkOut" type="text" readonly placeholder="Acá se mostrará el link de invitación" />
+        </label>
+      </form>
+      <p class="muted">El pre-registro se guarda en <code>userInvites/{inviteId}</code> con estado <code>pending</code>.</p>
+    </section>
+
+    <section class="panel" id="rolesPanel">
+      <h2>Roles y niveles (scope)</h2>
+      <form id="roleForm">
+        <div class="grid">
+          <label>Usuario
+            <select id="userSelect"></select>
+            <span class="multi-hint">Se listan solo usuarios registrados (con UID en Auth/aceptados) para cargar su UID y rol actual.</span>
+          </label>
+
+          <label>UID del usuario
+            <input id="uid" type="text" placeholder="UID Firebase" required readonly />
+          </label>
+
+          <label>Rol
+            <select id="role" required>
+              <option value="Admin">Admin</option>
+              <option value="SubRegion">SubRegión</option>
+              <option value="LiderCiudad">Líder Ciudad</option>
+              <option value="LiderSector">Líder Sector</option>
+              <option value="LiderHan">Responsable Han</option>
+              <option value="Usuario+">Usuario+</option>
+              <option value="Usuario">Usuario</option>
+            </select>
+          </label>
+
+          <label>Subregiones (checkbox múltiple)
+            <div id="subregionIds" class="check-group"></div>
+          </label>
+
+          <label>Ciudades (checkbox múltiple)
+            <div id="cityIds" class="check-group"></div>
+          </label>
+
+          <label>Sectores (checkbox múltiple)
+            <div id="sectorIds" class="check-group"></div>
+          </label>
+
+          <label>Hanes (checkbox múltiple)
+            <div id="hanIds" class="check-group"></div>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar rol</button>
+        </div>
+      </form>
+      <p class="muted">Se guarda en <code>roles/{uid}</code> para administrar niveles y alcance.</p>
+    </section>
+
+    <section class="panel" id="fieldsPanel">
+      <h2>Políticas de campos por rol</h2>
+      <form id="policyForm">
+        <div class="grid">
+          <label>Rol objetivo
+            <select id="targetRole" required>
+              <option value="Admin">Admin</option>
+              <option value="SubRegion">SubRegión</option>
+              <option value="LiderCiudad">Líder Ciudad</option>
+              <option value="LiderSector">Líder Sector</option>
+              <option value="LiderHan">Responsable Han</option>
+              <option value="Usuario+">Usuario+</option>
+              <option value="Usuario">Usuario</option>
+            </select>
+          </label>
+
+          <label>Campos permitidos (checkbox múltiple)
+            <div id="allowedFields" class="check-group"></div>
+            <span class="multi-hint">Basado en los campos de la pantalla Personas.</span>
+          </label>
+
+          <label>Campos ocultos entre mismo rol (checkbox múltiple)
+            <div id="sameRoleHiddenFields" class="check-group"></div>
+            <span class="multi-hint">Ejemplo: ocultar <code>realizaZaimu</code> entre pares del mismo rol.</span>
+          </label>
+
+          <label>Ver miembros del mismo rol
+            <select id="canViewSameRole">
+              <option value="true">Sí</option>
+              <option value="false">No</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar política de campos</button>
+        </div>
+      </form>
+      <p class="muted">Se guarda en <code>fieldPolicies/{role}</code>.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Último resultado</h2>
+      <pre id="resultBox" style="white-space: pre-wrap;"></pre>
+    </section>
+  </main>
+
+  <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase.js"></script>
+  <script src="security.js"></script>
+</body>
+</html>
