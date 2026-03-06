@@ -128,12 +128,9 @@
         <div class="grid">
           <label>Usuario
             <select id="userSelect"></select>
-            <span class="multi-hint">Se listan solo usuarios registrados (con UID en Auth/aceptados) para cargar su UID y rol actual.</span>
+            <span class="multi-hint">Se listan solo usuarios registrados. Al seleccionar uno, se carga su configuración actual (si existe) para editarla.</span>
           </label>
 
-          <label>UID del usuario
-            <input id="uid" type="text" placeholder="UID Firebase" required readonly />
-          </label>
 
           <label>Rol
             <select id="role" required>
@@ -167,7 +164,7 @@
           <button type="submit">Guardar rol</button>
         </div>
       </form>
-      <p class="muted">Se guarda en <code>roles/{uid}</code> para administrar niveles y alcance.</p>
+      <p class="muted">Se guarda en <code>roles/{uid}</code> para administrar niveles y alcance (sin mostrar UID en pantalla).</p>
     </section>
 
     <section class="panel" id="fieldsPanel">

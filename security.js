@@ -25,6 +25,7 @@
   ];
 
   let currentRole = 'Usuario';
+  let selectedUserUid = '';
   let bootstrapped = false;
 
   function dump(data) {
@@ -325,7 +326,15 @@
   }
 
   async function loadRoleDoc(uid) {
-    if (!uid) return;
+    if (!uid) {
+      $('role').value = 'Usuario';
+      setCheckedValues('subregionIds', []);
+      setCheckedValues('cityIds', []);
+      setCheckedValues('sectorIds', []);
+      setCheckedValues('hanIds', []);
+      return;
+    }
+
     const snap = await db.collection('roles').doc(uid).get();
 
     if (!snap.exists) {
@@ -403,7 +412,7 @@
     e.preventDefault();
     if (currentRole !== 'Admin') return alert('Solo Admin.');
 
-    const uid = $('uid').value.trim();
+    const uid = selectedUserUid || String($('userSelect').value || '').trim();
     if (!uid) return alert('Seleccioná un usuario.');
 
     const payload = {
@@ -430,10 +439,13 @@
     await loadPendingInvites();
 
     $('userSelect').addEventListener('change', async (e) => {
-      const uid = e.target.value || '';
-      $('uid').value = uid;
+      const uid = String(e.target.value || '').trim();
+      selectedUserUid = uid;
       await loadRoleDoc(uid);
     });
+
+    selectedUserUid = String($('userSelect').value || '').trim();
+    await loadRoleDoc(selectedUserUid);
 
     $('targetRole').addEventListener('change', async (e) => {
       await loadFieldPolicy(e.target.value);
