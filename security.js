@@ -170,20 +170,35 @@
   }
 
   async function loadUsers() {
-    const peopleSnap = await db.collection('personas').get();
-    const roleSnap = await db.collection('roles').get();
+    const [peopleSnap, roleSnap, invitesSnap] = await Promise.all([
+      db.collection('personas').get(),
+      db.collection('roles').get(),
+      db.collection('userInvites').where('status', '==', 'accepted').get().catch(() => ({ docs: [] })),
+    ]);
 
     const userMap = new Map();
 
+    // Solo personas con UID real (usuarios registrados en Auth)
     peopleSnap.docs.forEach((doc) => {
       const p = doc.data() || {};
-      const uid = normalizeText(p.uid || doc.id);
+      const uid = normalizeText(p.uid);
       if (!uid) return;
       const name = `${p.firstName || ''} ${p.lastName || ''}`.trim() || '(sin nombre)';
       const email = p.email ? ` — ${p.email}` : '';
       userMap.set(uid, { value: uid, label: `${name}${email} [${uid}]` });
     });
 
+    // Invitaciones aceptadas (por si aún no está completo el perfil en personas)
+    invitesSnap.docs.forEach((doc) => {
+      const inv = doc.data() || {};
+      const uid = normalizeText(inv.acceptedByUid || inv.uid);
+      if (!uid || userMap.has(uid)) return;
+      const name = `${inv.firstName || ''} ${inv.lastName || ''}`.trim() || '(sin nombre)';
+      const email = inv.email ? ` — ${inv.email}` : '';
+      userMap.set(uid, { value: uid, label: `${name}${email} [${uid}]` });
+    });
+
+    // También incluir usuarios que ya tienen roles asignados
     roleSnap.docs.forEach((doc) => {
       const uid = normalizeText(doc.id);
       if (!uid || userMap.has(uid)) return;
@@ -191,7 +206,7 @@
     });
 
     const select = $('userSelect');
-    select.innerHTML = '<option value="">Seleccionar usuario...</option>';
+    select.innerHTML = '<option value="">Seleccionar usuario registrado...</option>';
     Array.from(userMap.values())
       .sort((a, b) => a.label.localeCompare(b.label, 'es'))
       .forEach((u) => {
