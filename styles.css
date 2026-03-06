@@ -193,3 +193,32 @@ footer { padding: 12px; }
   background: rgba(31, 122, 140, 0.14);
 }
 
+
+
+/* Personas layout desktop: grilla + formulario visibles en simultáneo */
+body.page-personas main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+body.page-personas main > .panel { margin-bottom: 0; }
+
+/* Tabla personas: altura acotada para no empujar el formulario hacia abajo */
+body.page-personas #personas .table-wrap {
+  height: clamp(220px, 34vh, 360px);
+  max-height: clamp(220px, 34vh, 360px);
+  overflow: auto;
+}
+
+@media (max-width: 1100px) {
+  body.page-personas main {
+    display: block;
+  }
+  body.page-personas main > .panel { margin-bottom: 16px; }
+  body.page-personas #personas .table-wrap {
+    height: auto;
+    max-height: 48vh;
+  }
+}
+
