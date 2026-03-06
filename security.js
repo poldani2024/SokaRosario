@@ -31,41 +31,17 @@
     $('resultBox').textContent = JSON.stringify(data, null, 2);
   }
 
-  function selectedValues(selectId) {
-    const sel = $(selectId);
-    if (!sel) return [];
-    return Array.from(sel.selectedOptions).map((o) => o.value).filter(Boolean);
+  function normalizeText(value) {
+    return String(value || '').trim();
   }
 
-  function setSelectedValues(selectId, values) {
-    const set = new Set((values || []).map(String));
-    const sel = $(selectId);
-    if (!sel) return;
-    Array.from(sel.options).forEach((opt) => {
-      opt.selected = set.has(opt.value);
-    });
-  }
-
-  function fillOptions(selectId, options, placeholder = '') {
-    const sel = $(selectId);
-    if (!sel) return;
-
-    const multiple = sel.hasAttribute('multiple');
-    sel.innerHTML = '';
-
-    if (!multiple && placeholder) {
-      const p = document.createElement('option');
-      p.value = '';
-      p.textContent = placeholder;
-      sel.appendChild(p);
-    }
-
-    options.forEach((opt) => {
-      const o = document.createElement('option');
-      o.value = String(opt.value);
-      o.textContent = opt.label;
-      sel.appendChild(o);
-    });
+  function slugId(name) {
+    return normalizeText(name)
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   function setGuard(isAdmin, role, email) {
@@ -74,8 +50,60 @@
       ? `Acceso habilitado para ${email} (${role}).`
       : `No autorizado. Tu rol actual es ${role}. Solo Admin puede editar seguridad.`;
 
+    $('masterPanel').classList.toggle('hidden', !isAdmin);
     $('rolesPanel').classList.toggle('hidden', !isAdmin);
     $('fieldsPanel').classList.toggle('hidden', !isAdmin);
+  }
+
+  function renderCheckboxGroup(containerId, options) {
+    const container = $(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    options.forEach((opt) => {
+      const id = `${containerId}_${String(opt.value).replace(/[^a-z0-9_-]/gi, '_')}`;
+      const label = document.createElement('label');
+      label.className = 'check-item';
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.id = id;
+      input.value = String(opt.value);
+
+      const span = document.createElement('span');
+      span.textContent = opt.label;
+
+      label.appendChild(input);
+      label.appendChild(span);
+      container.appendChild(label);
+    });
+  }
+
+  function getCheckedValues(containerId) {
+    const container = $(containerId);
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map((el) => el.value);
+  }
+
+  function setCheckedValues(containerId, values) {
+    const set = new Set((values || []).map(String));
+    const container = $(containerId);
+    if (!container) return;
+    container.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+      input.checked = set.has(input.value);
+    });
+  }
+
+  function renderTags(containerId, values) {
+    const box = $(containerId);
+    if (!box) return;
+    box.innerHTML = '';
+    values.forEach((v) => {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = v;
+      box.appendChild(tag);
+    });
   }
 
   async function resolveRole(user) {
@@ -97,7 +125,7 @@
 
     peopleSnap.docs.forEach((doc) => {
       const p = doc.data() || {};
-      const uid = String(p.uid || doc.id || '').trim();
+      const uid = normalizeText(p.uid || doc.id);
       if (!uid) return;
       const name = `${p.firstName || ''} ${p.lastName || ''}`.trim() || '(sin nombre)';
       const email = p.email ? ` — ${p.email}` : '';
@@ -105,31 +133,49 @@
     });
 
     roleSnap.docs.forEach((doc) => {
-      const uid = String(doc.id || '').trim();
+      const uid = normalizeText(doc.id);
       if (!uid || userMap.has(uid)) return;
       userMap.set(uid, { value: uid, label: `UID ${uid}` });
     });
 
-    const options = Array.from(userMap.values()).sort((a, b) => a.label.localeCompare(b.label, 'es'));
-    fillOptions('userSelect', options, 'Seleccionar usuario...');
+    const select = $('userSelect');
+    select.innerHTML = '<option value="">Seleccionar usuario...</option>';
+    Array.from(userMap.values())
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'))
+      .forEach((u) => {
+        const opt = document.createElement('option');
+        opt.value = u.value;
+        opt.textContent = u.label;
+        select.appendChild(opt);
+      });
   }
 
-  async function loadScopeOptions() {
-    const hanSnap = await db.collection('hanes').get();
-    const roleSnap = await db.collection('roles').get();
+  async function readMasterCollection(collectionName) {
+    const snap = await db.collection(collectionName).orderBy('name').get();
+    return snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
+  }
 
-    const subregions = new Set();
-    const cities = new Set();
-    const sectors = new Set();
+  async function loadMasterDataAndScopeOptions() {
+    const [subregionsMaster, citiesMaster, sectorsMaster, hanSnap, roleSnap] = await Promise.all([
+      readMasterCollection('subregiones').catch(() => []),
+      readMasterCollection('ciudades').catch(() => []),
+      readMasterCollection('sectores').catch(() => []),
+      db.collection('hanes').get().catch(() => ({ docs: [] })),
+      db.collection('roles').get().catch(() => ({ docs: [] })),
+    ]);
+
+    const subregions = new Set(subregionsMaster.map((x) => normalizeText(x.id || x.name)).filter(Boolean));
+    const cities = new Set(citiesMaster.map((x) => normalizeText(x.id || x.name)).filter(Boolean));
+    const sectors = new Set(sectorsMaster.map((x) => normalizeText(x.id || x.name)).filter(Boolean));
     const hanes = [];
 
     hanSnap.docs.forEach((doc) => {
       const h = doc.data() || {};
-      const id = String(doc.id || h.id || '').trim();
-      const name = String(h.name || h.nombre || id || '').trim();
-      const city = String(h.city || h.ciudad || '').trim();
-      const sector = String(h.sector || '').trim();
-      const subregion = String(h.subregionId || h.subregion || '').trim();
+      const id = normalizeText(doc.id || h.id);
+      const name = normalizeText(h.name || h.nombre || id);
+      const city = normalizeText(h.city || h.ciudad);
+      const sector = normalizeText(h.sector);
+      const subregion = normalizeText(h.subregionId || h.subregion);
 
       if (subregion) subregions.add(subregion);
       if (city) cities.add(city);
@@ -138,27 +184,30 @@
     });
 
     roleSnap.docs.forEach((doc) => {
-      const r = doc.data() || {};
-      const s = r.scope || {};
-      (s.subregionIds || []).forEach((x) => subregions.add(String(x)));
-      (s.cityIds || []).forEach((x) => cities.add(String(x)));
-      (s.sectorIds || []).forEach((x) => sectors.add(String(x)));
-      (s.hanIds || []).forEach((x) => {
+      const scope = (doc.data() || {}).scope || {};
+      (scope.subregionIds || []).forEach((x) => subregions.add(String(x)));
+      (scope.cityIds || []).forEach((x) => cities.add(String(x)));
+      (scope.sectorIds || []).forEach((x) => sectors.add(String(x)));
+      (scope.hanIds || []).forEach((x) => {
         const id = String(x);
         if (!hanes.some((h) => h.value === id)) hanes.push({ value: id, label: id });
       });
     });
 
-    fillOptions('subregionIds', Array.from(subregions).sort().map((x) => ({ value: x, label: x })));
-    fillOptions('cityIds', Array.from(cities).sort().map((x) => ({ value: x, label: x })));
-    fillOptions('sectorIds', Array.from(sectors).sort().map((x) => ({ value: x, label: x })));
-    fillOptions('hanIds', hanes.sort((a, b) => a.label.localeCompare(b.label, 'es')));
+    renderTags('subregionList', Array.from(subregions).sort());
+    renderTags('cityList', Array.from(cities).sort());
+    renderTags('sectorList', Array.from(sectors).sort());
+
+    renderCheckboxGroup('subregionIds', Array.from(subregions).sort().map((x) => ({ value: x, label: x })));
+    renderCheckboxGroup('cityIds', Array.from(cities).sort().map((x) => ({ value: x, label: x })));
+    renderCheckboxGroup('sectorIds', Array.from(sectors).sort().map((x) => ({ value: x, label: x })));
+    renderCheckboxGroup('hanIds', hanes.sort((a, b) => a.label.localeCompare(b.label, 'es')));
   }
 
   function loadFieldOptions() {
     const options = PERSONA_FIELDS.map((f) => ({ value: f.key, label: `${f.label} (${f.key})` }));
-    fillOptions('allowedFields', options);
-    fillOptions('sameRoleHiddenFields', options);
+    renderCheckboxGroup('allowedFields', options);
+    renderCheckboxGroup('sameRoleHiddenFields', options);
   }
 
   async function loadRoleDoc(uid) {
@@ -167,36 +216,54 @@
 
     if (!snap.exists) {
       $('role').value = 'Usuario';
-      setSelectedValues('subregionIds', []);
-      setSelectedValues('cityIds', []);
-      setSelectedValues('sectorIds', []);
-      setSelectedValues('hanIds', []);
+      setCheckedValues('subregionIds', []);
+      setCheckedValues('cityIds', []);
+      setCheckedValues('sectorIds', []);
+      setCheckedValues('hanIds', []);
       return;
     }
 
     const data = snap.data() || {};
     const scope = data.scope || {};
     $('role').value = data.role || 'Usuario';
-    setSelectedValues('subregionIds', scope.subregionIds || []);
-    setSelectedValues('cityIds', scope.cityIds || []);
-    setSelectedValues('sectorIds', scope.sectorIds || []);
-    setSelectedValues('hanIds', scope.hanIds || []);
+    setCheckedValues('subregionIds', scope.subregionIds || []);
+    setCheckedValues('cityIds', scope.cityIds || []);
+    setCheckedValues('sectorIds', scope.sectorIds || []);
+    setCheckedValues('hanIds', scope.hanIds || []);
   }
 
   async function loadFieldPolicy(role) {
     if (!role) return;
     const snap = await db.collection('fieldPolicies').doc(role).get();
     if (!snap.exists) {
-      setSelectedValues('allowedFields', []);
-      setSelectedValues('sameRoleHiddenFields', ['realizaZaimu']);
+      setCheckedValues('allowedFields', []);
+      setCheckedValues('sameRoleHiddenFields', ['realizaZaimu']);
       $('canViewSameRole').value = 'true';
       return;
     }
 
     const data = snap.data() || {};
-    setSelectedValues('allowedFields', data.allowedFields || []);
-    setSelectedValues('sameRoleHiddenFields', data.sameRoleHiddenFields || []);
+    setCheckedValues('allowedFields', data.allowedFields || []);
+    setCheckedValues('sameRoleHiddenFields', data.sameRoleHiddenFields || []);
     $('canViewSameRole').value = data.canViewSameRole === false ? 'false' : 'true';
+  }
+
+  async function saveMasterItem(collectionName, inputId) {
+    if (currentRole !== 'Admin') return alert('Solo Admin.');
+
+    const name = normalizeText($(inputId).value);
+    if (!name) return;
+
+    const docId = slugId(name) || `${Date.now()}`;
+    await db.collection(collectionName).doc(docId).set({
+      name,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: auth.currentUser?.uid || null,
+    }, { merge: true });
+
+    $(inputId).value = '';
+    await loadMasterDataAndScopeOptions();
+    dump({ action: 'saveMasterItem', collectionName, name, docId });
   }
 
   async function saveRolePolicy(e) {
@@ -205,8 +272,8 @@
 
     const targetRole = $('targetRole').value;
     const payload = {
-      allowedFields: selectedValues('allowedFields'),
-      sameRoleHiddenFields: selectedValues('sameRoleHiddenFields'),
+      allowedFields: getCheckedValues('allowedFields'),
+      sameRoleHiddenFields: getCheckedValues('sameRoleHiddenFields'),
       canViewSameRole: $('canViewSameRole').value === 'true',
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: auth.currentUser?.uid || null,
@@ -228,10 +295,10 @@
     const payload = {
       role: $('role').value,
       scope: {
-        subregionIds: selectedValues('subregionIds'),
-        cityIds: selectedValues('cityIds'),
-        sectorIds: selectedValues('sectorIds'),
-        hanIds: selectedValues('hanIds'),
+        subregionIds: getCheckedValues('subregionIds'),
+        cityIds: getCheckedValues('cityIds'),
+        sectorIds: getCheckedValues('sectorIds'),
+        hanIds: getCheckedValues('hanIds'),
       },
       active: true,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -244,7 +311,7 @@
 
   async function bootstrapData() {
     await loadUsers();
-    await loadScopeOptions();
+    await loadMasterDataAndScopeOptions();
     loadFieldOptions();
 
     $('userSelect').addEventListener('change', async (e) => {
@@ -255,6 +322,21 @@
 
     $('targetRole').addEventListener('change', async (e) => {
       await loadFieldPolicy(e.target.value);
+    });
+
+    $('subregionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await saveMasterItem('subregiones', 'subregionName');
+    });
+
+    $('cityForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await saveMasterItem('ciudades', 'cityName');
+    });
+
+    $('sectorForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await saveMasterItem('sectores', 'sectorName');
     });
 
     await loadFieldPolicy($('targetRole').value);

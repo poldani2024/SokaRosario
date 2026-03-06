@@ -7,7 +7,21 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .multi-hint { font-size: .85rem; color: #666; margin-top: 4px; }
-    select[multiple] { min-height: 120px; }
+    .check-group {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+      padding: 10px;
+      max-height: 180px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+    }
+    .check-item { display: flex; align-items: center; gap: 8px; font-size: .95rem; }
+    .inline-form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+    .inline-form input { min-width: 180px; }
+    .list-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .tag { background: #eef2ff; color: #1e40af; border-radius: 999px; padding: 4px 8px; font-size: .85rem; border: 1px solid #c7d2fe; }
   </style>
 </head>
 <body>
@@ -36,6 +50,46 @@
       <p id="guardMsg" class="muted">Validando permisos...</p>
     </section>
 
+    <section class="panel" id="masterPanel">
+      <h2>Maestro de Configuración</h2>
+      <p class="muted">Desde acá das de alta la base para Seguridad: <strong>SubRegiones</strong>, <strong>Ciudades</strong> y <strong>Sectores</strong>.</p>
+
+      <div class="grid">
+        <div>
+          <h3>SubRegiones</h3>
+          <form id="subregionForm" class="inline-form">
+            <label>Nombre
+              <input id="subregionName" type="text" placeholder="Ej: Rosario Norte" required />
+            </label>
+            <button type="submit">Agregar</button>
+          </form>
+          <div id="subregionList" class="list-tags"></div>
+        </div>
+
+        <div>
+          <h3>Ciudades</h3>
+          <form id="cityForm" class="inline-form">
+            <label>Nombre
+              <input id="cityName" type="text" placeholder="Ej: Rosario" required />
+            </label>
+            <button type="submit">Agregar</button>
+          </form>
+          <div id="cityList" class="list-tags"></div>
+        </div>
+
+        <div>
+          <h3>Sectores</h3>
+          <form id="sectorForm" class="inline-form">
+            <label>Nombre
+              <input id="sectorName" type="text" placeholder="Ej: Centro" required />
+            </label>
+            <button type="submit">Agregar</button>
+          </form>
+          <div id="sectorList" class="list-tags"></div>
+        </div>
+      </div>
+    </section>
+
     <section class="panel" id="rolesPanel">
       <h2>Roles y niveles (scope)</h2>
       <form id="roleForm">
@@ -61,24 +115,20 @@
             </select>
           </label>
 
-          <label>Subregiones (múltiple)
-            <select id="subregionIds" multiple></select>
-            <span class="multi-hint">Ctrl/Cmd + click para múltiple selección.</span>
+          <label>Subregiones (checkbox múltiple)
+            <div id="subregionIds" class="check-group"></div>
           </label>
 
-          <label>Ciudades (múltiple)
-            <select id="cityIds" multiple></select>
-            <span class="multi-hint">Ciudades disponibles según datos existentes.</span>
+          <label>Ciudades (checkbox múltiple)
+            <div id="cityIds" class="check-group"></div>
           </label>
 
-          <label>Sectores (múltiple)
-            <select id="sectorIds" multiple></select>
-            <span class="multi-hint">Sectores disponibles según datos existentes.</span>
+          <label>Sectores (checkbox múltiple)
+            <div id="sectorIds" class="check-group"></div>
           </label>
 
-          <label>Hanes (múltiple)
-            <select id="hanIds" multiple></select>
-            <span class="multi-hint">Incluye ID y nombre del Han.</span>
+          <label>Hanes (checkbox múltiple)
+            <div id="hanIds" class="check-group"></div>
           </label>
         </div>
         <div class="actions">
@@ -104,13 +154,13 @@
             </select>
           </label>
 
-          <label>Campos permitidos (múltiple)
-            <select id="allowedFields" multiple></select>
+          <label>Campos permitidos (checkbox múltiple)
+            <div id="allowedFields" class="check-group"></div>
             <span class="multi-hint">Basado en los campos de la pantalla Personas.</span>
           </label>
 
-          <label>Campos ocultos entre mismo rol (múltiple)
-            <select id="sameRoleHiddenFields" multiple></select>
+          <label>Campos ocultos entre mismo rol (checkbox múltiple)
+            <div id="sameRoleHiddenFields" class="check-group"></div>
             <span class="multi-hint">Ejemplo: ocultar <code>realizaZaimu</code> entre pares del mismo rol.</span>
           </label>
 
