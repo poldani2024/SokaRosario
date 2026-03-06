@@ -109,6 +109,20 @@
       acceptedEmail: signedEmail,
     }, { merge: true });
 
+    const userRef = db.collection('users').doc(user.uid);
+    const userSnap = await userRef.get();
+    const userPayload = {
+      uid: user.uid,
+      firstName: data.firstName || '',
+      lastName: data.lastName || '',
+      email: signedEmail,
+      phone: (userSnap.data()?.phone || ''),
+      status: (userSnap.data()?.status || 'Activo'),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    };
+    if (!userSnap.exists) userPayload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    await userRef.set(userPayload, { merge: true });
+
     clearPendingInvite();
     const cleanUrl = `${window.location.origin}${window.location.pathname}`;
     window.history.replaceState({}, '', cleanUrl);

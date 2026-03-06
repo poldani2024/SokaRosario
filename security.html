@@ -122,6 +122,61 @@
       </div>
     </section>
 
+
+
+    <section class="panel" id="usersPanel">
+      <h2>Usuarios registrados</h2>
+      <p class="muted">Estos usuarios se crean cuando una invitación es confirmada. No se eliminan físicamente: solo se activan/inactivan.</p>
+
+      <div class="table-wrap"><table id="usersTable">
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Fecha alta</th>
+            <th>Fecha modificación</th>
+            <th>Status</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table></div>
+
+      <form id="userEditForm" class="panel secondary">
+        <h3>Editar usuario</h3>
+        <div class="grid">
+          <label>User ID
+            <input id="editUserId" type="text" readonly />
+          </label>
+          <label>Nombre
+            <input id="editUserFirstName" type="text" />
+          </label>
+          <label>Apellido
+            <input id="editUserLastName" type="text" />
+          </label>
+          <label>Email
+            <input id="editUserEmail" type="email" />
+          </label>
+          <label>Teléfono
+            <input id="editUserPhone" type="text" />
+          </label>
+          <label>Status
+            <select id="editUserStatus">
+              <option value="Activo">Activo</option>
+              <option value="Inactivo">Inactivo</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Guardar usuario</button>
+          <button id="userEditClearBtn" type="button" class="secondary">Limpiar selección</button>
+        </div>
+      </form>
+    </section>
+
     <section class="panel" id="rolesPanel">
       <h2>Roles y niveles (scope)</h2>
       <form id="roleForm">

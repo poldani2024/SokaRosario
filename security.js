@@ -26,6 +26,8 @@
 
   let currentRole = 'Usuario';
   let selectedUserUid = '';
+  let selectedManageUid = '';
+  let usersCache = [];
   let bootstrapped = false;
 
   function dump(data) {
@@ -152,6 +154,7 @@
     $('rolesPanel').classList.toggle('hidden', !isAdmin);
     $('fieldsPanel').classList.toggle('hidden', !isAdmin);
     $('onboardingPanel').classList.toggle('hidden', !isAdmin);
+    $('usersPanel').classList.toggle('hidden', !isAdmin);
   }
 
   function renderCheckboxGroup(containerId, options) {
@@ -217,36 +220,86 @@
     }
   }
 
+  function formatDate(value) {
+    try {
+      if (!value) return '';
+      if (typeof value?.toDate === 'function') return value.toDate().toLocaleDateString('es-AR');
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleDateString('es-AR');
+    } catch {
+      return '';
+    }
+  }
+
+  function resetUserEditForm() {
+    selectedManageUid = '';
+    $('editUserId').value = '';
+    $('editUserFirstName').value = '';
+    $('editUserLastName').value = '';
+    $('editUserEmail').value = '';
+    $('editUserPhone').value = '';
+    $('editUserStatus').value = 'Activo';
+  }
+
+  function populateUserEditForm(uid) {
+    const u = usersCache.find((x) => x.id === uid);
+    if (!u) {
+      resetUserEditForm();
+      return;
+    }
+    selectedManageUid = uid;
+    $('editUserId').value = uid;
+    $('editUserFirstName').value = u.firstName || '';
+    $('editUserLastName').value = u.lastName || '';
+    $('editUserEmail').value = u.email || '';
+    $('editUserPhone').value = u.phone || '';
+    $('editUserStatus').value = u.status === 'Inactivo' ? 'Inactivo' : 'Activo';
+  }
+
+  function renderUsersTable() {
+    const tbody = $('usersTable')?.querySelector('tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    usersCache.forEach((u) => {
+      const tr = document.createElement('tr');
+      tr.dataset.uid = u.id;
+      tr.innerHTML = `
+        <td>${u.id}</td>
+        <td>${u.firstName || ''}</td>
+        <td>${u.lastName || ''}</td>
+        <td>${u.email || ''}</td>
+        <td>${u.phone || ''}</td>
+        <td>${formatDate(u.createdAt)}</td>
+        <td>${formatDate(u.updatedAt)}</td>
+        <td>${u.status || 'Activo'}</td>
+        <td>
+          <button type="button" data-action="edit-user" data-uid="${u.id}" class="secondary">Editar</button>
+          <button type="button" data-action="toggle-user" data-uid="${u.id}" class="secondary">${u.status === 'Inactivo' ? 'Activar' : 'Inactivar'}</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
   async function loadUsers() {
-    const [peopleSnap, roleSnap, invitesSnap] = await Promise.all([
-      db.collection('personas').get(),
+    const [usersSnap, roleSnap] = await Promise.all([
+      db.collection('users').get().catch(() => ({ docs: [] })),
       db.collection('roles').get(),
-      db.collection('userInvites').where('status', '==', 'accepted').get().catch(() => ({ docs: [] })),
     ]);
 
     const userMap = new Map();
+    usersCache = usersSnap.docs.map((doc) => ({ id: doc.id, ...(doc.data() || {}) }));
 
-    // Solo personas con UID real (usuarios registrados en Auth)
-    peopleSnap.docs.forEach((doc) => {
-      const p = doc.data() || {};
-      const uid = normalizeText(p.uid);
+    usersCache.forEach((u) => {
+      const uid = normalizeText(u.id || u.uid);
       if (!uid) return;
-      const name = `${p.firstName || ''} ${p.lastName || ''}`.trim() || '(sin nombre)';
-      const email = p.email ? ` — ${p.email}` : '';
-      userMap.set(uid, { value: uid, label: `${name}${email}` });
+      const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || '(sin nombre)';
+      const email = u.email ? ` — ${u.email}` : '';
+      const status = u.status === 'Inactivo' ? ' [Inactivo]' : '';
+      userMap.set(uid, { value: uid, label: `${name}${email}${status}` });
     });
 
-    // Invitaciones aceptadas (por si aún no está completo el perfil en personas)
-    invitesSnap.docs.forEach((doc) => {
-      const inv = doc.data() || {};
-      const uid = normalizeText(inv.acceptedByUid || inv.uid);
-      if (!uid || userMap.has(uid)) return;
-      const name = `${inv.firstName || ''} ${inv.lastName || ''}`.trim() || '(sin nombre)';
-      const email = inv.email ? ` — ${inv.email}` : '';
-      userMap.set(uid, { value: uid, label: `${name}${email}` });
-    });
-
-    // También incluir usuarios que ya tienen roles asignados
     roleSnap.docs.forEach((doc) => {
       const uid = normalizeText(doc.id);
       if (!uid || userMap.has(uid)) return;
@@ -263,6 +316,51 @@
         opt.textContent = u.label;
         select.appendChild(opt);
       });
+
+    renderUsersTable();
+  }
+
+  async function saveUserFromAdmin(e) {
+    e.preventDefault();
+    if (currentRole !== 'Admin') return alert('Solo Admin.');
+    const uid = selectedManageUid || normalizeText($('editUserId').value);
+    if (!uid) return alert('Seleccioná un usuario de la grilla.');
+
+    const payload = {
+      uid,
+      firstName: normalizeText($('editUserFirstName').value),
+      lastName: normalizeText($('editUserLastName').value),
+      email: normalizeText($('editUserEmail').value).toLowerCase(),
+      phone: normalizeText($('editUserPhone').value),
+      status: $('editUserStatus').value === 'Inactivo' ? 'Inactivo' : 'Activo',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: auth.currentUser?.uid || null,
+    };
+
+    const ref = db.collection('users').doc(uid);
+    const snap = await ref.get();
+    if (!snap.exists) payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+
+    await ref.set(payload, { merge: true });
+    await loadUsers();
+    populateUserEditForm(uid);
+    dump({ action: 'saveUser', uid, payload });
+  }
+
+  async function toggleUserStatus(uid) {
+    if (currentRole !== 'Admin') return alert('Solo Admin.');
+    const user = usersCache.find((u) => u.id === uid);
+    if (!user) return;
+    const nextStatus = user.status === 'Inactivo' ? 'Activo' : 'Inactivo';
+    await db.collection('users').doc(uid).set({
+      status: nextStatus,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: auth.currentUser?.uid || null,
+    }, { merge: true });
+
+    await loadUsers();
+    if (selectedManageUid === uid) populateUserEditForm(uid);
+    dump({ action: 'toggleUserStatus', uid, status: nextStatus });
   }
 
   async function readMasterCollection(collectionName) {
@@ -430,6 +528,7 @@
 
     await db.collection('roles').doc(uid).set(payload, { merge: true });
     dump({ action: 'setRole', uid, payload });
+    await loadUsers();
   }
 
   async function bootstrapData() {
@@ -437,12 +536,30 @@
     await loadMasterDataAndScopeOptions();
     loadFieldOptions();
     await loadPendingInvites();
+    resetUserEditForm();
 
     $('userSelect').addEventListener('change', async (e) => {
       const uid = String(e.target.value || '').trim();
       selectedUserUid = uid;
       await loadRoleDoc(uid);
     });
+
+
+    $('usersTable')?.addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const uid = String(btn.dataset.uid || '').trim();
+      if (!uid) return;
+      const action = btn.dataset.action;
+      if (action === 'edit-user') {
+        populateUserEditForm(uid);
+      } else if (action === 'toggle-user') {
+        await toggleUserStatus(uid);
+      }
+    });
+
+    $('userEditForm').addEventListener('submit', saveUserFromAdmin);
+    $('userEditClearBtn').addEventListener('click', () => resetUserEditForm());
 
     selectedUserUid = String($('userSelect').value || '').trim();
     await loadRoleDoc(selectedUserUid);

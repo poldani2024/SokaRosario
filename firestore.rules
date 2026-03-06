@@ -158,6 +158,24 @@ service cloud.firestore {
     }
 
     /* =========================
+       Usuarios de acceso al sistema
+       ========================= */
+    match /users/{uid} {
+      // Admin puede listar/leer; cada usuario puede leer su propio perfil
+      allow read: if isAdmin() || (hasAuth() && request.auth.uid == uid);
+
+      // Creación/edición: Admin o el propio usuario (alta por aceptación de invitación)
+      allow create, update: if isAdmin()
+                         || (hasAuth()
+                             && request.auth.uid == uid
+                             && request.resource.data.uid is string
+                             && request.resource.data.uid == uid);
+
+      // No hay borrado físico
+      allow delete: if false;
+    }
+
+    /* =========================
        Invitaciones de usuarios
        ========================= */
     match /userInvites/{inviteId} {
