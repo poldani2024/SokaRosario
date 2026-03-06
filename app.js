@@ -478,9 +478,30 @@ function onDeletePersona(id) {
   const esDueno = (personas[i].uid && currentUser && personas[i].uid === currentUser.uid);
   if (!esDueno && currentRole !== "Admin") { alert("No tenés permisos para eliminar esta persona."); return; }
   if (!confirm("¿Eliminar la persona seleccionada?")) return;
-  // (Opcional) eliminar visitas asociadas
-  
-}/* ===== Visitas ===== */
+
+  // 1) Actualización de UI fuera del stack del click (evita warning de handler lento)
+  setTimeout(() => {
+    personas.splice(i, 1);
+    visitas = (visitas ?? []).filter(v => v.personaId !== id);
+    saveData();
+    renderPersonas();
+    renderVisitas();
+  }, 0);
+
+  // 2) Persistencia en segundo plano
+  setTimeout(async () => {
+    try {
+      if (useDb) {
+        await deletePersonaFromDb(id);
+        await deleteVisitasByPersona(id);
+      }
+    } catch (err) {
+      console.error('[deletePersona] Error al borrar en Firestore:', err);
+      alert('La persona se quitó de la vista local, pero falló el borrado en Firestore.');
+    }
+  }, 0);
+}
+/* ===== Visitas ===== */
 function filterByRoleVisitas(list) {
   if (!canSeeVisitas(currentRole)) return [];
   switch (currentRole) {
