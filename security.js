@@ -233,7 +233,7 @@
       if (!uid) return;
       const name = `${p.firstName || ''} ${p.lastName || ''}`.trim() || '(sin nombre)';
       const email = p.email ? ` — ${p.email}` : '';
-      userMap.set(uid, { value: uid, label: `${name}${email} [${uid}]` });
+      userMap.set(uid, { value: uid, label: `${name}${email}` });
     });
 
     // Invitaciones aceptadas (por si aún no está completo el perfil en personas)
@@ -243,14 +243,14 @@
       if (!uid || userMap.has(uid)) return;
       const name = `${inv.firstName || ''} ${inv.lastName || ''}`.trim() || '(sin nombre)';
       const email = inv.email ? ` — ${inv.email}` : '';
-      userMap.set(uid, { value: uid, label: `${name}${email} [${uid}]` });
+      userMap.set(uid, { value: uid, label: `${name}${email}` });
     });
 
     // También incluir usuarios que ya tienen roles asignados
     roleSnap.docs.forEach((doc) => {
       const uid = normalizeText(doc.id);
       if (!uid || userMap.has(uid)) return;
-      userMap.set(uid, { value: uid, label: `UID ${uid}` });
+      userMap.set(uid, { value: uid, label: `Usuario sin perfil (${uid.slice(0, 6)}…)` });
     });
 
     const select = $('userSelect');

@@ -59,14 +59,37 @@
   }
 
 
+
+  function savePendingInviteFromUrl() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const inviteId = String(params.get('invite') || '').trim();
+      const inviteEmail = String(params.get('email') || '').trim().toLowerCase();
+      if (!inviteId) return;
+      sessionStorage.setItem('soka_invite_id', inviteId);
+      if (inviteEmail) sessionStorage.setItem('soka_invite_email', inviteEmail);
+    } catch {}
+  }
+
+  function readPendingInvite() {
+    const params = new URLSearchParams(window.location.search);
+    const inviteId = String(params.get('invite') || sessionStorage.getItem('soka_invite_id') || '').trim();
+    const inviteEmail = String(params.get('email') || sessionStorage.getItem('soka_invite_email') || '').trim().toLowerCase();
+    return { inviteId, inviteEmail };
+  }
+
+  function clearPendingInvite() {
+    sessionStorage.removeItem('soka_invite_id');
+    sessionStorage.removeItem('soka_invite_email');
+  }
+
   async function processInviteAcceptance(user) {
     if (!window.db || !user) return;
-    const params = new URLSearchParams(window.location.search);
-    const inviteId = String(params.get('invite') || '').trim();
+    const { inviteId, inviteEmail } = readPendingInvite();
     if (!inviteId) return;
 
     const signedEmail = (user.email || '').toLowerCase();
-    const invitedEmail = String(params.get('email') || '').trim().toLowerCase();
+    const invitedEmail = inviteEmail;
     if (invitedEmail && invitedEmail !== signedEmail) {
       alert('Ingresaste con un email distinto al invitado. Cerrá sesión e ingresá con el email correcto.');
       return;
@@ -86,12 +109,14 @@
       acceptedEmail: signedEmail,
     }, { merge: true });
 
+    clearPendingInvite();
     const cleanUrl = `${window.location.origin}${window.location.pathname}`;
     window.history.replaceState({}, '', cleanUrl);
     alert('Tu usuario de acceso fue confirmado correctamente. Un administrador debe asignarte rol y alcance.');
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    savePendingInviteFromUrl();
     const loginBtn = $('googleLoginBtn');
     const logoutBtn = $('logoutBtn');
 
@@ -130,7 +155,11 @@
         return;
       }
 
-      await processInviteAcceptance(user);
+      try {
+        await processInviteAcceptance(user);
+      } catch (err) {
+        console.error('[invite] no se pudo confirmar invitación:', err);
+      }
       const role = await resolveRole(user);
       applySignedInUser(user, role);
     });
