@@ -178,3 +178,77 @@ button, .btn { min-height: var(--tap); }
 
 /* Footer spacing */
 footer { padding: 12px; }
+
+
+/* Personas: tabla ancha + scroll horizontal/vertical para mantener formulario visible */
+#personasTable { min-width: 1500px; }
+#personasTable th, #personasTable td { white-space: nowrap; }
+#personas .table-wrap {
+  overflow: auto;
+  max-height: 48vh;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+#personasTable tbody tr.is-selected {
+  background: rgba(31, 122, 140, 0.14);
+}
+
+
+/* Personas UX refresh: grilla acotada + formulario debajo (desktop y mobile) */
+body.page-personas main {
+  display: block;
+  max-width: 1280px;
+}
+
+body.page-personas #personas {
+  margin-bottom: 16px;
+}
+
+body.page-personas #personas .filters {
+  margin-bottom: 10px;
+}
+
+body.page-personas #personas .table-wrap {
+  height: clamp(240px, 42vh, 430px);
+  max-height: clamp(240px, 42vh, 430px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+body.page-personas #personasTable {
+  min-width: 1500px;
+}
+
+body.page-personas #personasTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel);
+}
+
+body.page-personas #personasTable th,
+body.page-personas #personasTable td {
+  white-space: nowrap;
+}
+
+body.page-personas #personasTable tbody tr:hover {
+  background: rgba(31, 122, 140, 0.08);
+}
+
+body.page-personas #personasTable tbody tr.is-selected {
+  background: rgba(31, 122, 140, 0.16);
+}
+
+@media (max-width: 900px) {
+  body.page-personas #personas .table-wrap {
+    height: clamp(240px, 46vh, 420px);
+    max-height: clamp(240px, 46vh, 420px);
+  }
+
+  body.page-personas #personasTable {
+    min-width: 1200px;
+  }
+}
+
