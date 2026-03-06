@@ -6,7 +6,7 @@
 */
 let currentUser = null;      // { email, displayName, uid }
 let currentRole = "Usuario"; // Admin, LiderCiudad, LiderSector, LiderHan, Usuario+, Usuario
-let roleDetails = { hanIds: [], sector: "", city: "" };
+let roleDetails = { hanIds: [], sector: "", city: "", subregionIds: [], cityIds: [], sectorIds: [] };
 
 let hanes = [];
 let grupos = [];
@@ -31,19 +31,47 @@ const text = (id, value) => { const el = $(id); if (el) el.textContent = value; 
 const uid  = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
 /* ===== Roles & gating ===== */
+function toArr(v) { return Array.isArray(v) ? v.map(x => String(x).trim()).filter(Boolean) : []; }
+
 function resolveRoleFromClaims(user) {
   let role = "Usuario";
-  roleDetails = { hanIds: [], sector: "", city: "" };
-  if (!user) return { role, roleDetails };
+  roleDetails = { hanIds: [], sector: "", city: "", subregionIds: [], cityIds: [], sectorIds: [] };
+  if (!user) return Promise.resolve({ role, roleDetails });
   const email = (user.email ?? "").toLowerCase();
+
   return user.getIdTokenResult()
-    .then(token => {
+    .then(async (token) => {
       const claims = token?.claims ?? {};
-      if (typeof claims.role === "string") role = claims.role;
+      if (typeof claims.role === "string" && claims.role.trim()) role = claims.role.trim();
       if (ADMIN_EMAILS.includes(email)) role = "Admin"; // fallback
-      if (Array.isArray(claims.hanIds)) roleDetails.hanIds = claims.hanIds;
+
+      roleDetails.hanIds = toArr(claims.hanIds);
       if (typeof claims.sector === "string") roleDetails.sector = claims.sector;
       if (typeof claims.city === "string") roleDetails.city = claims.city;
+
+      // ampliar con roles/{uid} (scope jerárquico)
+      if (useDb && user?.uid) {
+        try {
+          const roleSnap = await window.db.collection('roles').doc(user.uid).get();
+          if (roleSnap.exists) {
+            const rd = roleSnap.data() || {};
+            if (typeof rd.role === 'string' && rd.role.trim()) role = rd.role.trim();
+            const scope = rd.scope || {};
+            roleDetails.subregionIds = toArr(scope.subregionIds || rd.subregionIds);
+            roleDetails.cityIds = toArr(scope.cityIds || rd.cityIds || (rd.city ? [rd.city] : []));
+            roleDetails.sectorIds = toArr(scope.sectorIds || rd.sectorIds || (rd.sector ? [rd.sector] : []));
+            const docHanIds = toArr(scope.hanIds || rd.hanIds);
+            if (docHanIds.length) roleDetails.hanIds = docHanIds;
+          }
+        } catch (err) {
+          console.warn('[role] no se pudo leer roles/{uid}:', err?.message || err);
+        }
+      }
+
+      // compatibilidad legacy
+      if (!roleDetails.cityIds.length && roleDetails.city) roleDetails.cityIds = [String(roleDetails.city)];
+      if (!roleDetails.sectorIds.length && roleDetails.sector) roleDetails.sectorIds = [String(roleDetails.sector)];
+
       return { role, roleDetails };
     })
     .catch(() => {
@@ -245,7 +273,7 @@ function applySignedInUser(user) {
   });
 }
 function applySignedOut() {
-  currentUser = null; currentRole = "Usuario"; roleDetails = { hanIds: [], sector: "", city: "" };
+  currentUser = null; currentRole = "Usuario"; roleDetails = { hanIds: [], sector: "", city: "", subregionIds: [], cityIds: [], sectorIds: [] };
   text("user-email", ""); text("role-badge", "");
   setHidden($("login-form"), false); setHidden($("user-info"), true); applyRoleVisibility("Usuario"); setSecureUiAccess(false);
   localStorage.removeItem(STORAGE_KEYS.session);
@@ -438,15 +466,64 @@ function applyFiltersBase(list) {
     return okHan && okGrupo && okEst && okDivision && okSem && okZad && okText;
   });
 }
+function normalizeScopeValue(v) { return String(v || '').trim().toLowerCase(); }
+
+function getPersonaScopeData(p) {
+  const han = (hanes || []).find(h => h.id === p.hanId) || {};
+  const hanId = String(p.hanId || '').trim();
+  const sector = normalizeScopeValue(p.hanSector || han.sector);
+  const city = normalizeScopeValue(p.city || p.hanCity || han.city || han.ciudad);
+  const subregion = normalizeScopeValue(p.subregionId || han.subregionId || han.subregion);
+  return { hanId, sector, city, subregion };
+}
+
+function byAssignedScope(list) {
+  const hanSet = new Set((roleDetails.hanIds || []).map(x => String(x).trim()).filter(Boolean));
+  const sectorSet = new Set((roleDetails.sectorIds || []).map(normalizeScopeValue));
+  const citySet = new Set((roleDetails.cityIds || []).map(normalizeScopeValue));
+  const subregionSet = new Set((roleDetails.subregionIds || []).map(normalizeScopeValue));
+
+  const hasScope = hanSet.size || sectorSet.size || citySet.size || subregionSet.size;
+  if (!hasScope) return [];
+
+  return list.filter((p) => {
+    const scope = getPersonaScopeData(p);
+    if (hanSet.size) return hanSet.has(scope.hanId);
+    if (sectorSet.size) return sectorSet.has(scope.sector);
+    if (citySet.size) return citySet.has(scope.city);
+    if (subregionSet.size) return subregionSet.has(scope.subregion);
+    return false;
+  });
+}
+
 function filterByRolePersonas(list) {
   switch (currentRole) {
     case "Admin":
-    case "LiderCiudad": return list;
-    case "LiderSector": return list.filter(p => (p.hanSector ?? "") === (roleDetails.sector ?? ""));
-    case "LiderHan":    return list.filter(p => (roleDetails.hanIds ?? []).includes(p.hanId));
+      return list;
+    case "SubRegion": {
+      const subSet = new Set((roleDetails.subregionIds || []).map(normalizeScopeValue));
+      if (!subSet.size) return [];
+      return list.filter((p) => subSet.has(getPersonaScopeData(p).subregion));
+    }
+    case "LiderCiudad": {
+      const citySet = new Set((roleDetails.cityIds || []).map(normalizeScopeValue));
+      if (!citySet.size) return [];
+      return list.filter((p) => citySet.has(getPersonaScopeData(p).city));
+    }
+    case "LiderSector": {
+      const sectorSet = new Set((roleDetails.sectorIds || []).map(normalizeScopeValue));
+      if (!sectorSet.size) return [];
+      return list.filter((p) => sectorSet.has(getPersonaScopeData(p).sector));
+    }
+    case "LiderHan": {
+      const hanSet = new Set((roleDetails.hanIds || []).map(x => String(x).trim()).filter(Boolean));
+      if (!hanSet.size) return [];
+      return list.filter((p) => hanSet.has(String(p.hanId || '').trim()));
+    }
     case "Usuario+":
     case "Usuario":
-    default:            return list; // ven personas (sin comentarios)
+    default:
+      return byAssignedScope(list);
   }
 }
 function renderEmptyStatePersonas(list) {
@@ -514,13 +591,8 @@ function onDeletePersona(id) {
 /* ===== Visitas ===== */
 function filterByRoleVisitas(list) {
   if (!canSeeVisitas(currentRole)) return [];
-  switch (currentRole) {
-    case "Admin":
-    case "LiderCiudad": return list;
-    case "LiderSector": return list.filter(v => { const p = personas.find(x => x.id === v.personaId); return (p?.hanSector ?? "") === (roleDetails.sector ?? ""); });
-    case "LiderHan":    return list.filter(v => { const p = personas.find(x => x.id === v.personaId); return (roleDetails.hanIds ?? []).includes(p?.hanId); });
-    default:              return [];
-  }
+  const visiblesPersonas = new Set(filterByRolePersonas(personas ?? []).map((p) => p.id));
+  return (list || []).filter((v) => visiblesPersonas.has(v.personaId));
 }
 function renderVisitas() {
   const tabla = $("visitasTable"); const form = $("visitaForm"); if (!tabla || !form) return;
