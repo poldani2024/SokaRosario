@@ -79,22 +79,16 @@
     if (String(data.status || '') === 'accepted') return;
     if ((data.email || '').toLowerCase() !== signedEmail) return;
 
-    const payload = {
-      uid: user.uid,
-      email: signedEmail,
-      firstName: data.firstName || '',
-      lastName: data.lastName || '',
-      invitedAt: data.createdAt || null,
-      inviteId,
-      active: true,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    };
-
-    await db.collection('personas').doc(user.uid).set(payload, { merge: true });
+    await ref.set({
+      status: 'accepted',
+      acceptedByUid: user.uid,
+      acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      acceptedEmail: signedEmail,
+    }, { merge: true });
 
     const cleanUrl = `${window.location.origin}${window.location.pathname}`;
     window.history.replaceState({}, '', cleanUrl);
-    alert('Tu usuario fue confirmado correctamente. Un administrador debe asignarte rol y alcance.');
+    alert('Tu usuario de acceso fue confirmado correctamente. Un administrador debe asignarte rol y alcance.');
   }
 
   document.addEventListener('DOMContentLoaded', () => {

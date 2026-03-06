@@ -162,7 +162,16 @@ service cloud.firestore {
        ========================= */
     match /userInvites/{inviteId} {
       // Admin administra invitaciones
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+
+      // Admin o usuario invitado puede marcar aceptación (sin crear/editar otros campos sensibles)
+      allow update: if isAdmin()
+                 || (hasAuth()
+                     && resource.data.email is string
+                     && request.auth.token.email is string
+                     && resource.data.email.lower() == request.auth.token.email.lower()
+                     && request.resource.data.email == resource.data.email
+                     && request.resource.data.status == 'accepted');
 
       // Lectura: Admin o usuario autenticado cuyo email coincide con la invitación
       allow read: if isAdmin()
