@@ -12,6 +12,7 @@ let hanes = [];
 let grupos = [];
 let personas = [];
 let visitas = [];
+let localidades = [];
 let editPersonaId = null;
 
 const ADMIN_EMAILS = ["pedro.l.oldani@gmail.com", "pedro.loldani@gmail.com"]; // fallback rápido
@@ -20,6 +21,7 @@ const STORAGE_KEYS = {
   grupos: "soka_grupos",
   personas: "soka_personas",
   visitas: "soka_visitas",
+  localidades: "soka_localidades",
   session: "soka_session"
 };
 
@@ -74,9 +76,16 @@ async function hydrateFromDb() {
     const vSnap = await window.db.collection('visitas').get();
     const vList = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (Array.isArray(vList)) visitas = vList;
+    // Localidades (maestro ciudades)
+    try {
+      const cSnap = await window.db.collection('ciudades').get();
+      const cList = cSnap.docs.map(d => (d.data()?.name || d.id || '').trim()).filter(Boolean);
+      if (Array.isArray(cList) && cList.length) localidades = Array.from(new Set(cList)).sort();
+    } catch {}
+
     // Opcional: sincronizar a local como backup
     saveData();
-    console.info('[DB] Datos cargados desde Firestore', { personas: personas.length, visitas: visitas.length });
+    console.info('[DB] Datos cargados desde Firestore', { personas: personas.length, visitas: visitas.length, localidades: localidades.length });
   } catch (err) {
     console.warn('[DB] No se pudo leer desde Firestore. Usando localStorage.', err);
   }
@@ -113,12 +122,14 @@ function loadData() {
   grupos   = JSON.parse(localStorage.getItem(STORAGE_KEYS.grupos)   ?? "[]");
   personas = JSON.parse(localStorage.getItem(STORAGE_KEYS.personas) ?? "[]");
   visitas  = JSON.parse(localStorage.getItem(STORAGE_KEYS.visitas)  ?? "[]");
+  localidades = JSON.parse(localStorage.getItem(STORAGE_KEYS.localidades) ?? "[]");
 }
 function saveData() {
   localStorage.setItem(STORAGE_KEYS.hanes,    JSON.stringify(hanes));
   localStorage.setItem(STORAGE_KEYS.grupos,   JSON.stringify(grupos));
   localStorage.setItem(STORAGE_KEYS.personas, JSON.stringify(personas));
   localStorage.setItem(STORAGE_KEYS.visitas,  JSON.stringify(visitas));
+  localStorage.setItem(STORAGE_KEYS.localidades, JSON.stringify(localidades));
 }
 
 /* ===== Normalización SIN seeds ===== */
@@ -127,6 +138,7 @@ function ensureSeedData() {
   hanes    = Array.isArray(hanes)    ? hanes    : [];
   grupos   = Array.isArray(grupos)   ? grupos   : [];
   personas = Array.isArray(personas) ? personas : [];
+  localidades = Array.isArray(localidades) ? localidades : [];
 
   const idxHan = Object.fromEntries((hanes ?? []).map(h => [h.id, h]));
   personas = (personas ?? []).map(p => ({
@@ -190,7 +202,7 @@ function populateDatosPersonales(p, opts = {}) {
 
   // Derivados
   const hanLoc = document.getElementById('hanLocalidad');
-  if (hanLoc) hanLoc.value = p.hanCity ?? '';
+  if (hanLoc) hanLoc.value = p.hanCity ?? p.city ?? '';
 
   // Comentarios
   const com = document.getElementById('comentarios');
@@ -210,7 +222,6 @@ function applySignedInUser(user) {
     localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, displayName: user.displayName ?? email, uid: user.uid, role, roleDetails }));
     text("user-email", email); text("role-badge", role);
     setHidden($("login-form"), true); setHidden($("user-info"), false); applyRoleVisibility(role);
-      if (useDb) { await hydrateFromDb(); }
       if (useDb) { await hydrateFromDb(); }
   renderCatalogsToSelects(); renderPersonas(); renderVisitas(); loadMiPerfil(user.uid, email);
   });
@@ -294,14 +305,23 @@ function renderCatalogsToSelects() {
   const filHan    = $("filtroHan");
   const filGrupo  = $("filtroGrupo");
   const hanLoc    = $("hanLocalidad");
+  const citySel   = $("city");
 
   if (selHan)   fillSelect(selHan,   hanes,  "id","name", true);
   if (selGrupo) fillSelect(selGrupo, grupos, "id","name", true);
   if (filHan)   fillSelect(filHan,   [{ id:"", name:"Todos" }, ...hanes],  "id","name", false);
   if (filGrupo) fillSelect(filGrupo, [{ id:"", name:"Todos" }, ...grupos], "id","name", false);
 
+  const locSet = new Set([...(localidades || []), ...(hanes || []).map(h => h.city || '').filter(Boolean), ...(personas || []).map(p => p.city || '').filter(Boolean)]);
+  const locItems = Array.from(locSet).sort((a,b)=>a.localeCompare(b,'es')).map(x => ({ id:x, name:x }));
+  if (citySel) fillSelect(citySel, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
+  if (hanLoc) fillSelect(hanLoc, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
+
   if (selHan && hanLoc) {
-    selHan.addEventListener('change', () => { const h = hanes.find(x => x.id === selHan.value); hanLoc.value = h?.city ?? ''; });
+    selHan.onchange = () => {
+      const h = hanes.find(x => x.id === selHan.value);
+      if (h?.city) hanLoc.value = h.city;
+    };
   }
 }
 
@@ -320,7 +340,7 @@ function clearDatosPersonales() {
   ["firstName","lastName","birthDate","address","city","phone","phoneFixed","email","fechaIngreso"].forEach(id => { const el = $(id); if (el) el.value = ""; });
   ["status","division","nivelExamen","cargo","gohonzo","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai"].forEach(id => { const el = $(id); if (el) el.value = ""; });
   ["suscriptoHumanismoSoka","realizaZaimu"].forEach(id => { const el = $(id); if (el) el.checked = false; });
-  $("hanLocalidad")?.value && ($("hanLocalidad").value = ""); $("comentarios")?.value && ($("comentarios").value = "");
+  $("comentarios")?.value && ($("comentarios").value = "");
 }
 function toggleDatosPersonalesReadonly(readonly) {
   const fields = ["firstName","lastName","birthDate","address","city","phone","phoneFixed","email","status","division","nivelExamen","fechaIngreso","cargo","gohonzo","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai","suscriptoHumanismoSoka","realizaZaimu","comentarios"];
@@ -340,7 +360,7 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
   const grupoId = $("grupoSelect").value ?? "";const grupoObj= grupos.find(g => g.id === grupoId);
   const base = {
     firstName: $("firstName").value.trim(), lastName:  $("lastName").value.trim(), birthDate: $("birthDate").value ?? "",
-    address:   $("address").value.trim(),   city:      $("city").value.trim(),     phone:     $("phone").value.trim(),
+    address:   $("address").value.trim(),   city:      $("city").value ?? "",     phone:     $("phone").value.trim(),
     phoneFixed: $("phoneFixed").value.trim(),
     email:     $("email").value.trim(),     status:    $("status").value ?? "Miembro",
     division:  $("division").value ?? "",
@@ -348,7 +368,7 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
     fechaIngreso: $("fechaIngreso").value ?? "",
     cargo: $("cargo").value ?? "",
     gohonzo: $("gohonzo").value ?? "",
-    hanId, hanName: hanObj?.name ?? "", hanCity: hanObj?.city ?? "", hanSector: hanObj?.sector ?? "",
+    hanId, hanName: hanObj?.name ?? "", hanCity: $("hanLocalidad").value ?? hanObj?.city ?? "", hanSector: hanObj?.sector ?? "",
     grupoId, grupoName: grupoObj?.name ?? "",
     frecuenciaSemanal:  $("frecuenciaSemanal").value ?? "",
     frecuenciaZadankai: $("frecuenciaZadankai").value ?? "",
@@ -565,7 +585,7 @@ function mapCsvToPersona(row) {
   const fechaIngreso = parseCsvDate(csvPick(row, ['fechaingre','fechaingreso']));
   const nivelExamen = csvPick(row, ['grcapacitaci','gradocapacitacion']) || '';
   const comentarios = csvPick(row, ['observaciones']);
-  const gohonzo = csvPick(row, ['miembro','gohonzo']);
+  const gohonzo = csvPick(row, ['miembro','gohonzo','gohonzon']);
 
   const han = hanes.find(h => normalizeHeader(h.name || '') === normalizeHeader(hanNameRaw));
   const grupo = grupos.find(g => normalizeHeader(g.name || '') === normalizeHeader(nivelExamen));
@@ -614,7 +634,7 @@ document.getElementById('importCSV')?.addEventListener('change', async (e) => {
 
 document.getElementById('exportCSVBtn')?.addEventListener('click', () => {
   const rows = filterByRolePersonas(applyFiltersBase(personas));
-  const headers = ['Apellido','Nombres','División','Estado','NivelExamen','FechaIngreso','Cargo','Gohonzo','Han','Grupo','Localidad','Domicilio','TelefonoFijo','Movil','FechaNac','Observaciones'];
+  const headers = ['Apellido','Nombres','División','Estado','NivelExamen','FechaIngreso','Cargo','Gohonzon','Han','Grupo','Localidad','Domicilio','TelefonoFijo','Movil','FechaNac','Observaciones'];
   const lines = [headers.join(';')];
   rows.forEach(p => {
     const vals = [p.lastName,p.firstName,p.division,p.status,p.nivelExamen,p.fechaIngreso,p.cargo,p.gohonzo,p.hanName,p.grupoName,p.city,p.address,p.phoneFixed,p.phone,p.birthDate,p.comentarios]
