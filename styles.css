@@ -252,3 +252,27 @@ body.page-personas #personasTable tbody tr.is-selected {
   }
 }
 
+
+/* Personas table fit-to-screen override: evita que sobrepase ancho visible */
+body.page-personas #personas .table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+body.page-personas #personasTable {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed;
+}
+
+body.page-personas #personasTable th,
+body.page-personas #personasTable td {
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
