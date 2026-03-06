@@ -99,15 +99,18 @@
     const snap = await ref.get();
     if (!snap.exists) return;
     const data = snap.data() || {};
-    if (String(data.status || '') === 'accepted') return;
     if ((data.email || '').toLowerCase() !== signedEmail) return;
 
-    await ref.set({
-      status: 'accepted',
-      acceptedByUid: user.uid,
-      acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      acceptedEmail: signedEmail,
-    }, { merge: true });
+    const inviteStatus = String(data.status || '').toLowerCase();
+    const isConfirmed = inviteStatus === 'confirmed' || inviteStatus === 'accepted';
+    if (!isConfirmed) {
+      await ref.set({
+        status: 'confirmed',
+        confirmedByUid: user.uid,
+        confirmedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        confirmedEmail: signedEmail,
+      }, { merge: true });
+    }
 
     const userRef = db.collection('users').doc(user.uid);
     const userSnap = await userRef.get();
