@@ -72,6 +72,7 @@
 
       const span = document.createElement('span');
       span.textContent = opt.label;
+      span.className = 'check-text';
 
       label.appendChild(input);
       label.appendChild(span);
@@ -180,7 +181,7 @@
       if (subregion) subregions.add(subregion);
       if (city) cities.add(city);
       if (sector) sectors.add(sector);
-      if (id) hanes.push({ value: id, label: `${name || id} (${id})` });
+      if (id) hanes.push({ value: id, label: name || id });
     });
 
     roleSnap.docs.forEach((doc) => {

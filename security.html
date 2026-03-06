@@ -17,7 +17,9 @@
       display: grid;
       gap: 8px;
     }
-    .check-item { display: flex; align-items: center; gap: 8px; font-size: .95rem; }
+    .check-item { display: flex !important; flex-direction: row !important; align-items: center; justify-content: flex-start; gap: 8px; font-size: .95rem; line-height: 1.2; }
+    .check-item input[type="checkbox"] { margin: 0; width: 16px; height: 16px; flex: 0 0 auto; }
+    .check-item span { display: inline; }
     .inline-form { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
     .inline-form input { min-width: 180px; }
     .list-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
