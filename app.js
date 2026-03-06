@@ -186,7 +186,15 @@ function populateDatosPersonales(p, opts = {}) {
   const selGohonzo = document.getElementById('gohonzo');
   if (selGohonzo) selGohonzo.value = p.gohonzo ?? '';
   const selHan = document.getElementById('hanSelect');
-  if (selHan) selHan.value = p.hanId ?? '';
+  if (selHan) {
+    selHan.value = p.hanId ?? '';
+    const hasSelected = Array.from(selHan.options).some(o => o.value === selHan.value && selHan.value);
+    if (!hasSelected && p.hanName) {
+      const nk = normalizeTextKey(p.hanName);
+      const match = (hanes || []).find(h => normalizeTextKey(h.name) === nk);
+      if (match?.id) selHan.value = match.id;
+    }
+  }
   const selGrupo = document.getElementById('grupoSelect');
   if (selGrupo) selGrupo.value = p.grupoId ?? '';
   const freqSem = document.getElementById('frecuenciaSemanal');
@@ -202,7 +210,10 @@ function populateDatosPersonales(p, opts = {}) {
 
   // Derivados
   const hanLoc = document.getElementById('hanLocalidad');
-  if (hanLoc) hanLoc.value = p.hanCity ?? p.city ?? '';
+  if (hanLoc) {
+    const selectedHan = (hanes || []).find(h => h.id === (selHan?.value || ''));
+    hanLoc.value = p.hanCity ?? selectedHan?.city ?? p.city ?? '';
+  }
 
   // Comentarios
   const com = document.getElementById('comentarios');
@@ -267,10 +278,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Alta rápida (solo Admin)
   $("newPersonaBtn")?.addEventListener("click", () => {
     if (currentRole !== "Admin") return alert("Solo Admin puede crear personas nuevas.");
-    editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(false); $("firstName")?.focus();
+    editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(false); renderPersonas(); $("firstName")?.focus();
   });
   // Limpiar form
-  $("personaClearBtn")?.addEventListener("click", () => { editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(!(currentRole === "Admin")); });
+  $("personaClearBtn")?.addEventListener("click", () => { editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(!(currentRole === "Admin")); renderPersonas(); });
 
   // === EVENT DELEGATION en tbody de Personas ===
   const tbodyPersonas = $("personasTable")?.querySelector("tbody");
@@ -283,6 +294,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           const p = personas.find(x => x.id === id); if (p) {
             editPersonaId = id; const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
             populateDatosPersonales(p, { readonly });
+            renderPersonas();
           }
         } else if (action === "delete-persona") { onDeletePersona(id); }
         return;
@@ -292,6 +304,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const id = tr.dataset.id; const p = personas.find(x => x.id === id); if (p) {
           editPersonaId = id; const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
           populateDatosPersonales(p, { readonly });
+          renderPersonas();
         }
       }
     });
@@ -334,6 +347,10 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 window.escapeHtml = escapeHtml; // si otros scripts lo usan
+
+function normalizeTextKey(v) {
+  return String(v ?? "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+}
 
 /* ===== Persona (form) ===== */
 function clearDatosPersonales() {
@@ -444,6 +461,7 @@ function renderPersonas() {
   tbody.innerHTML = "";
   filtered.forEach(p => {
     const tr = document.createElement("tr"); tr.dataset.id = p.id;
+    if (editPersonaId && p.id === editPersonaId) tr.classList.add('is-selected');
     tr.innerHTML = `
   <td>${escapeHtml(p.firstName)}</td>
   <td>${escapeHtml(p.lastName)}</td>

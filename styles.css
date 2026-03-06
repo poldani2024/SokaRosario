@@ -178,3 +178,18 @@ button, .btn { min-height: var(--tap); }
 
 /* Footer spacing */
 footer { padding: 12px; }
+
+
+/* Personas: tabla ancha + scroll horizontal/vertical para mantener formulario visible */
+#personasTable { min-width: 1500px; }
+#personasTable th, #personasTable td { white-space: nowrap; }
+#personas .table-wrap {
+  overflow: auto;
+  max-height: 48vh;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+#personasTable tbody tr.is-selected {
+  background: rgba(31, 122, 140, 0.14);
+}
+
