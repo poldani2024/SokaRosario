@@ -56,6 +56,13 @@ function applyRoleVisibility(role) {
   document.body.classList.toggle("role-user", role !== "Admin");
   document.querySelectorAll(".admin-only").forEach(el => el.classList.toggle("hidden", role !== "Admin"));
 }
+function setSecureUiAccess(isAuthenticated) {
+  document.body.classList.toggle('is-authenticated', !!isAuthenticated);
+  document.body.classList.toggle('is-anonymous', !isAuthenticated);
+  setHidden($("secureMain"), !isAuthenticated);
+  setHidden($("accessGuardMsg"), isAuthenticated);
+  setHidden($("mainNav"), !isAuthenticated);
+}
 function canSeeVisitas(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(role); }
 function canSeeComentarios(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(role); }
 
@@ -232,7 +239,7 @@ function applySignedInUser(user) {
     currentRole = role; roleDetails = details;
     localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, displayName: user.displayName ?? email, uid: user.uid, role, roleDetails }));
     text("user-email", email); text("role-badge", role);
-    setHidden($("login-form"), true); setHidden($("user-info"), false); applyRoleVisibility(role);
+    setHidden($("login-form"), true); setHidden($("user-info"), false); applyRoleVisibility(role); setSecureUiAccess(true);
       if (useDb) { await hydrateFromDb(); }
   renderCatalogsToSelects(); renderPersonas(); renderVisitas(); loadMiPerfil(user.uid, email);
   });
@@ -240,7 +247,7 @@ function applySignedInUser(user) {
 function applySignedOut() {
   currentUser = null; currentRole = "Usuario"; roleDetails = { hanIds: [], sector: "", city: "" };
   text("user-email", ""); text("role-badge", "");
-  setHidden($("login-form"), false); setHidden($("user-info"), true); applyRoleVisibility("Usuario");
+  setHidden($("login-form"), false); setHidden($("user-info"), true); applyRoleVisibility("Usuario"); setSecureUiAccess(false);
   localStorage.removeItem(STORAGE_KEYS.session);
 }
 auth.onAuthStateChanged((user) => { if (user) applySignedInUser(user); else applySignedOut(); });
@@ -249,12 +256,13 @@ auth.onAuthStateChanged((user) => { if (user) applySignedInUser(user); else appl
 document.addEventListener("DOMContentLoaded", async () => {
   loadData(); ensureSeedData();
   renderCatalogsToSelects(); renderPersonas(); renderVisitas();
+  setSecureUiAccess(!!auth.currentUser);
 
   const s = JSON.parse(localStorage.getItem(STORAGE_KEYS.session) ?? "null");
   if (s && s.email) {
     text("user-email", s.email); text("role-badge", s.role);
     setHidden($("login-form"), true); setHidden($("user-info"), false);
-    applyRoleVisibility(s.role); currentRole = s.role; roleDetails = s.roleDetails ?? roleDetails;
+    applyRoleVisibility(s.role); setSecureUiAccess(true); currentRole = s.role; roleDetails = s.roleDetails ?? roleDetails;
   }
 
   // Login button (popup/redirect según navegador)

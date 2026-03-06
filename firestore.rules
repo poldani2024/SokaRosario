@@ -158,6 +158,21 @@ service cloud.firestore {
     }
 
     /* =========================
+       Invitaciones de usuarios
+       ========================= */
+    match /userInvites/{inviteId} {
+      // Admin administra invitaciones
+      allow create, update, delete: if isAdmin();
+
+      // Lectura: Admin o usuario autenticado cuyo email coincide con la invitación
+      allow read: if isAdmin()
+               || (hasAuth()
+                   && resource.data.email is string
+                   && request.auth.token.email is string
+                   && resource.data.email.lower() == request.auth.token.email.lower());
+    }
+
+    /* =========================
        Bloqueo por defecto
        ========================= */
     match /{document=**} {

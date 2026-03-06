@@ -92,6 +92,32 @@
       </div>
     </section>
 
+    <section class="panel" id="onboardingPanel">
+      <h2>Alta de usuarios (pre-registro)</h2>
+      <p class="muted">Completá nombre, apellido y email. Se genera un link de acceso para enviar al usuario. Cuando ingrese con Google usando ese email, se confirma el alta inicial en Firestore.</p>
+      <form id="onboardingForm">
+        <div class="grid">
+          <label>Nombre
+            <input id="newUserFirstName" type="text" required />
+          </label>
+          <label>Apellido
+            <input id="newUserLastName" type="text" required />
+          </label>
+          <label>Email
+            <input id="newUserEmail" type="email" required />
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit">Generar link</button>
+          <button id="copyInviteBtn" type="button" class="secondary">Copiar link</button>
+        </div>
+        <label>Link generado
+          <input id="inviteLinkOut" type="text" readonly placeholder="Acá se mostrará el link de invitación" />
+        </label>
+      </form>
+      <p class="muted">El pre-registro se guarda en <code>userInvites/{inviteId}</code> con estado <code>pending</code>.</p>
+    </section>
+
     <section class="panel" id="rolesPanel">
       <h2>Roles y niveles (scope)</h2>
       <form id="roleForm">

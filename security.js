@@ -44,6 +44,56 @@
       .replace(/^-+|-+$/g, '');
   }
 
+  function appBaseUrl() {
+    const path = window.location.pathname || '/';
+    return `${window.location.origin}${path.slice(0, path.lastIndexOf('/') + 1)}`;
+  }
+
+  function buildInviteUrl(inviteId, email) {
+    return `${appBaseUrl()}index.html?invite=${encodeURIComponent(inviteId)}&email=${encodeURIComponent(email)}`;
+  }
+
+  async function createUserInvite(e) {
+    e.preventDefault();
+    if (currentRole !== 'Admin') return alert('Solo Admin.');
+
+    const firstName = normalizeText($('newUserFirstName').value);
+    const lastName = normalizeText($('newUserLastName').value);
+    const email = normalizeText($('newUserEmail').value).toLowerCase();
+    if (!firstName || !lastName || !email) return alert('Completá nombre, apellido y email.');
+
+    const payload = {
+      firstName,
+      lastName,
+      email,
+      status: 'pending',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: auth.currentUser?.uid || null,
+      invitedByEmail: (auth.currentUser?.email || '').toLowerCase(),
+    };
+
+    const ref = await db.collection('userInvites').add(payload);
+    const inviteLink = buildInviteUrl(ref.id, email);
+    await ref.set({ inviteLink }, { merge: true });
+
+    $('inviteLinkOut').value = inviteLink;
+    dump({ action: 'createInvite', inviteId: ref.id, inviteLink, payload });
+  }
+
+  async function copyInviteLink() {
+    const value = $('inviteLinkOut').value.trim();
+    if (!value) return alert('Primero generá un link.');
+    try {
+      await navigator.clipboard.writeText(value);
+      alert('Link copiado al portapapeles.');
+    } catch {
+      $('inviteLinkOut').focus();
+      $('inviteLinkOut').select();
+      document.execCommand('copy');
+      alert('Link copiado.');
+    }
+  }
+
   function setGuard(isAdmin, role, email) {
     currentRole = role;
     $('guardMsg').textContent = isAdmin
@@ -53,6 +103,7 @@
     $('masterPanel').classList.toggle('hidden', !isAdmin);
     $('rolesPanel').classList.toggle('hidden', !isAdmin);
     $('fieldsPanel').classList.toggle('hidden', !isAdmin);
+    $('onboardingPanel').classList.toggle('hidden', !isAdmin);
   }
 
   function renderCheckboxGroup(containerId, options) {
@@ -351,6 +402,8 @@
 
     $('roleForm').addEventListener('submit', saveRoleScope);
     $('policyForm').addEventListener('submit', saveRolePolicy);
+    $('onboardingForm').addEventListener('submit', createUserInvite);
+    $('copyInviteBtn').addEventListener('click', copyInviteLink);
 
     $('googleLoginBtn').addEventListener('click', async () => {
       const provider = new firebase.auth.GoogleAuthProvider();
