@@ -451,10 +451,6 @@ function renderPersonas() {
   const table = $("personasTable"); if (!table) return; const tbody = table.querySelector("tbody"); if (!tbody) return;
   const base = applyFiltersBase(personas); const filtered = filterByRolePersonas(base);
   renderEmptyStatePersonas(filtered);
-
-  const thComentarios = table.querySelector("thead th.th-comentarios");
-  if (thComentarios) thComentarios.style.display = canSeeComentarios(currentRole) ? "" : "none";
-
   tbody.innerHTML = "";
   filtered.forEach(p => {
     const tr = document.createElement("tr"); tr.dataset.id = p.id;
@@ -462,19 +458,14 @@ function renderPersonas() {
     tr.innerHTML = `
   <td>${escapeHtml(p.firstName)}</td>
   <td>${escapeHtml(p.lastName)}</td>
-  <td>${escapeHtml(p.status)}</td>
+  <td>${escapeHtml(p.address)}</td>
+  <td>${escapeHtml(p.city)}</td>
   <td>${escapeHtml(p.division)}</td>
-  <td>${escapeHtml(p.nivelExamen)}</td>
+  <td>${escapeHtml(p.status)}</td>
   <td>${escapeHtml(p.cargo)}</td>
   <td>${escapeHtml(p.gohonzo)}</td>
   <td>${escapeHtml(p.hanName)}</td>
-  <td>${escapeHtml(p.grupoName)}</td>
-  <td>${escapeHtml(p.frecuenciaSemanal)}</td>
-  <td>${escapeHtml(p.frecuenciaZadankai)}</td>
-  <td>${p.suscriptoHumanismoSoka ? 'Sí' : 'No'}</td>
-  <td>${p.realizaZaimu ? 'Sí' : 'No'}</td>
-  <td class="td-comentarios">${canSeeComentarios(currentRole) ? `<span class="comentarios" style="white-space: pre-line">${escapeHtml(p.comentarios)}</span>` : '-'}</td>`
-    const tdC = tr.querySelector(".td-comentarios"); if (tdC) tdC.style.display = canSeeComentarios(currentRole) ? "" : "none";
+  <td>${escapeHtml(p.grupoName)}</td>`;
     tbody.appendChild(tr);
   });
 
