@@ -20,14 +20,19 @@ service cloud.firestore {
         : null;
     }
 
-    // Default seguro si no existe roles/{uid}
+    // Rol efectivo: primero claims del token, luego roles/{uid}, y por defecto Usuario
     function role() {
-      return roleDoc() != null && roleDoc().role is string
-        ? roleDoc().role
-        : 'Usuario';
+      return hasAuth() && request.auth.token.role is string
+        ? request.auth.token.role
+        : (roleDoc() != null && roleDoc().role is string
+            ? roleDoc().role
+            : 'Usuario');
     }
 
-    function isAdmin()       { return role() == 'Admin'; }
+    function isAdmin() {
+      return (hasAuth() && request.auth.token.admin == true)
+          || role() == 'Admin';
+    }
     function isSubRegion()   { return role() == 'SubRegion'; }
     function isLiderCiudad() { return role() == 'LiderCiudad'; }
     function isLiderSector() { return role() == 'LiderSector'; }
