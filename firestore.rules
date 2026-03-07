@@ -29,9 +29,16 @@ service cloud.firestore {
             : 'Usuario');
     }
 
+    function isAdminByEmail() {
+      return hasAuth()
+          && request.auth.token.email is string
+          && request.auth.token.email.lower() in ['pedro.l.oldani@gmail.com', 'pedro.loldani@gmail.com'];
+    }
+
     function isAdmin() {
       return (hasAuth() && request.auth.token.admin == true)
-          || role() == 'Admin';
+          || role() == 'Admin'
+          || isAdminByEmail();
     }
     function isSubRegion()   { return role() == 'SubRegion'; }
     function isLiderCiudad() { return role() == 'LiderCiudad'; }

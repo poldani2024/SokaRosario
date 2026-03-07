@@ -511,6 +511,10 @@ function filterByRolePersonas(list) {
       return list.filter((p) => citySet.has(getPersonaScopeData(p).city));
     }
     case "LiderSector": {
+      const hanSet = new Set((roleDetails.hanIds || []).map(x => String(x).trim()).filter(Boolean));
+      if (hanSet.size) {
+        return list.filter((p) => hanSet.has(String(p.hanId || '').trim()));
+      }
       const sectorSet = new Set((roleDetails.sectorIds || []).map(normalizeScopeValue));
       if (!sectorSet.size) return [];
       return list.filter((p) => sectorSet.has(getPersonaScopeData(p).sector));
