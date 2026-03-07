@@ -479,19 +479,42 @@ function getPersonaScopeData(p) {
 
 function byAssignedScope(list) {
   const hanSet = new Set((roleDetails.hanIds || []).map(x => String(x).trim()).filter(Boolean));
-  const sectorSet = new Set((roleDetails.sectorIds || []).map(normalizeScopeValue));
-  const citySet = new Set((roleDetails.cityIds || []).map(normalizeScopeValue));
-  const subregionSet = new Set((roleDetails.subregionIds || []).map(normalizeScopeValue));
+  const sectorSet = new Set((roleDetails.sectorIds || []).map(normalizeScopeValue).filter(Boolean));
+  const citySet = new Set((roleDetails.cityIds || []).map(normalizeScopeValue).filter(Boolean));
+  const subregionSet = new Set((roleDetails.subregionIds || []).map(normalizeScopeValue).filter(Boolean));
 
   const hasScope = hanSet.size || sectorSet.size || citySet.size || subregionSet.size;
   if (!hasScope) return [];
 
   return list.filter((p) => {
     const scope = getPersonaScopeData(p);
-    if (hanSet.size) return hanSet.has(scope.hanId);
-    if (sectorSet.size) return sectorSet.has(scope.sector);
-    if (citySet.size) return citySet.has(scope.city);
-    if (subregionSet.size) return subregionSet.has(scope.subregion);
+    const hasHan = !!scope.hanId;
+    const hasSector = !!scope.sector;
+    const hasCity = !!scope.city;
+
+    // Precedencia estricta: Han > Sector > Ciudad > Subregión
+    if (hanSet.size) {
+      return hanSet.has(scope.hanId);
+    }
+
+    if (sectorSet.size) {
+      // Solo caer a sector si la persona no tiene Han
+      if (hasHan) return false;
+      return sectorSet.has(scope.sector);
+    }
+
+    if (citySet.size) {
+      // Solo caer a ciudad si la persona no tiene Han ni Sector
+      if (hasHan || hasSector) return false;
+      return citySet.has(scope.city);
+    }
+
+    if (subregionSet.size) {
+      // Solo caer a subregión si la persona no tiene Han, Sector ni Ciudad
+      if (hasHan || hasSector || hasCity) return false;
+      return subregionSet.has(scope.subregion);
+    }
+
     return false;
   });
 }
@@ -500,30 +523,10 @@ function filterByRolePersonas(list) {
   switch (currentRole) {
     case "Admin":
       return list;
-    case "SubRegion": {
-      const subSet = new Set((roleDetails.subregionIds || []).map(normalizeScopeValue));
-      if (!subSet.size) return [];
-      return list.filter((p) => subSet.has(getPersonaScopeData(p).subregion));
-    }
-    case "LiderCiudad": {
-      const citySet = new Set((roleDetails.cityIds || []).map(normalizeScopeValue));
-      if (!citySet.size) return [];
-      return list.filter((p) => citySet.has(getPersonaScopeData(p).city));
-    }
-    case "LiderSector": {
-      const hanSet = new Set((roleDetails.hanIds || []).map(x => String(x).trim()).filter(Boolean));
-      if (hanSet.size) {
-        return list.filter((p) => hanSet.has(String(p.hanId || '').trim()));
-      }
-      const sectorSet = new Set((roleDetails.sectorIds || []).map(normalizeScopeValue));
-      if (!sectorSet.size) return [];
-      return list.filter((p) => sectorSet.has(getPersonaScopeData(p).sector));
-    }
-    case "LiderHan": {
-      const hanSet = new Set((roleDetails.hanIds || []).map(x => String(x).trim()).filter(Boolean));
-      if (!hanSet.size) return [];
-      return list.filter((p) => hanSet.has(String(p.hanId || '').trim()));
-    }
+    case "SubRegion":
+    case "LiderCiudad":
+    case "LiderSector":
+    case "LiderHan":
     case "Usuario+":
     case "Usuario":
     default:

@@ -157,10 +157,48 @@
     $('usersPanel').classList.toggle('hidden', !isAdmin);
   }
 
+  const SCOPE_LIST_IDS = new Set(['subregionIds', 'cityIds', 'sectorIds', 'hanIds']);
+
+  function syncSelectAllState(container) {
+    const selectAll = container.querySelector('input[data-select-all="true"]');
+    if (!selectAll) return;
+    const items = Array.from(container.querySelectorAll('input[type="checkbox"]:not([data-select-all="true"])'));
+    if (!items.length) {
+      selectAll.checked = false;
+      return;
+    }
+    selectAll.checked = items.every((el) => el.checked);
+  }
+
   function renderCheckboxGroup(containerId, options) {
     const container = $(containerId);
     if (!container) return;
     container.innerHTML = '';
+
+    const enableSelectAll = SCOPE_LIST_IDS.has(containerId);
+    if (enableSelectAll) {
+      const allLabel = document.createElement('label');
+      allLabel.className = 'check-item';
+
+      const allInput = document.createElement('input');
+      allInput.type = 'checkbox';
+      allInput.id = `${containerId}__all`;
+      allInput.dataset.selectAll = 'true';
+
+      const allSpan = document.createElement('span');
+      allSpan.textContent = 'Seleccionar todos';
+      allSpan.className = 'check-text';
+
+      allLabel.appendChild(allInput);
+      allLabel.appendChild(allSpan);
+      container.appendChild(allLabel);
+
+      allInput.addEventListener('change', () => {
+        container.querySelectorAll('input[type="checkbox"]:not([data-select-all="true"])').forEach((input) => {
+          input.checked = allInput.checked;
+        });
+      });
+    }
 
     options.forEach((opt) => {
       const id = `${containerId}_${String(opt.value).replace(/[^a-z0-9_-]/gi, '_')}`;
@@ -171,6 +209,9 @@
       input.type = 'checkbox';
       input.id = id;
       input.value = String(opt.value);
+      if (enableSelectAll) {
+        input.addEventListener('change', () => syncSelectAllState(container));
+      }
 
       const span = document.createElement('span');
       span.textContent = opt.label;
@@ -180,21 +221,24 @@
       label.appendChild(span);
       container.appendChild(label);
     });
+
+    if (enableSelectAll) syncSelectAllState(container);
   }
 
   function getCheckedValues(containerId) {
     const container = $(containerId);
     if (!container) return [];
-    return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map((el) => el.value);
+    return Array.from(container.querySelectorAll('input[type="checkbox"]:checked:not([data-select-all="true"])')).map((el) => el.value);
   }
 
   function setCheckedValues(containerId, values) {
     const set = new Set((values || []).map(String));
     const container = $(containerId);
     if (!container) return;
-    container.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+    container.querySelectorAll('input[type="checkbox"]:not([data-select-all="true"])').forEach((input) => {
       input.checked = set.has(input.value);
     });
+    syncSelectAllState(container);
   }
 
   function renderTags(containerId, values) {
