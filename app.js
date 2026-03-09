@@ -284,6 +284,128 @@ async function loadEditableFieldPolicy(role) {
   return editableFieldIdsByRole;
 }
 
+function mapPolicyKeysToInputIds(fieldKeys) {
+  const enabled = new Set();
+  (fieldKeys || []).forEach((fieldKey) => {
+    (FIELD_POLICY_TO_INPUTS[fieldKey] || []).forEach((id) => enabled.add(id));
+  });
+  return enabled;
+}
+
+function applyFieldPolicyData(policyData, role) {
+  const allFields = new Set(PERSONA_FORM_FIELD_IDS);
+  const data = policyData || {};
+  const allowed = Array.isArray(data.allowedFields) ? data.allowedFields : [];
+  const visible = Array.isArray(data.visibleFields) ? data.visibleFields : ['*'];
+
+  editableFieldIdsByRole = allowed.includes('*') ? allFields : mapPolicyKeysToInputIds(allowed);
+  visibleFieldIdsByRole = visible.includes('*') ? allFields : mapPolicyKeysToInputIds(visible);
+
+  applyPersonaFieldVisibility();
+  toggleDatosPersonalesReadonly(false);
+}
+
+function applyPersonaFieldVisibility() {
+  PERSONA_FORM_FIELD_IDS.forEach((id) => {
+    const field = $(id);
+    if (!field) return;
+    const wrapper = field.closest('label') || field;
+    wrapper.classList.toggle('hidden', !visibleFieldIdsByRole.has(id));
+  });
+}
+
+function stopPolicyWatchers() {
+  if (typeof roleDocUnsubscribe === 'function') roleDocUnsubscribe();
+  if (typeof fieldPolicyUnsubscribe === 'function') fieldPolicyUnsubscribe();
+  roleDocUnsubscribe = null;
+  fieldPolicyUnsubscribe = null;
+}
+
+function subscribeFieldPolicy(role) {
+  if (typeof fieldPolicyUnsubscribe === 'function') fieldPolicyUnsubscribe();
+  fieldPolicyUnsubscribe = null;
+
+  const allFields = new Set(PERSONA_FORM_FIELD_IDS);
+  if (!useDb || !role) {
+    applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+    return;
+  }
+
+  fieldPolicyUnsubscribe = window.db.collection('fieldPolicies').doc(role).onSnapshot((snap) => {
+    if (!snap.exists) {
+      applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+      return;
+    }
+    applyFieldPolicyData(snap.data() || {}, role);
+  }, (err) => {
+    console.warn('[fieldPolicies] listener error:', err?.message || err);
+    editableFieldIdsByRole = role === 'Admin' ? allFields : new Set();
+    visibleFieldIdsByRole = allFields;
+    applyPersonaFieldVisibility();
+    toggleDatosPersonalesReadonly(false);
+  });
+}
+
+function subscribeRoleAndPolicy(user) {
+  if (!useDb || !user?.uid) {
+    subscribeFieldPolicy(currentRole);
+    return;
+  }
+
+  if (typeof roleDocUnsubscribe === 'function') roleDocUnsubscribe();
+  roleDocUnsubscribe = window.db.collection('roles').doc(user.uid).onSnapshot((snap) => {
+    const rd = snap.exists ? (snap.data() || {}) : {};
+    const nextRole = String(rd.role || '').trim() || currentRole || 'Usuario';
+    const scope = rd.scope || {};
+    roleDetails.subregionIds = toArr(scope.subregionIds || rd.subregionIds);
+    roleDetails.cityIds = toArr(scope.cityIds || rd.cityIds || (rd.city ? [rd.city] : []));
+    roleDetails.sectorIds = toArr(scope.sectorIds || rd.sectorIds || (rd.sector ? [rd.sector] : []));
+    roleDetails.hanIds = toArr(scope.hanIds || rd.hanIds || roleDetails.hanIds);
+
+    if (nextRole !== currentRole) {
+      currentRole = nextRole;
+      text('role-badge', nextRole);
+      applyRoleVisibility(nextRole);
+    }
+
+    const email = currentUser?.email?.toLowerCase?.() || '';
+    if (currentUser?.uid) {
+      localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, displayName: currentUser.displayName ?? email, uid: currentUser.uid, role: currentRole, roleDetails }));
+    }
+
+    subscribeFieldPolicy(currentRole);
+    renderPersonas();
+  }, (err) => {
+    console.warn('[roles] listener error:', err?.message || err);
+    subscribeFieldPolicy(currentRole);
+  });
+}
+
+async function loadEditableFieldPolicy(role) {
+  const allFields = new Set(PERSONA_FORM_FIELD_IDS);
+  if (!useDb || !role) {
+    applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+    return editableFieldIdsByRole;
+  }
+
+  try {
+    const snap = await window.db.collection('fieldPolicies').doc(role).get();
+    if (!snap.exists) {
+      applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+    } else {
+      applyFieldPolicyData(snap.data() || {}, role);
+    }
+  } catch (err) {
+    console.warn('[fieldPolicies] no se pudo leer policy del rol:', err?.message || err);
+    editableFieldIdsByRole = role === 'Admin' ? allFields : new Set();
+    visibleFieldIdsByRole = allFields;
+    applyPersonaFieldVisibility();
+    toggleDatosPersonalesReadonly(false);
+  }
+
+  return editableFieldIdsByRole;
+}
+
 
 /* ===== Firestore integration (v8) ===== */
 const useDb = !!window.db; // true si firebase-firestore.js está cargado y window.db existe
