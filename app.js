@@ -8,6 +8,41 @@ let currentUser = null;      // { email, displayName, uid }
 let currentRole = "Usuario"; // Admin, LiderCiudad, LiderSector, LiderHan, Usuario+, Usuario
 let roleDetails = { hanIds: [], sector: "", city: "", subregionIds: [], cityIds: [], sectorIds: [] };
 
+const ROLE_ALIASES = {
+  'Admin': 'Admin',
+  'SubRegion': 'SubRegion',
+  'Subregión': 'SubRegion',
+  'LiderCiudad': 'LiderCiudad',
+  'Líder Ciudad': 'LiderCiudad',
+  'LiderSector': 'LiderSector',
+  'Líder Sector': 'LiderSector',
+  'LiderHan': 'LiderHan',
+  'Líder Han': 'LiderHan',
+  'Responsable Han': 'LiderHan',
+  'Usuario+': 'Usuario+',
+  'Usuario': 'Usuario'
+};
+
+const ROLE_LABELS = {
+  'Admin': 'Admin',
+  'SubRegion': 'SubRegión',
+  'LiderCiudad': 'Líder Ciudad',
+  'LiderSector': 'Líder Sector',
+  'LiderHan': 'Responsable Han',
+  'Usuario+': 'Usuario+',
+  'Usuario': 'Usuario'
+};
+
+function normalizeRoleKey(role) {
+  const raw = String(role || '').trim();
+  return ROLE_ALIASES[raw] || raw || 'Usuario';
+}
+
+function roleLabel(role) {
+  const key = normalizeRoleKey(role);
+  return ROLE_LABELS[key] || key;
+}
+
 let hanes = [];
 let grupos = [];
 let personas = [];
@@ -30,6 +65,39 @@ const setHidden = (el, hidden) => { if (!el) return; el.classList.toggle("hidden
 const text = (id, value) => { const el = $(id); if (el) el.textContent = value; };
 const uid  = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+const PERSONA_FORM_FIELD_IDS = ["firstName","lastName","birthDate","address","city","phone","phoneFixed","email","status","division","nivelExamen","fechaIngreso","cargo","gohonzo","hanSelect","hanLocalidad","grupoSelect","frecuenciaSemanal","frecuenciaZadankai","suscriptoHumanismoSoka","realizaZaimu","comentarios"];
+const FIELD_POLICY_TO_INPUTS = {
+  firstName: ["firstName"],
+  lastName: ["lastName"],
+  birthDate: ["birthDate"],
+  address: ["address"],
+  city: ["city"],
+  phone: ["phone"],
+  phoneFixed: ["phoneFixed"],
+  email: ["email"],
+  status: ["status"],
+  division: ["division"],
+  nivelExamen: ["nivelExamen"],
+  fechaIngreso: ["fechaIngreso"],
+  cargo: ["cargo"],
+  gohonzo: ["gohonzo"],
+  hanId: ["hanSelect"],
+  hanName: ["hanSelect"],
+  hanCity: ["hanLocalidad"],
+  hanSector: ["hanSelect"],
+  grupoId: ["grupoSelect"],
+  grupoName: ["grupoSelect"],
+  frecuenciaSemanal: ["frecuenciaSemanal"],
+  frecuenciaZadankai: ["frecuenciaZadankai"],
+  suscriptoHumanismoSoka: ["suscriptoHumanismoSoka"],
+  realizaZaimu: ["realizaZaimu"],
+  comentarios: ["comentarios"]
+};
+let editableFieldIdsByRole = new Set(PERSONA_FORM_FIELD_IDS);
+let visibleFieldIdsByRole = new Set(PERSONA_FORM_FIELD_IDS);
+let roleDocUnsubscribe = null;
+let fieldPolicyUnsubscribe = null;
+
 /* ===== Roles & gating ===== */
 function toArr(v) { return Array.isArray(v) ? v.map(x => String(x).trim()).filter(Boolean) : []; }
 
@@ -42,7 +110,7 @@ function resolveRoleFromClaims(user) {
   return user.getIdTokenResult()
     .then(async (token) => {
       const claims = token?.claims ?? {};
-      if (typeof claims.role === "string" && claims.role.trim()) role = claims.role.trim();
+      if (typeof claims.role === "string" && claims.role.trim()) role = normalizeRoleKey(claims.role);
       if (ADMIN_EMAILS.includes(email)) role = "Admin"; // fallback
 
       roleDetails.hanIds = toArr(claims.hanIds);
@@ -55,7 +123,7 @@ function resolveRoleFromClaims(user) {
           const roleSnap = await window.db.collection('roles').doc(user.uid).get();
           if (roleSnap.exists) {
             const rd = roleSnap.data() || {};
-            if (typeof rd.role === 'string' && rd.role.trim()) role = rd.role.trim();
+            if (typeof rd.role === 'string' && rd.role.trim()) role = normalizeRoleKey(rd.role);
             const scope = rd.scope || {};
             roleDetails.subregionIds = toArr(scope.subregionIds || rd.subregionIds);
             roleDetails.cityIds = toArr(scope.cityIds || rd.cityIds || (rd.city ? [rd.city] : []));
@@ -91,8 +159,130 @@ function setSecureUiAccess(isAuthenticated) {
   setHidden($("accessGuardMsg"), isAuthenticated);
   setHidden($("mainNav"), !isAuthenticated);
 }
-function canSeeVisitas(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(role); }
-function canSeeComentarios(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(role); }
+function canSeeVisitas(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(normalizeRoleKey(role)); }
+function canSeeComentarios(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(normalizeRoleKey(role)); }
+
+function mapPolicyKeysToInputIds(fieldKeys) {
+  const enabled = new Set();
+  (fieldKeys || []).forEach((fieldKey) => {
+    (FIELD_POLICY_TO_INPUTS[fieldKey] || []).forEach((id) => enabled.add(id));
+  });
+  return enabled;
+}
+
+function applyFieldPolicyData(policyData, role) {
+  const allFields = new Set(PERSONA_FORM_FIELD_IDS);
+  const data = policyData || {};
+  const allowed = Array.isArray(data.allowedFields) ? data.allowedFields : [];
+  const visible = Array.isArray(data.visibleFields) ? data.visibleFields : ['*'];
+
+  editableFieldIdsByRole = allowed.includes('*') ? allFields : mapPolicyKeysToInputIds(allowed);
+  visibleFieldIdsByRole = visible.includes('*') ? allFields : mapPolicyKeysToInputIds(visible);
+
+  applyPersonaFieldVisibility();
+  toggleDatosPersonalesReadonly(false);
+}
+
+function applyPersonaFieldVisibility() {
+  PERSONA_FORM_FIELD_IDS.forEach((id) => {
+    const field = $(id);
+    if (!field) return;
+    const wrapper = field.closest('label') || field;
+    wrapper.classList.toggle('hidden', !visibleFieldIdsByRole.has(id));
+  });
+}
+
+function stopPolicyWatchers() {
+  if (typeof roleDocUnsubscribe === 'function') roleDocUnsubscribe();
+  if (typeof fieldPolicyUnsubscribe === 'function') fieldPolicyUnsubscribe();
+  roleDocUnsubscribe = null;
+  fieldPolicyUnsubscribe = null;
+}
+
+function subscribeFieldPolicy(role) {
+  if (typeof fieldPolicyUnsubscribe === 'function') fieldPolicyUnsubscribe();
+  fieldPolicyUnsubscribe = null;
+
+  const allFields = new Set(PERSONA_FORM_FIELD_IDS);
+  if (!useDb || !role) {
+    applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+    return;
+  }
+
+  fieldPolicyUnsubscribe = window.db.collection('fieldPolicies').doc(role).onSnapshot((snap) => {
+    if (!snap.exists) {
+      applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+      return;
+    }
+    applyFieldPolicyData(snap.data() || {}, role);
+  }, (err) => {
+    console.warn('[fieldPolicies] listener error:', err?.message || err);
+    editableFieldIdsByRole = role === 'Admin' ? allFields : new Set();
+    visibleFieldIdsByRole = allFields;
+    applyPersonaFieldVisibility();
+    toggleDatosPersonalesReadonly(false);
+  });
+}
+
+function subscribeRoleAndPolicy(user) {
+  if (!useDb || !user?.uid) {
+    subscribeFieldPolicy(currentRole);
+    return;
+  }
+
+  if (typeof roleDocUnsubscribe === 'function') roleDocUnsubscribe();
+  roleDocUnsubscribe = window.db.collection('roles').doc(user.uid).onSnapshot((snap) => {
+    const rd = snap.exists ? (snap.data() || {}) : {};
+    const nextRole = normalizeRoleKey(String(rd.role || '').trim() || currentRole || 'Usuario');
+    const scope = rd.scope || {};
+    roleDetails.subregionIds = toArr(scope.subregionIds || rd.subregionIds);
+    roleDetails.cityIds = toArr(scope.cityIds || rd.cityIds || (rd.city ? [rd.city] : []));
+    roleDetails.sectorIds = toArr(scope.sectorIds || rd.sectorIds || (rd.sector ? [rd.sector] : []));
+    roleDetails.hanIds = toArr(scope.hanIds || rd.hanIds || roleDetails.hanIds);
+
+    if (nextRole !== currentRole) {
+      currentRole = nextRole;
+      text('role-badge', roleLabel(nextRole));
+      applyRoleVisibility(nextRole);
+    }
+
+    const email = currentUser?.email?.toLowerCase?.() || '';
+    if (currentUser?.uid) {
+      localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, displayName: currentUser.displayName ?? email, uid: currentUser.uid, role: currentRole, roleDetails }));
+    }
+
+    subscribeFieldPolicy(currentRole);
+    renderPersonas();
+  }, (err) => {
+    console.warn('[roles] listener error:', err?.message || err);
+    subscribeFieldPolicy(currentRole);
+  });
+}
+
+async function loadEditableFieldPolicy(role) {
+  const allFields = new Set(PERSONA_FORM_FIELD_IDS);
+  if (!useDb || !role) {
+    applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+    return editableFieldIdsByRole;
+  }
+
+  try {
+    const snap = await window.db.collection('fieldPolicies').doc(role).get();
+    if (!snap.exists) {
+      applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+    } else {
+      applyFieldPolicyData(snap.data() || {}, role);
+    }
+  } catch (err) {
+    console.warn('[fieldPolicies] no se pudo leer policy del rol:', err?.message || err);
+    editableFieldIdsByRole = role === 'Admin' ? allFields : new Set();
+    visibleFieldIdsByRole = allFields;
+    applyPersonaFieldVisibility();
+    toggleDatosPersonalesReadonly(false);
+  }
+
+  return editableFieldIdsByRole;
+}
 
 
 /* ===== Firestore integration (v8) ===== */
@@ -265,8 +455,10 @@ function applySignedInUser(user) {
   const email = user.email?.toLowerCase() ?? "";
   resolveRoleFromClaims(user).then(async ({ role, roleDetails: details }) => {
     currentRole = role; roleDetails = details;
+    await loadEditableFieldPolicy(role);
+    subscribeRoleAndPolicy(user);
     localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, displayName: user.displayName ?? email, uid: user.uid, role, roleDetails }));
-    text("user-email", email); text("role-badge", role);
+    text("user-email", email); text("role-badge", roleLabel(role));
     setHidden($("login-form"), true); setHidden($("user-info"), false); applyRoleVisibility(role); setSecureUiAccess(true);
       if (useDb) { await hydrateFromDb(); }
   renderCatalogsToSelects(); renderPersonas(); renderVisitas(); loadMiPerfil(user.uid, email);
@@ -274,6 +466,10 @@ function applySignedInUser(user) {
 }
 function applySignedOut() {
   currentUser = null; currentRole = "Usuario"; roleDetails = { hanIds: [], sector: "", city: "", subregionIds: [], cityIds: [], sectorIds: [] };
+  stopPolicyWatchers();
+  editableFieldIdsByRole = new Set();
+  visibleFieldIdsByRole = new Set(PERSONA_FORM_FIELD_IDS);
+  applyPersonaFieldVisibility();
   text("user-email", ""); text("role-badge", "");
   setHidden($("login-form"), false); setHidden($("user-info"), true); applyRoleVisibility("Usuario"); setSecureUiAccess(false);
   localStorage.removeItem(STORAGE_KEYS.session);
@@ -288,9 +484,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const s = JSON.parse(localStorage.getItem(STORAGE_KEYS.session) ?? "null");
   if (s && s.email) {
-    text("user-email", s.email); text("role-badge", s.role);
+    text("user-email", s.email); text("role-badge", roleLabel(s.role));
     setHidden($("login-form"), true); setHidden($("user-info"), false);
-    applyRoleVisibility(s.role); setSecureUiAccess(true); currentRole = s.role; roleDetails = s.roleDetails ?? roleDetails;
+    const restoredRole = normalizeRoleKey(s.role);
+    applyRoleVisibility(restoredRole); setSecureUiAccess(true); currentRole = restoredRole; roleDetails = s.roleDetails ?? roleDetails;
+    await loadEditableFieldPolicy(currentRole);
+    subscribeFieldPolicy(currentRole);
   }
 
   // Login button (popup/redirect según navegador)
@@ -317,14 +516,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(false); renderPersonas(); $("firstName")?.focus();
   });
   // Limpiar form
-  $("personaClearBtn")?.addEventListener("click", () => { editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(!(currentRole === "Admin")); renderPersonas(); });
+  $("personaClearBtn")?.addEventListener("click", () => { editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(false); renderPersonas(); });
   $("personaDeleteBtn")?.addEventListener("click", () => {
     if (!editPersonaId) return alert("Seleccioná una persona de la grilla para eliminar.");
     const deletingId = editPersonaId;
     onDeletePersona(deletingId);
     editPersonaId = null;
     clearDatosPersonales();
-    toggleDatosPersonalesReadonly(!(currentRole === "Admin"));
+    toggleDatosPersonalesReadonly(false);
     renderPersonas();
   });
 
@@ -335,7 +534,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       const tr = e.target.closest("tr[data-id]");
       if (tr?.dataset?.id) {
         const id = tr.dataset.id; const p = personas.find(x => x.id === id); if (p) {
-          editPersonaId = id; const readonly = !(currentRole === "Admin" || (currentUser && (p.uid === currentUser.uid)));
+          editPersonaId = id;
+          const readonly = editableFieldIdsByRole.size === 0;
           populateDatosPersonales(p, { readonly });
           renderPersonas();
         }
@@ -393,15 +593,21 @@ function clearDatosPersonales() {
   $("comentarios")?.value && ($("comentarios").value = "");
 }
 function toggleDatosPersonalesReadonly(readonly) {
-  const fields = ["firstName","lastName","birthDate","address","city","phone","phoneFixed","email","status","division","nivelExamen","fechaIngreso","cargo","gohonzo","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai","suscriptoHumanismoSoka","realizaZaimu","comentarios"];
-  fields.forEach(id => { const el = $(id); if (!el) return; el.disabled = !!readonly; });
+  PERSONA_FORM_FIELD_IDS.forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.disabled = !!readonly || !editableFieldIdsByRole.has(id);
+  });
+
+  const saveBtn = document.querySelector('#miPerfilForm button[type="submit"]');
+  if (saveBtn) saveBtn.disabled = !!readonly || editableFieldIdsByRole.size === 0;
 }
 function loadMiPerfil(uid, email) {
   const emailInput = $("email"); if (!emailInput) return; // Guard: Home no tiene este input
   emailInput.value = email;
   const p = personas.find(x => (x.uid && x.uid === uid) || x.email === email);
   if (p) { editPersonaId = p.id; populateDatosPersonales(p, { readonly: false }); }
-  else { editPersonaId = null; toggleDatosPersonalesReadonly(!(currentRole === "Admin")); }
+  else { editPersonaId = null; toggleDatosPersonalesReadonly(false); }
 }
 
 $("miPerfilForm")?.addEventListener("submit", (e) => {
@@ -431,8 +637,7 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
   if (editPersonaId) {
     const i = personas.findIndex(x => x.id === editPersonaId);
     if (i >= 0) {
-      const esDueno = personas[i].uid && personas[i].uid === currentUser.uid;
-      if (currentRole !== "Admin" && !esDueno) { return alert("Solo podés editar tu propio registro."); }
+      if (editableFieldIdsByRole.size === 0) { return alert("Tu rol no tiene campos habilitados para modificar."); }
       personas[i] = { ...personas[i], ...base };
     }
   } else {
