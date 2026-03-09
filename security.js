@@ -9,8 +9,14 @@
     { key: 'address', label: 'Domicilio' },
     { key: 'city', label: 'Localidad' },
     { key: 'phone', label: 'Teléfono' },
+    { key: 'phoneFixed', label: 'Teléfono fijo' },
     { key: 'email', label: 'Email' },
     { key: 'status', label: 'Estado' },
+    { key: 'division', label: 'División' },
+    { key: 'nivelExamen', label: 'Nivel de examen' },
+    { key: 'fechaIngreso', label: 'Fecha de ingreso' },
+    { key: 'cargo', label: 'Cargo' },
+    { key: 'gohonzo', label: 'Gohonzon' },
     { key: 'hanId', label: 'Han (ID)' },
     { key: 'hanName', label: 'Han (Nombre)' },
     { key: 'hanCity', label: 'Han (Localidad)' },
@@ -462,9 +468,9 @@
   }
 
   function loadFieldOptions() {
-    const options = PERSONA_FIELDS.map((f) => ({ value: f.key, label: `${f.label} (${f.key})` }));
+    const options = [{ value: '*', label: 'Todos los campos (*)' }, ...PERSONA_FIELDS.map((f) => ({ value: f.key, label: `${f.label} (${f.key})` }))];
     renderCheckboxGroup('allowedFields', options);
-    renderCheckboxGroup('sameRoleHiddenFields', options);
+    renderCheckboxGroup('visibleFields', options);
   }
 
   async function loadRoleDoc(uid) {
@@ -502,15 +508,13 @@
     const snap = await db.collection('fieldPolicies').doc(role).get();
     if (!snap.exists) {
       setCheckedValues('allowedFields', []);
-      setCheckedValues('sameRoleHiddenFields', ['realizaZaimu']);
-      $('canViewSameRole').value = 'true';
+      setCheckedValues('visibleFields', ['*']);
       return;
     }
 
     const data = snap.data() || {};
     setCheckedValues('allowedFields', data.allowedFields || []);
-    setCheckedValues('sameRoleHiddenFields', data.sameRoleHiddenFields || []);
-    $('canViewSameRole').value = data.canViewSameRole === false ? 'false' : 'true';
+    setCheckedValues('visibleFields', data.visibleFields || ['*']);
   }
 
   async function saveMasterItem(collectionName, inputId) {
@@ -538,13 +542,13 @@
     const targetRole = $('targetRole').value;
     const payload = {
       allowedFields: getCheckedValues('allowedFields'),
-      sameRoleHiddenFields: getCheckedValues('sameRoleHiddenFields'),
-      canViewSameRole: $('canViewSameRole').value === 'true',
+      visibleFields: getCheckedValues('visibleFields'),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: auth.currentUser?.uid || null,
     };
 
     if (!payload.allowedFields.length) payload.allowedFields = ['*'];
+    if (!payload.visibleFields.length) payload.visibleFields = ['*'];
 
     await db.collection('fieldPolicies').doc(targetRole).set(payload, { merge: true });
     dump({ action: 'setRoleFieldPolicy', targetRole, payload });

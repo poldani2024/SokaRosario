@@ -37,7 +37,7 @@ const FIELD_POLICY_TO_INPUTS = {
   birthDate: ["birthDate"],
   address: ["address"],
   city: ["city"],
-  phone: ["phone", "phoneFixed"],
+  phone: ["phone"],
   phoneFixed: ["phoneFixed"],
   email: ["email"],
   status: ["status"],
@@ -47,8 +47,11 @@ const FIELD_POLICY_TO_INPUTS = {
   cargo: ["cargo"],
   gohonzo: ["gohonzo"],
   hanId: ["hanSelect"],
+  hanName: ["hanSelect"],
   hanCity: ["hanLocalidad"],
+  hanSector: ["hanSelect"],
   grupoId: ["grupoSelect"],
+  grupoName: ["grupoSelect"],
   frecuenciaSemanal: ["frecuenciaSemanal"],
   frecuenciaZadankai: ["frecuenciaZadankai"],
   suscriptoHumanismoSoka: ["suscriptoHumanismoSoka"],
@@ -56,6 +59,9 @@ const FIELD_POLICY_TO_INPUTS = {
   comentarios: ["comentarios"]
 };
 let editableFieldIdsByRole = new Set(PERSONA_FORM_FIELD_IDS);
+let visibleFieldIdsByRole = new Set(PERSONA_FORM_FIELD_IDS);
+let roleDocUnsubscribe = null;
+let fieldPolicyUnsubscribe = null;
 
 /* ===== Roles & gating ===== */
 function toArr(v) { return Array.isArray(v) ? v.map(x => String(x).trim()).filter(Boolean) : []; }
@@ -121,37 +127,123 @@ function setSecureUiAccess(isAuthenticated) {
 function canSeeVisitas(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(role); }
 function canSeeComentarios(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(role); }
 
+function mapPolicyKeysToInputIds(fieldKeys) {
+  const enabled = new Set();
+  (fieldKeys || []).forEach((fieldKey) => {
+    (FIELD_POLICY_TO_INPUTS[fieldKey] || []).forEach((id) => enabled.add(id));
+  });
+  return enabled;
+}
+
+function applyFieldPolicyData(policyData, role) {
+  const allFields = new Set(PERSONA_FORM_FIELD_IDS);
+  const data = policyData || {};
+  const allowed = Array.isArray(data.allowedFields) ? data.allowedFields : [];
+  const visible = Array.isArray(data.visibleFields) ? data.visibleFields : ['*'];
+
+  editableFieldIdsByRole = allowed.includes('*') ? allFields : mapPolicyKeysToInputIds(allowed);
+  visibleFieldIdsByRole = visible.includes('*') ? allFields : mapPolicyKeysToInputIds(visible);
+
+  applyPersonaFieldVisibility();
+  toggleDatosPersonalesReadonly(false);
+}
+
+function applyPersonaFieldVisibility() {
+  PERSONA_FORM_FIELD_IDS.forEach((id) => {
+    const field = $(id);
+    if (!field) return;
+    const wrapper = field.closest('label') || field;
+    wrapper.classList.toggle('hidden', !visibleFieldIdsByRole.has(id));
+  });
+}
+
+function stopPolicyWatchers() {
+  if (typeof roleDocUnsubscribe === 'function') roleDocUnsubscribe();
+  if (typeof fieldPolicyUnsubscribe === 'function') fieldPolicyUnsubscribe();
+  roleDocUnsubscribe = null;
+  fieldPolicyUnsubscribe = null;
+}
+
+function subscribeFieldPolicy(role) {
+  if (typeof fieldPolicyUnsubscribe === 'function') fieldPolicyUnsubscribe();
+  fieldPolicyUnsubscribe = null;
+
+  const allFields = new Set(PERSONA_FORM_FIELD_IDS);
+  if (!useDb || !role) {
+    applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+    return;
+  }
+
+  fieldPolicyUnsubscribe = window.db.collection('fieldPolicies').doc(role).onSnapshot((snap) => {
+    if (!snap.exists) {
+      applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+      return;
+    }
+    applyFieldPolicyData(snap.data() || {}, role);
+  }, (err) => {
+    console.warn('[fieldPolicies] listener error:', err?.message || err);
+    editableFieldIdsByRole = role === 'Admin' ? allFields : new Set();
+    visibleFieldIdsByRole = allFields;
+    applyPersonaFieldVisibility();
+    toggleDatosPersonalesReadonly(false);
+  });
+}
+
+function subscribeRoleAndPolicy(user) {
+  if (!useDb || !user?.uid) {
+    subscribeFieldPolicy(currentRole);
+    return;
+  }
+
+  if (typeof roleDocUnsubscribe === 'function') roleDocUnsubscribe();
+  roleDocUnsubscribe = window.db.collection('roles').doc(user.uid).onSnapshot((snap) => {
+    const rd = snap.exists ? (snap.data() || {}) : {};
+    const nextRole = String(rd.role || '').trim() || currentRole || 'Usuario';
+    const scope = rd.scope || {};
+    roleDetails.subregionIds = toArr(scope.subregionIds || rd.subregionIds);
+    roleDetails.cityIds = toArr(scope.cityIds || rd.cityIds || (rd.city ? [rd.city] : []));
+    roleDetails.sectorIds = toArr(scope.sectorIds || rd.sectorIds || (rd.sector ? [rd.sector] : []));
+    roleDetails.hanIds = toArr(scope.hanIds || rd.hanIds || roleDetails.hanIds);
+
+    if (nextRole !== currentRole) {
+      currentRole = nextRole;
+      text('role-badge', nextRole);
+      applyRoleVisibility(nextRole);
+    }
+
+    const email = currentUser?.email?.toLowerCase?.() || '';
+    if (currentUser?.uid) {
+      localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, displayName: currentUser.displayName ?? email, uid: currentUser.uid, role: currentRole, roleDetails }));
+    }
+
+    subscribeFieldPolicy(currentRole);
+    renderPersonas();
+  }, (err) => {
+    console.warn('[roles] listener error:', err?.message || err);
+    subscribeFieldPolicy(currentRole);
+  });
+}
+
 async function loadEditableFieldPolicy(role) {
   const allFields = new Set(PERSONA_FORM_FIELD_IDS);
-
   if (!useDb || !role) {
-    editableFieldIdsByRole = role === "Admin" ? allFields : new Set();
+    applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
     return editableFieldIdsByRole;
   }
 
   try {
     const snap = await window.db.collection('fieldPolicies').doc(role).get();
     if (!snap.exists) {
-      editableFieldIdsByRole = role === "Admin" ? allFields : new Set();
-      return editableFieldIdsByRole;
+      applyFieldPolicyData({ allowedFields: role === 'Admin' ? ['*'] : [], visibleFields: ['*'] }, role);
+    } else {
+      applyFieldPolicyData(snap.data() || {}, role);
     }
-
-    const data = snap.data() || {};
-    const allowed = Array.isArray(data.allowedFields) ? data.allowedFields : [];
-
-    if (allowed.includes('*')) {
-      editableFieldIdsByRole = allFields;
-      return editableFieldIdsByRole;
-    }
-
-    const enabled = new Set();
-    allowed.forEach((fieldKey) => {
-      (FIELD_POLICY_TO_INPUTS[fieldKey] || []).forEach((id) => enabled.add(id));
-    });
-    editableFieldIdsByRole = enabled;
   } catch (err) {
     console.warn('[fieldPolicies] no se pudo leer policy del rol:', err?.message || err);
-    editableFieldIdsByRole = role === "Admin" ? allFields : new Set();
+    editableFieldIdsByRole = role === 'Admin' ? allFields : new Set();
+    visibleFieldIdsByRole = allFields;
+    applyPersonaFieldVisibility();
+    toggleDatosPersonalesReadonly(false);
   }
 
   return editableFieldIdsByRole;
@@ -329,6 +421,7 @@ function applySignedInUser(user) {
   resolveRoleFromClaims(user).then(async ({ role, roleDetails: details }) => {
     currentRole = role; roleDetails = details;
     await loadEditableFieldPolicy(role);
+    subscribeRoleAndPolicy(user);
     localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, displayName: user.displayName ?? email, uid: user.uid, role, roleDetails }));
     text("user-email", email); text("role-badge", role);
     setHidden($("login-form"), true); setHidden($("user-info"), false); applyRoleVisibility(role); setSecureUiAccess(true);
@@ -338,7 +431,10 @@ function applySignedInUser(user) {
 }
 function applySignedOut() {
   currentUser = null; currentRole = "Usuario"; roleDetails = { hanIds: [], sector: "", city: "", subregionIds: [], cityIds: [], sectorIds: [] };
+  stopPolicyWatchers();
   editableFieldIdsByRole = new Set();
+  visibleFieldIdsByRole = new Set(PERSONA_FORM_FIELD_IDS);
+  applyPersonaFieldVisibility();
   text("user-email", ""); text("role-badge", "");
   setHidden($("login-form"), false); setHidden($("user-info"), true); applyRoleVisibility("Usuario"); setSecureUiAccess(false);
   localStorage.removeItem(STORAGE_KEYS.session);
@@ -357,6 +453,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setHidden($("login-form"), true); setHidden($("user-info"), false);
     applyRoleVisibility(s.role); setSecureUiAccess(true); currentRole = s.role; roleDetails = s.roleDetails ?? roleDetails;
     await loadEditableFieldPolicy(s.role);
+    subscribeFieldPolicy(s.role);
   }
 
   // Login button (popup/redirect según navegador)
