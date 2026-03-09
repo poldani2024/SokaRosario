@@ -30,6 +30,33 @@ const setHidden = (el, hidden) => { if (!el) return; el.classList.toggle("hidden
 const text = (id, value) => { const el = $(id); if (el) el.textContent = value; };
 const uid  = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+const PERSONA_FORM_FIELD_IDS = ["firstName","lastName","birthDate","address","city","phone","phoneFixed","email","status","division","nivelExamen","fechaIngreso","cargo","gohonzo","hanSelect","hanLocalidad","grupoSelect","frecuenciaSemanal","frecuenciaZadankai","suscriptoHumanismoSoka","realizaZaimu","comentarios"];
+const FIELD_POLICY_TO_INPUTS = {
+  firstName: ["firstName"],
+  lastName: ["lastName"],
+  birthDate: ["birthDate"],
+  address: ["address"],
+  city: ["city"],
+  phone: ["phone", "phoneFixed"],
+  phoneFixed: ["phoneFixed"],
+  email: ["email"],
+  status: ["status"],
+  division: ["division"],
+  nivelExamen: ["nivelExamen"],
+  fechaIngreso: ["fechaIngreso"],
+  cargo: ["cargo"],
+  gohonzo: ["gohonzo"],
+  hanId: ["hanSelect"],
+  hanCity: ["hanLocalidad"],
+  grupoId: ["grupoSelect"],
+  frecuenciaSemanal: ["frecuenciaSemanal"],
+  frecuenciaZadankai: ["frecuenciaZadankai"],
+  suscriptoHumanismoSoka: ["suscriptoHumanismoSoka"],
+  realizaZaimu: ["realizaZaimu"],
+  comentarios: ["comentarios"]
+};
+let editableFieldIdsByRole = new Set(PERSONA_FORM_FIELD_IDS);
+
 /* ===== Roles & gating ===== */
 function toArr(v) { return Array.isArray(v) ? v.map(x => String(x).trim()).filter(Boolean) : []; }
 
@@ -93,6 +120,42 @@ function setSecureUiAccess(isAuthenticated) {
 }
 function canSeeVisitas(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(role); }
 function canSeeComentarios(role) { return ["Admin","LiderCiudad","LiderSector","LiderHan"].includes(role); }
+
+async function loadEditableFieldPolicy(role) {
+  const allFields = new Set(PERSONA_FORM_FIELD_IDS);
+
+  if (!useDb || !role) {
+    editableFieldIdsByRole = role === "Admin" ? allFields : new Set();
+    return editableFieldIdsByRole;
+  }
+
+  try {
+    const snap = await window.db.collection('fieldPolicies').doc(role).get();
+    if (!snap.exists) {
+      editableFieldIdsByRole = role === "Admin" ? allFields : new Set();
+      return editableFieldIdsByRole;
+    }
+
+    const data = snap.data() || {};
+    const allowed = Array.isArray(data.allowedFields) ? data.allowedFields : [];
+
+    if (allowed.includes('*')) {
+      editableFieldIdsByRole = allFields;
+      return editableFieldIdsByRole;
+    }
+
+    const enabled = new Set();
+    allowed.forEach((fieldKey) => {
+      (FIELD_POLICY_TO_INPUTS[fieldKey] || []).forEach((id) => enabled.add(id));
+    });
+    editableFieldIdsByRole = enabled;
+  } catch (err) {
+    console.warn('[fieldPolicies] no se pudo leer policy del rol:', err?.message || err);
+    editableFieldIdsByRole = role === "Admin" ? allFields : new Set();
+  }
+
+  return editableFieldIdsByRole;
+}
 
 
 /* ===== Firestore integration (v8) ===== */
@@ -265,6 +328,7 @@ function applySignedInUser(user) {
   const email = user.email?.toLowerCase() ?? "";
   resolveRoleFromClaims(user).then(async ({ role, roleDetails: details }) => {
     currentRole = role; roleDetails = details;
+    await loadEditableFieldPolicy(role);
     localStorage.setItem(STORAGE_KEYS.session, JSON.stringify({ email, displayName: user.displayName ?? email, uid: user.uid, role, roleDetails }));
     text("user-email", email); text("role-badge", role);
     setHidden($("login-form"), true); setHidden($("user-info"), false); applyRoleVisibility(role); setSecureUiAccess(true);
@@ -274,6 +338,7 @@ function applySignedInUser(user) {
 }
 function applySignedOut() {
   currentUser = null; currentRole = "Usuario"; roleDetails = { hanIds: [], sector: "", city: "", subregionIds: [], cityIds: [], sectorIds: [] };
+  editableFieldIdsByRole = new Set();
   text("user-email", ""); text("role-badge", "");
   setHidden($("login-form"), false); setHidden($("user-info"), true); applyRoleVisibility("Usuario"); setSecureUiAccess(false);
   localStorage.removeItem(STORAGE_KEYS.session);
@@ -291,6 +356,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     text("user-email", s.email); text("role-badge", s.role);
     setHidden($("login-form"), true); setHidden($("user-info"), false);
     applyRoleVisibility(s.role); setSecureUiAccess(true); currentRole = s.role; roleDetails = s.roleDetails ?? roleDetails;
+    await loadEditableFieldPolicy(s.role);
   }
 
   // Login button (popup/redirect según navegador)
@@ -317,14 +383,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(false); renderPersonas(); $("firstName")?.focus();
   });
   // Limpiar form
-  $("personaClearBtn")?.addEventListener("click", () => { editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(!(currentRole === "Admin")); renderPersonas(); });
+  $("personaClearBtn")?.addEventListener("click", () => { editPersonaId = null; clearDatosPersonales(); toggleDatosPersonalesReadonly(false); renderPersonas(); });
   $("personaDeleteBtn")?.addEventListener("click", () => {
     if (!editPersonaId) return alert("Seleccioná una persona de la grilla para eliminar.");
     const deletingId = editPersonaId;
     onDeletePersona(deletingId);
     editPersonaId = null;
     clearDatosPersonales();
-    toggleDatosPersonalesReadonly(!(currentRole === "Admin"));
+    toggleDatosPersonalesReadonly(false);
     renderPersonas();
   });
 
@@ -393,15 +459,21 @@ function clearDatosPersonales() {
   $("comentarios")?.value && ($("comentarios").value = "");
 }
 function toggleDatosPersonalesReadonly(readonly) {
-  const fields = ["firstName","lastName","birthDate","address","city","phone","phoneFixed","email","status","division","nivelExamen","fechaIngreso","cargo","gohonzo","hanSelect","grupoSelect","frecuenciaSemanal","frecuenciaZadankai","suscriptoHumanismoSoka","realizaZaimu","comentarios"];
-  fields.forEach(id => { const el = $(id); if (!el) return; el.disabled = !!readonly; });
+  PERSONA_FORM_FIELD_IDS.forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.disabled = !!readonly || !editableFieldIdsByRole.has(id);
+  });
+
+  const saveBtn = document.querySelector('#miPerfilForm button[type="submit"]');
+  if (saveBtn) saveBtn.disabled = !!readonly || editableFieldIdsByRole.size === 0;
 }
 function loadMiPerfil(uid, email) {
   const emailInput = $("email"); if (!emailInput) return; // Guard: Home no tiene este input
   emailInput.value = email;
   const p = personas.find(x => (x.uid && x.uid === uid) || x.email === email);
   if (p) { editPersonaId = p.id; populateDatosPersonales(p, { readonly: false }); }
-  else { editPersonaId = null; toggleDatosPersonalesReadonly(!(currentRole === "Admin")); }
+  else { editPersonaId = null; toggleDatosPersonalesReadonly(false); }
 }
 
 $("miPerfilForm")?.addEventListener("submit", (e) => {
