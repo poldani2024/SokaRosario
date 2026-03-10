@@ -275,6 +275,26 @@ body.page-personas .heatmap-map {
   }
 }
 
+/* Reportes */
+body .report-layer-controls label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+body .report-layer-controls input[type="checkbox"] {
+  width: auto;
+}
+
+body .report-map {
+  width: 100%;
+  height: clamp(320px, 52vh, 620px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
 
 /* Personas table fit-to-screen override: evita que sobrepase ancho visible */
 body.page-personas #personas-panel .table-wrap {
