@@ -6,6 +6,7 @@
   <title>Personas — Soka Gakkai Tracker</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles.mobile.v3.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 </head>
 <body class="page-personas">
   <header>
@@ -90,6 +91,16 @@
         <button id="exportCSVBtn" class="secondary">Exportar CSV (filtrado)</button>
         <button id="newPersonaBtn" class="admin-only">Nueva persona</button>
       </div>
+
+      <section class="panel secondary heatmap-panel">
+        <h3>Mapa de hanes y personas</h3>
+        <p class="muted">Los Hanes se muestran por domicilio/localidad y su tamaño indica cantidad de miembros. El calor representa concentración de personas por localidad.</p>
+        <div class="actions">
+          <button id="refreshHeatmapBtn" type="button" class="secondary">Actualizar mapa</button>
+          <span id="heatmapStatus" class="muted"></span>
+        </div>
+        <div id="personasHeatMap" class="heatmap-map" aria-label="Mapa de calor de personas y hanes"></div>
+      </section>
 
       <div class="table-wrap"><table id="personasTable">
         <thead>
@@ -252,6 +263,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <!-- Init manual -->
   <script src="firebase.js"></script>
   <!-- Header común (opcional) -->
