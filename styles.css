@@ -245,6 +245,16 @@ body.page-personas .heatmap-panel {
   margin: 12px 0;
 }
 
+body.page-personas .report-layer-controls label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+body.page-personas .report-layer-controls input[type="checkbox"] {
+  width: auto;
+}
+
 body.page-personas .heatmap-map {
   width: 100%;
   height: clamp(300px, 45vh, 520px);
