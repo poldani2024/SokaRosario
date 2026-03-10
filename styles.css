@@ -241,6 +241,19 @@ body.page-personas #personasTable tbody tr.is-selected {
   background: rgba(31, 122, 140, 0.16);
 }
 
+body.page-personas .heatmap-panel {
+  margin: 12px 0;
+}
+
+body.page-personas .heatmap-map {
+  width: 100%;
+  height: clamp(300px, 45vh, 520px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
 @media (max-width: 900px) {
   body.page-personas #personas-panel .table-wrap {
     height: clamp(240px, 46vh, 420px);
