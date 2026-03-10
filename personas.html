@@ -6,6 +6,7 @@
   <title>Personas — Soka Gakkai Tracker</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="styles.mobile.v3.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 </head>
 <body class="page-personas">
   <header>
@@ -15,6 +16,7 @@
       <a href="visitas.html">Visitas</a>
       <a href="hanes.html">Hanes</a>
       <a href="grupos.html">Grupos</a>
+      <a href="#reportes-panel">Reportes</a>
     </nav>
 
     <div id="auth">
@@ -244,6 +246,32 @@
         </div>
       </form>
     </section>
+
+    <section id="reportes-panel" class="panel">
+      <h2>Reportes</h2>
+      <div class="grid">
+        <label>Reporte
+          <select id="reportTypeSelect">
+            <option value="geoMap">Mapa geográfico de Hanes y miembros</option>
+          </select>
+        </label>
+        <label>Filtrar por ciudad
+          <select id="reportCityFilter"></select>
+        </label>
+        <label>Filtrar por Han
+          <select id="reportHanFilter"></select>
+        </label>
+      </div>
+
+      <div class="actions report-layer-controls">
+        <label><input id="reportShowHanes" type="checkbox" checked /> Mostrar Hanes</label>
+        <label><input id="reportShowPersonas" type="checkbox" checked /> Mostrar miembros (calor)</label>
+        <button id="refreshHeatmapBtn" type="button" class="secondary">Actualizar mapa</button>
+        <span id="heatmapStatus" class="muted"></span>
+      </div>
+
+      <div id="personasHeatMap" class="heatmap-map" aria-label="Mapa de calor de personas y hanes"></div>
+    </section>
   </main>
 
   <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
@@ -252,6 +280,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
   <!-- Init manual -->
   <script src="firebase.js"></script>
   <!-- Header común (opcional) -->

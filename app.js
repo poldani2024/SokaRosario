@@ -57,7 +57,8 @@ const STORAGE_KEYS = {
   personas: "soka_personas",
   visitas: "soka_visitas",
   localidades: "soka_localidades",
-  session: "soka_session"
+  session: "soka_session",
+  geocache: "soka_geocache"
 };
 
 const $ = (id) => document.getElementById(id);
@@ -97,6 +98,12 @@ let editableFieldIdsByRole = new Set(PERSONA_FORM_FIELD_IDS);
 let visibleFieldIdsByRole = new Set(PERSONA_FORM_FIELD_IDS);
 let roleDocUnsubscribe = null;
 let fieldPolicyUnsubscribe = null;
+let geoCache = {};
+let personasHeatMap = null;
+let personasHeatLayer = null;
+let hanesLayer = null;
+let heatmapRenderTimer = null;
+let heatmapRenderToken = 0;
 
 /* ===== Roles & gating ===== */
 function toArr(v) { return Array.isArray(v) ? v.map(x => String(x).trim()).filter(Boolean) : []; }
@@ -470,6 +477,7 @@ function loadData() {
   personas = JSON.parse(localStorage.getItem(STORAGE_KEYS.personas) ?? "[]");
   visitas  = JSON.parse(localStorage.getItem(STORAGE_KEYS.visitas)  ?? "[]");
   localidades = JSON.parse(localStorage.getItem(STORAGE_KEYS.localidades) ?? "[]");
+  geoCache = JSON.parse(localStorage.getItem(STORAGE_KEYS.geocache) ?? "{}");
 }
 function saveData() {
   localStorage.setItem(STORAGE_KEYS.hanes,    JSON.stringify(hanes));
@@ -477,6 +485,7 @@ function saveData() {
   localStorage.setItem(STORAGE_KEYS.personas, JSON.stringify(personas));
   localStorage.setItem(STORAGE_KEYS.visitas,  JSON.stringify(visitas));
   localStorage.setItem(STORAGE_KEYS.localidades, JSON.stringify(localidades));
+  localStorage.setItem(STORAGE_KEYS.geocache, JSON.stringify(geoCache || {}));
 }
 
 /* ===== Normalización SIN seeds ===== */
@@ -601,6 +610,7 @@ auth.onAuthStateChanged((user) => { if (user) applySignedInUser(user); else appl
 /* ===== Init ===== */
 document.addEventListener("DOMContentLoaded", async () => {
   loadData(); ensureSeedData();
+  initHeatMap();
   renderCatalogsToSelects(); renderPersonas(); renderVisitas();
   setSecureUiAccess(!!auth.currentUser);
 
@@ -648,6 +658,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggleDatosPersonalesReadonly(false);
     renderPersonas();
   });
+  $("refreshHeatmapBtn")?.addEventListener("click", () => renderHeatMap(true));
+  ["reportTypeSelect","reportCityFilter","reportHanFilter","reportShowHanes","reportShowPersonas"]
+    .forEach((id) => $(id)?.addEventListener("input", () => renderHeatMap(true)));
 
   // === EVENT DELEGATION en tbody de Personas ===
   const tbodyPersonas = $("personasTable")?.querySelector("tbody");
@@ -672,6 +685,8 @@ function renderCatalogsToSelects() {
   const selGrupo  = $("grupoSelect");
   const filHan    = $("filtroHan");
   const filGrupo  = $("filtroGrupo");
+  const reportCity = $("reportCityFilter");
+  const reportHan = $("reportHanFilter");
   const hanLoc    = $("hanLocalidad");
   const citySel   = $("city");
 
@@ -684,6 +699,16 @@ function renderCatalogsToSelects() {
   const locItems = Array.from(locSet).sort((a,b)=>a.localeCompare(b,'es')).map(x => ({ id:x, name:x }));
   if (citySel) fillSelect(citySel, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
   if (hanLoc) fillSelect(hanLoc, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
+  if (reportCity) {
+    const prev = reportCity.value || '';
+    fillSelect(reportCity, [{ id:'', name:'Todas las ciudades' }, ...locItems], 'id', 'name', false);
+    reportCity.value = prev;
+  }
+  if (reportHan) {
+    const prev = reportHan.value || '';
+    fillSelect(reportHan, [{ id:'', name:'Todos los Hanes' }, ...hanes], 'id', 'name', false);
+    reportHan.value = prev;
+  }
 
   if (selHan && hanLoc) {
     selHan.onchange = () => {
@@ -870,6 +895,7 @@ function renderPersonas() {
   const table = $("personasTable"); if (!table) return; const tbody = table.querySelector("tbody"); if (!tbody) return;
   const base = applyFiltersBase(personas); const filtered = filterByRolePersonas(base);
   renderEmptyStatePersonas(filtered);
+  scheduleHeatMapRender(filtered);
   tbody.innerHTML = "";
   filtered.forEach(p => {
     const tr = document.createElement("tr"); tr.dataset.id = p.id;
@@ -891,6 +917,160 @@ function renderPersonas() {
   // llenar select de visitas si existe en esta página
   const visitaSel = $("visitaPersonaSelect");
   if (visitaSel) { const items = personas.map(p => ({ id:p.id, name:`${p.lastName ?? ""}, ${p.firstName ?? ""}` })); fillSelect(visitaSel, items, "id","name", true); }
+}
+
+function initHeatMap() {
+  const el = $("personasHeatMap");
+  if (!el || !window.L) return;
+  if (personasHeatMap) return;
+
+  personasHeatMap = L.map(el).setView([-34.61, -58.38], 10);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(personasHeatMap);
+
+  hanesLayer = L.layerGroup().addTo(personasHeatMap);
+}
+
+function setHeatmapStatus(msg) {
+  const status = $("heatmapStatus");
+  if (status) status.textContent = msg;
+}
+
+function getReportFilters() {
+  return {
+    reportType: $("reportTypeSelect")?.value || 'geoMap',
+    city: $("reportCityFilter")?.value || '',
+    hanId: $("reportHanFilter")?.value || '',
+    showHanes: $("reportShowHanes")?.checked !== false,
+    showPersonas: $("reportShowPersonas")?.checked !== false
+  };
+}
+
+function scheduleHeatMapRender(filtered) {
+  if (!$("personasHeatMap")) return;
+  if (heatmapRenderTimer) clearTimeout(heatmapRenderTimer);
+  heatmapRenderTimer = setTimeout(() => { renderHeatMap(false, filtered); }, 400);
+}
+
+function cityColor(city) {
+  const colors = ['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b','#e377c2','#17becf'];
+  const key = normalizeTextKey(city || 'sin-ciudad');
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash) + key.charCodeAt(i);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function membersByHan(visiblePersonas) {
+  const map = new Map();
+  (visiblePersonas || []).forEach((p) => {
+    const hanId = p.hanId || '';
+    if (!hanId) return;
+    map.set(hanId, (map.get(hanId) || 0) + 1);
+  });
+  return map;
+}
+
+async function geocodeWithCache(query, fallbackCity = '') {
+  const q = String(query || '').trim();
+  if (!q) return null;
+  const key = normalizeTextKey(q);
+  if (geoCache[key]?.lat && geoCache[key]?.lng) return geoCache[key];
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const data = await resp.json();
+    if (Array.isArray(data) && data[0]?.lat && data[0]?.lon) {
+      const value = { lat: Number(data[0].lat), lng: Number(data[0].lon), query: q, updatedAt: Date.now() };
+      geoCache[key] = value;
+      saveData();
+      return value;
+    }
+  } catch (err) {
+    console.warn('[heatmap] geocoding falló', q, err?.message || err);
+  }
+
+  if (fallbackCity && fallbackCity !== q) return geocodeWithCache(fallbackCity, '');
+  return null;
+}
+
+async function renderHeatMap(force = false, preFiltered = null) {
+  initHeatMap();
+  if (!personasHeatMap || !hanesLayer) return;
+
+  const token = ++heatmapRenderToken;
+  const visiblePersonasRaw = Array.isArray(preFiltered) ? preFiltered : filterByRolePersonas(applyFiltersBase(personas));
+  const filters = getReportFilters();
+  if (filters.reportType !== 'geoMap') return;
+  const visiblePersonas = (visiblePersonasRaw || []).filter((p) => {
+    if (filters.city && (p.city || p.hanCity || '') !== filters.city) return false;
+    if (filters.hanId && (p.hanId || '') !== filters.hanId) return false;
+    return true;
+  });
+  setHeatmapStatus('Actualizando mapa...');
+
+  const members = membersByHan(visiblePersonas);
+  const candidateHanes = (hanes || []).filter((h) => {
+    if (filters.hanId && h.id !== filters.hanId) return false;
+    if (filters.city && (h.city || '') !== filters.city) return false;
+    return true;
+  });
+  const hanPoints = [];
+  for (const han of candidateHanes) {
+    const count = members.get(han.id) || 0;
+    const query = [han.address, han.city, 'Argentina'].filter(Boolean).join(', ');
+    const coords = await geocodeWithCache(query, `${han.city || ''}, Argentina`);
+    if (token !== heatmapRenderToken) return;
+    if (coords) {
+      hanPoints.push({ han, count, lat: coords.lat, lng: coords.lng });
+    }
+  }
+
+  const cityCounter = new Map();
+  visiblePersonas.forEach((p) => {
+    const city = (p.city || p.hanCity || '').trim();
+    if (!city) return;
+    cityCounter.set(city, (cityCounter.get(city) || 0) + 1);
+  });
+
+  const heatPoints = [];
+  for (const [city, count] of cityCounter.entries()) {
+    const coords = await geocodeWithCache(`${city}, Argentina`, city);
+    if (token !== heatmapRenderToken) return;
+    if (coords) heatPoints.push([coords.lat, coords.lng, Math.min(1, count / 10)]);
+  }
+
+  if (token !== heatmapRenderToken) return;
+  hanesLayer.clearLayers();
+  if (filters.showHanes) {
+    hanPoints.forEach(({ han, count, lat, lng }) => {
+      const radius = 6 + (Math.sqrt(Math.max(1, count)) * 4);
+      const marker = L.circleMarker([lat, lng], {
+        radius,
+        color: cityColor(han.city),
+        fillColor: cityColor(han.city),
+        fillOpacity: 0.48,
+        weight: 2
+      }).bindPopup(`<strong>${escapeHtml(han.name || 'Han')}</strong><br/>${escapeHtml(han.address || '-')}, ${escapeHtml(han.city || '-')}
+        <br/>Miembros: <strong>${count}</strong>`);
+      marker.addTo(hanesLayer);
+    });
+  }
+
+  if (personasHeatLayer) personasHeatMap.removeLayer(personasHeatLayer);
+  if (filters.showPersonas && window.L.heatLayer) {
+    personasHeatLayer = L.heatLayer(heatPoints, { radius: 28, blur: 24, maxZoom: 13 }).addTo(personasHeatMap);
+  }
+
+  const bounds = [];
+  hanPoints.forEach((p) => bounds.push([p.lat, p.lng]));
+  heatPoints.forEach((p) => bounds.push([p[0], p[1]]));
+  if (bounds.length) personasHeatMap.fitBounds(bounds, { padding: [24, 24] });
+
+  const missingHanes = candidateHanes.length - hanPoints.length;
+  const missingText = missingHanes > 0 ? ` · ${missingHanes} Han(es) sin geocodificar` : '';
+  setHeatmapStatus(`Hanes visibles: ${hanPoints.length} · Localidades de personas: ${heatPoints.length}${missingText}`);
 }
 
 /* ===== Eliminar persona ===== */
