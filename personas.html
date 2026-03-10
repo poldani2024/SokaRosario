@@ -93,6 +93,16 @@
         <button id="newPersonaBtn" class="admin-only">Nueva persona</button>
       </div>
 
+      <section class="panel secondary heatmap-panel">
+        <h3>Mapa de hanes y personas</h3>
+        <p class="muted">Los Hanes se muestran por domicilio/localidad y su tamaño indica cantidad de miembros. El calor representa concentración de personas por localidad.</p>
+        <div class="actions">
+          <button id="refreshHeatmapBtn" type="button" class="secondary">Actualizar mapa</button>
+          <span id="heatmapStatus" class="muted"></span>
+        </div>
+        <div id="personasHeatMap" class="heatmap-map" aria-label="Mapa de calor de personas y hanes"></div>
+      </section>
+
       <div class="table-wrap"><table id="personasTable">
         <thead>
           <tr>
