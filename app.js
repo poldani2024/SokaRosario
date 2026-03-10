@@ -699,17 +699,6 @@ function renderCatalogsToSelects() {
   const locItems = Array.from(locSet).sort((a,b)=>a.localeCompare(b,'es')).map(x => ({ id:x, name:x }));
   if (citySel) fillSelect(citySel, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
   if (hanLoc) fillSelect(hanLoc, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
-  if (reportCity) {
-    const prev = reportCity.value || '';
-    fillSelect(reportCity, [{ id:'', name:'Todas las ciudades' }, ...locItems], 'id', 'name', false);
-    reportCity.value = prev;
-  }
-  if (reportHan) {
-    const prev = reportHan.value || '';
-    fillSelect(reportHan, [{ id:'', name:'Todos los Hanes' }, ...hanes], 'id', 'name', false);
-    reportHan.value = prev;
-  }
-
   if (selHan && hanLoc) {
     selHan.onchange = () => {
       const h = hanes.find(x => x.id === selHan.value);
