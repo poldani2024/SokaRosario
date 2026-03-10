@@ -684,7 +684,6 @@ function renderCatalogsToSelects() {
   const locItems = Array.from(locSet).sort((a,b)=>a.localeCompare(b,'es')).map(x => ({ id:x, name:x }));
   if (citySel) fillSelect(citySel, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
   if (hanLoc) fillSelect(hanLoc, [{ id:'', name:'Seleccionar...' }, ...locItems], 'id', 'name', false);
-
   if (selHan && hanLoc) {
     selHan.onchange = () => {
       const h = hanes.find(x => x.id === selHan.value);

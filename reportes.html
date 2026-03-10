@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reportes — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.mobile.v3.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+</head>
+<body>
+  <header>
+    <h1>Reportes</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="personas.html">Personas</a>
+      <a href="visitas.html">Visitas</a>
+      <a href="hanes.html">Hanes</a>
+      <a href="grupos.html">Grupos</a>
+    </nav>
+    <div id="auth">
+      <div id="login-form">
+        <span>Necesitás iniciar sesión con Google para acceder.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h2>Listado de reportes</h2>
+      <p class="muted">Seleccioná un reporte para ver su detalle. Esta sección queda preparada para sumar nuevos reportes.</p>
+
+      <div class="grid card">
+        <label>Reporte
+          <select id="reportTypeSelect">
+            <option value="geo">Mapa geográfico de Hanes y Personas</option>
+          </select>
+        </label>
+        <label>Ciudad
+          <select id="reportCityFilter"></select>
+        </label>
+        <label>Han
+          <select id="reportHanFilter"></select>
+        </label>
+      </div>
+
+      <div class="actions report-layer-controls">
+        <label><input id="reportShowHanes" type="checkbox" checked /> Mostrar Hanes</label>
+        <label><input id="reportShowPersonas" type="checkbox" checked /> Mostrar miembros (calor)</label>
+        <button id="refreshReportBtn" type="button" class="secondary">Actualizar reporte</button>
+        <span id="reportStatus" class="muted"></span>
+      </div>
+
+      <div id="reportesMap" class="report-map" aria-label="Mapa de reporte geográfico"></div>
+    </section>
+  </main>
+
+  <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script src="firebase.js"></script>
+  <script src="auth-ui.js"></script>
+  <script src="reportes.js"></script>
+</body>
+</html>
