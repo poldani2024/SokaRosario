@@ -1,6 +1,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const ROLES = ['Responsable', 'Vice-Responsable'];
+  const ADMIN_EMAILS = new Set(['pedro.l.oldani@gmail.com', 'pedro.loldani@gmail.com']);
   const LS_KEY = 'soka_permisos_piramidales_v1';
 
   const state = {
@@ -379,12 +380,31 @@
 
   async function resolveRole(user) {
     if (!user) return 'Usuario';
+    const email = String(user.email || '').toLowerCase();
+
     try {
-      const token = await user.getIdTokenResult();
+      const token = await user.getIdTokenResult(true);
       const claimRole = String(token?.claims?.role || '').trim();
       if (claimRole) return claimRole;
     } catch {}
-    return 'Usuario';
+
+    try {
+      if (window.db) {
+        const snap = await db.collection('roles').doc(user.uid).get();
+        if (snap.exists) {
+          const docRole = String(snap.data()?.role || '').trim();
+          if (docRole) return docRole;
+        }
+      }
+    } catch {}
+
+    try {
+      const sess = JSON.parse(localStorage.getItem('soka_session') || 'null');
+      const sessionRole = String(sess?.role || '').trim();
+      if (sessionRole) return sessionRole;
+    } catch {}
+
+    return ADMIN_EMAILS.has(email) ? 'Admin' : 'Usuario';
   }
 
   async function init() {
@@ -405,6 +425,8 @@
       }
 
       state.role = await resolveRole(user);
+      const roleBadge = $('role-badge');
+      if (roleBadge) roleBadge.textContent = state.role;
       const isAdmin = state.role === 'Admin';
       if (!isAdmin) {
         $('guardMsg').textContent = `Acceso denegado para rol ${state.role}. Solo Admin puede gestionar esta pantalla.`;
