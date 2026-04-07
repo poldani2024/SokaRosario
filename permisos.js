@@ -1,6 +1,33 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const ROLES = ['Responsable', 'Vice-Responsable'];
+  const PERSONA_FIELDS = [
+    { key: 'firstName', label: 'Nombre' },
+    { key: 'lastName', label: 'Apellido' },
+    { key: 'birthDate', label: 'Fecha de Nacimiento' },
+    { key: 'address', label: 'Domicilio' },
+    { key: 'city', label: 'Localidad' },
+    { key: 'phone', label: 'Teléfono' },
+    { key: 'phoneFixed', label: 'Teléfono fijo' },
+    { key: 'email', label: 'Email' },
+    { key: 'status', label: 'Estado' },
+    { key: 'division', label: 'División' },
+    { key: 'nivelExamen', label: 'Nivel de examen' },
+    { key: 'fechaIngreso', label: 'Fecha de ingreso' },
+    { key: 'cargo', label: 'Cargo' },
+    { key: 'gohonzo', label: 'Gohonzon' },
+    { key: 'hanId', label: 'Han (ID)' },
+    { key: 'hanName', label: 'Han (Nombre)' },
+    { key: 'hanCity', label: 'Han (Localidad)' },
+    { key: 'hanSector', label: 'Han (Sector)' },
+    { key: 'grupoId', label: 'Grupo (ID)' },
+    { key: 'grupoName', label: 'Grupo (Nombre)' },
+    { key: 'frecuenciaSemanal', label: 'Reuniones semanales' },
+    { key: 'frecuenciaZadankai', label: 'Zadankai' },
+    { key: 'suscriptoHumanismoSoka', label: 'Suscripto a Humanismo Soka' },
+    { key: 'realizaZaimu', label: 'Realiza Zaimu' },
+    { key: 'comentarios', label: 'Comentarios' },
+  ];
   const ADMIN_EMAILS = new Set(['pedro.l.oldani@gmail.com', 'pedro.loldani@gmail.com']);
   const LS_KEY = 'soka_permisos_piramidales_v1';
 
@@ -250,6 +277,32 @@
     return sel;
   }
 
+  function policyFieldSelect(value, onChange) {
+    const sel = document.createElement('select');
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Seleccionar campo';
+    sel.appendChild(placeholder);
+
+    PERSONA_FIELDS.forEach((field) => {
+      const opt = document.createElement('option');
+      opt.value = field.key;
+      opt.textContent = field.label;
+      sel.appendChild(opt);
+    });
+
+    const valueExists = PERSONA_FIELDS.some((f) => f.key === value);
+    if (value && !valueExists) {
+      const legacyOpt = document.createElement('option');
+      legacyOpt.value = value;
+      legacyOpt.textContent = `${value} (existente)`;
+      sel.appendChild(legacyOpt);
+    }
+    sel.value = value || '';
+    sel.addEventListener('change', onChange);
+    return sel;
+  }
+
   function renderPolicies() {
     const node = currentNode();
     const tbody = $('policyTable').querySelector('tbody');
@@ -259,11 +312,7 @@
       const tr = document.createElement('tr');
 
       const tdField = document.createElement('td');
-      const fieldInput = document.createElement('input');
-      fieldInput.value = p.field || '';
-      fieldInput.placeholder = 'ej: telefono';
-      fieldInput.addEventListener('input', (e) => { p.field = e.target.value; });
-      tdField.appendChild(fieldInput);
+      tdField.appendChild(policyFieldSelect(p.field, (e) => { p.field = e.target.value; }));
 
       const tdRes = document.createElement('td');
       tdRes.appendChild(policyPermissionSelect(p.responsable, (e) => { p.responsable = e.target.value; }));
