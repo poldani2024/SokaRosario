@@ -40,7 +40,7 @@
     selectedId: 'root',
     memberUi: {
       selectedIndex: -1,
-      mode: 'idle', // idle | editing | deleting
+      mode: 'idle', // idle | adding | editing | deleting
     },
   };
 
@@ -214,6 +214,11 @@
       return;
     }
 
+<<<<<<< codex/create-wireframe-for-hierarchical-permissions-system-ggo49r
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'member-table-wrap';
+=======
+>>>>>>> main
     const table = document.createElement('table');
     table.className = 'member-table';
 
@@ -239,24 +244,49 @@
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
+<<<<<<< codex/create-wireframe-for-hierarchical-permissions-system-ggo49r
+    tableWrap.appendChild(table);
+    host.appendChild(tableWrap);
+=======
     host.appendChild(table);
+>>>>>>> main
     renderMemberMode();
   }
 
   function renderMemberMode() {
     const modeMsg = $('memberModeMsg');
     if (!modeMsg) return;
+<<<<<<< codex/create-wireframe-for-hierarchical-permissions-system-ggo49r
+    if (state.memberUi.mode === 'adding') {
+      modeMsg.textContent = 'Modo nuevo: seleccioná persona/rol y confirmá o cancelá.';
+    } else if (state.memberUi.mode === 'editing') {
+=======
     if (state.memberUi.mode === 'editing') {
+>>>>>>> main
       modeMsg.textContent = 'Modo modificación: editá persona/rol y confirmá o cancelá.';
     } else if (state.memberUi.mode === 'deleting') {
       modeMsg.textContent = 'Modo eliminación: confirmá para quitar la línea seleccionada o cancelá.';
     } else {
       modeMsg.textContent = 'Seleccioná una fila para modificar o eliminar.';
     }
+<<<<<<< codex/create-wireframe-for-hierarchical-permissions-system-ggo49r
+    const addBtn = $('addMemberBtn');
+    const editBtn = $('editMemberBtn');
+    const deleteBtn = $('deleteMemberBtn');
+    const confirmBtn = $('confirmMemberBtn');
+    const cancelBtn = $('cancelMemberBtn');
+    const inAction = state.memberUi.mode !== 'idle';
+    addBtn?.classList.toggle('hidden', inAction);
+    editBtn?.classList.toggle('hidden', inAction);
+    deleteBtn?.classList.toggle('hidden', inAction);
+    confirmBtn?.classList.toggle('hidden', !inAction);
+    cancelBtn?.classList.toggle('hidden', !inAction);
+=======
     const confirmBtn = $('confirmMemberBtn');
     const cancelBtn = $('cancelMemberBtn');
     confirmBtn?.classList.toggle('hidden', state.memberUi.mode === 'idle');
     cancelBtn?.classList.toggle('hidden', state.memberUi.mode === 'idle');
+>>>>>>> main
   }
 
   function policyPermissionSelect(value, onChange) {
@@ -430,6 +460,11 @@
     };
   }
 
+<<<<<<< codex/create-wireframe-for-hierarchical-permissions-system-ggo49r
+  function beginAddMember() {
+    state.memberUi.mode = 'adding';
+    renderMemberMode();
+=======
   function addMember() {
     const node = currentNode();
     const member = buildMemberFromSelection();
@@ -446,6 +481,7 @@
     state.memberUi.mode = 'idle';
     persistLocal();
     renderMembers();
+>>>>>>> main
   }
 
   function beginEditMember() {
@@ -484,17 +520,46 @@
   function confirmMemberAction() {
     const node = currentNode();
     const idx = state.memberUi.selectedIndex;
+<<<<<<< codex/create-wireframe-for-hierarchical-permissions-system-ggo49r
+    if (state.memberUi.mode === 'adding') {
+      const member = buildMemberFromSelection();
+      if (!member) return;
+      const exists = node.members.some((m) => m.personId === member.personId && m.role === member.role);
+      if (exists) {
+        alert('Esa persona ya está asignada con ese rol en este nodo.');
+        return;
+      }
+      node.members.push(member);
+      state.memberUi.selectedIndex = node.members.length - 1;
+    } else if (state.memberUi.mode === 'editing') {
+      if (idx < 0 || idx >= node.members.length) {
+        alert('Seleccioná una línea válida.');
+        return;
+      }
+=======
     if (idx < 0 || idx >= node.members.length) {
       alert('Seleccioná una línea válida.');
       return;
     }
     if (state.memberUi.mode === 'editing') {
+>>>>>>> main
       const member = buildMemberFromSelection();
       if (!member) return;
       node.members[idx] = member;
     } else if (state.memberUi.mode === 'deleting') {
+<<<<<<< codex/create-wireframe-for-hierarchical-permissions-system-ggo49r
+      if (idx < 0 || idx >= node.members.length) {
+        alert('Seleccioná una línea válida.');
+        return;
+      }
       node.members.splice(idx, 1);
       state.memberUi.selectedIndex = Math.min(idx, node.members.length - 1);
+    } else {
+      return;
+=======
+      node.members.splice(idx, 1);
+      state.memberUi.selectedIndex = Math.min(idx, node.members.length - 1);
+>>>>>>> main
     }
     state.memberUi.mode = 'idle';
     persistLocal();
@@ -511,7 +576,11 @@
       renderPersonas();
     });
 
+<<<<<<< codex/create-wireframe-for-hierarchical-permissions-system-ggo49r
+    $('addMemberBtn').addEventListener('click', beginAddMember);
+=======
     $('addMemberBtn').addEventListener('click', addMember);
+>>>>>>> main
     $('editMemberBtn').addEventListener('click', beginEditMember);
     $('deleteMemberBtn').addEventListener('click', beginDeleteMember);
     $('confirmMemberBtn').addEventListener('click', confirmMemberAction);
