@@ -44,6 +44,9 @@
     .member-table-wrap {
       margin-top: 8px;
       max-height: 190px;
+    .member-table-wrap {
+      margin-top: 8px;
+      max-height: 215px;
       overflow: auto;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -65,6 +68,8 @@
     @media (max-width: 900px) {
       .member-actions { flex-wrap: wrap; }
     }
+    .member-actions button { flex: 1; min-width: 130px; width: auto; }
+
     .matrix-table td select, .matrix-table td input { width: 100%; }
     @media (max-width: 1000px) {
       .layout-permisos { grid-template-columns: 1fr; }

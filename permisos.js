@@ -216,6 +216,9 @@
 
     const tableWrap = document.createElement('div');
     tableWrap.className = 'member-table-wrap';
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'member-table-wrap';
+
     const table = document.createElement('table');
     table.className = 'member-table';
 
@@ -243,6 +246,9 @@
     table.appendChild(tbody);
     tableWrap.appendChild(table);
     host.appendChild(tableWrap);
+    tableWrap.appendChild(table);
+    host.appendChild(tableWrap);
+
     renderMemberMode();
   }
 
@@ -252,6 +258,10 @@
     if (state.memberUi.mode === 'adding') {
       modeMsg.textContent = 'Modo nuevo: seleccioná persona/rol y confirmá o cancelá.';
     } else if (state.memberUi.mode === 'editing') {
+    if (state.memberUi.mode === 'adding') {
+      modeMsg.textContent = 'Modo nuevo: seleccioná persona/rol y confirmá o cancelá.';
+    } else if (state.memberUi.mode === 'editing') {
+
       modeMsg.textContent = 'Modo modificación: editá persona/rol y confirmá o cancelá.';
     } else if (state.memberUi.mode === 'deleting') {
       modeMsg.textContent = 'Modo eliminación: confirmá para quitar la línea seleccionada o cancelá.';
@@ -269,6 +279,7 @@
     deleteBtn?.classList.toggle('hidden', inAction);
     confirmBtn?.classList.toggle('hidden', !inAction);
     cancelBtn?.classList.toggle('hidden', !inAction);
+
   }
 
   function policyPermissionSelect(value, onChange) {
@@ -445,6 +456,10 @@
   function beginAddMember() {
     state.memberUi.mode = 'adding';
     renderMemberMode();
+  function beginAddMember() {
+    state.memberUi.mode = 'adding';
+    renderMemberMode();
+
   }
 
   function beginEditMember() {
@@ -498,6 +513,7 @@
         alert('Seleccioná una línea válida.');
         return;
       }
+
       const member = buildMemberFromSelection();
       if (!member) return;
       node.members[idx] = member;
@@ -510,6 +526,7 @@
       state.memberUi.selectedIndex = Math.min(idx, node.members.length - 1);
     } else {
       return;
+
     }
     state.memberUi.mode = 'idle';
     persistLocal();
@@ -527,6 +544,8 @@
     });
 
     $('addMemberBtn').addEventListener('click', beginAddMember);
+    $('addMemberBtn').addEventListener('click', beginAddMember);
+
     $('editMemberBtn').addEventListener('click', beginEditMember);
     $('deleteMemberBtn').addEventListener('click', beginDeleteMember);
     $('confirmMemberBtn').addEventListener('click', confirmMemberAction);
