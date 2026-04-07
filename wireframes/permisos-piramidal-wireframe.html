@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wireframe — Gestión de Permisos Piramidal</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --line: #d7dce8;
+      --text: #1e293b;
+      --muted: #5b6478;
+      --primary: #1d4ed8;
+      --accent: #eef2ff;
+      --ok: #14532d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .topbar {
+      background: #0f172a;
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .topbar .badge {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
+      padding: 16px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 15px;
+    }
+    .card-header {
+      border-bottom: 1px solid var(--line);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .card-body { padding: 12px 14px; }
+    .muted { color: var(--muted); font-size: 12px; }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-size: 12px;
+      border-radius: 8px;
+      padding: 7px 10px;
+      cursor: default;
+      white-space: nowrap;
+    }
+    .btn.primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .search {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      background: #fff;
+    }
+
+    .tree {
+      border: 1px dashed #c5cedf;
+      border-radius: 10px;
+      padding: 10px;
+      background: #fbfcff;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .tree ul {
+      list-style: none;
+      margin: 0;
+      padding-left: 16px;
+      border-left: 1px solid #d4dcee;
+    }
+    .tree li { margin: 4px 0; position: relative; }
+    .tree li::before {
+      content: "";
+      position: absolute;
+      left: -16px;
+      top: 12px;
+      width: 12px;
+      border-top: 1px solid #d4dcee;
+    }
+    .node {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #d4dcee;
+      background: #fff;
+      border-radius: 8px;
+      padding: 4px 8px;
+    }
+    .node.active {
+      border-color: #93c5fd;
+      background: var(--accent);
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+    .pill {
+      font-size: 10px;
+      border-radius: 999px;
+      border: 1px solid #cfd7e6;
+      padding: 2px 6px;
+      background: #fff;
+      color: #334155;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .field {
+      margin-bottom: 10px;
+    }
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .input {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      background: #fff;
+    }
+    .input.inline {
+      display: inline-block;
+      min-width: 180px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border-bottom: 1px solid #e7ebf3;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .tag-ok {
+      color: var(--ok);
+      background: #ecfdf3;
+      border: 1px solid #bbf7d0;
+      border-radius: 999px;
+      display: inline-block;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .person-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .person {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: #475569;
+      background: #f8fafc;
+      border-top: 1px solid var(--line);
+      padding: 10px 14px;
+      border-radius: 0 0 12px 12px;
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .row-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Gestión de Permisos — Modelo Piramidal (Wireframe)</h1>
+    <span class="badge">Borrador UX</span>
+  </header>
+
+  <main class="layout">
+    <section class="card">
+      <div class="card-header">
+        <h2>Árbol jerárquico</h2>
+        <button class="btn">+ Crear nivel</button>
+      </div>
+      <div class="card-body">
+        <input class="search" value="Buscar nodo por nombre..." />
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <button class="btn">+ Hijo</button>
+          <button class="btn">Renombrar</button>
+          <button class="btn">Mover</button>
+          <button class="btn">Archivar</button>
+        </div>
+
+        <div class="tree">
+          <div class="node"><strong>🌐 Organización</strong> <span class="pill">Nivel 0</span></div>
+          <ul>
+            <li>
+              <div class="node"><strong>Región Litoral</strong> <span class="pill">Nivel 1</span></div>
+              <ul>
+                <li>
+                  <div class="node active"><strong>Rosario Centro</strong> <span class="pill">Nivel 2</span></div>
+                  <ul>
+                    <li><div class="node">Zona Norte <span class="pill">Nivel 3</span></div></li>
+                    <li><div class="node">Zona Sur <span class="pill">Nivel 3</span></div></li>
+                  </ul>
+                </li>
+                <li><div class="node">Santa Fe Capital <span class="pill">Nivel 2</span></div></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+        <p class="muted" style="margin-top:10px;">Regla visual: un nodo hereda visibilidad hacia abajo (padre puede ver hijos).</p>
+      </div>
+    </section>
+
+    <section class="content">
+      <article class="card">
+        <div class="card-header">
+          <h2>Configuración del nodo seleccionado</h2>
+          <button class="btn primary">Guardar cambios</button>
+        </div>
+        <div class="card-body row-2">
+          <div>
+            <div class="field">
+              <label>Nombre del nodo</label>
+              <div class="input">Rosario Centro</div>
+            </div>
+            <div class="field">
+              <label>Nivel jerárquico</label>
+              <div class="input inline">Nivel 2</div>
+            </div>
+            <div class="field">
+              <label>Nodo padre</label>
+              <div class="input">Región Litoral</div>
+            </div>
+            <div class="field">
+              <label>Visibilidad por jerarquía</label>
+              <div class="input">✅ Este nodo puede ver: Nodo actual + hijos directos e indirectos</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="field">
+              <label>Responsables (rol Responsable)</label>
+              <div style="display:flex; gap:8px;">
+                <div class="input" style="flex:1;">Buscar persona (colección Personas)</div>
+                <button class="btn">+ Asignar</button>
+              </div>
+              <div class="person-list">
+                <div class="person"><span>María Gómez — Responsable</span><button class="btn">Quitar</button></div>
+                <div class="person"><span>Juan Pérez — Responsable</span><button class="btn">Quitar</button></div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Roles habilitados en este nodo</label>
+              <div class="input">Responsable, Colaborador, Consulta</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-header">
+          <h2>Políticas de campos por rol (RBAC)</h2>
+          <div style="display:flex; gap:8px;">
+            <button class="btn">+ Campo</button>
+            <button class="btn">Duplicar política</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr>
+                <th>Campo</th>
+                <th>Responsable</th>
+                <th>Colaborador</th>
+                <th>Consulta</th>
+                <th>Herencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>nombre</td>
+                <td>Ver / Editar</td>
+                <td>Ver / Editar</td>
+                <td>Solo ver</td>
+                <td><span class="tag-ok">Heredado del padre</span></td>
+              </tr>
+              <tr>
+                <td>estado</td>
+                <td>Ver / Editar</td>
+                <td>Solo ver</td>
+                <td>Sin acceso</td>
+                <td>Override local</td>
+              </tr>
+              <tr>
+                <td>notas_internas</td>
+                <td>Ver / Editar</td>
+                <td>Sin acceso</td>
+                <td>Sin acceso</td>
+                <td>Override local</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="footer-note">
+          Sugerencia UX: mostrar siempre qué políticas son heredadas y cuáles fueron sobrescritas en el nodo actual.
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
