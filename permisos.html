@@ -41,15 +41,19 @@
     .inline-tools { display: flex; gap: 8px; flex-wrap: wrap; }
     .mini { font-size: .85rem; color: var(--muted); }
     .member-list { display: grid; gap: 8px; margin-top: 8px; }
-    .member-item {
+    .member-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .member-table th, .member-table td {
       border: 1px solid var(--border);
-      border-radius: 8px;
       padding: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
+      text-align: left;
+      font-size: .95rem;
     }
+    .member-table tr.selected {
+      background: #dbeafe;
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+    .member-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
     .matrix-table td select, .matrix-table td input { width: 100%; }
     @media (max-width: 1000px) {
       .layout-permisos { grid-template-columns: 1fr; }
@@ -112,6 +116,9 @@
 
           <h3 style="margin-top:12px;">Responsables del nodo</h3>
           <div class="grid">
+            <label>Buscar persona
+              <input id="personaSearch" type="text" placeholder="Nombre, apellido o email" />
+            </label>
             <label>Persona (colección Personas)
               <select id="personaSelect"></select>
             </label>
@@ -122,18 +129,14 @@
               </select>
             </label>
           </div>
-          <p class="mini">Si no tenés permiso para leer la colección <code>personas</code>, podés cargar la persona manualmente.</p>
-          <div class="grid">
-            <label>ID persona (manual)
-              <input id="personaManualId" type="text" placeholder="uid o id interno" />
-            </label>
-            <label>Nombre persona (manual)
-              <input id="personaManualName" type="text" placeholder="Nombre Apellido" />
-            </label>
+          <div class="member-actions">
+            <button id="addMemberBtn" type="button">Adicionar</button>
+            <button id="editMemberBtn" type="button" class="secondary">Modificar</button>
+            <button id="deleteMemberBtn" type="button" class="secondary">Eliminar</button>
+            <button id="confirmMemberBtn" type="button" class="secondary hidden">Confirmar</button>
+            <button id="cancelMemberBtn" type="button" class="secondary hidden">Cancelar</button>
           </div>
-          <div class="inline-tools" style="margin-top:8px;">
-            <button id="assignPersonaBtn" type="button">+ Asignar persona</button>
-          </div>
+          <p id="memberModeMsg" class="mini"></p>
           <div id="memberList" class="member-list"></div>
 
           <h3 style="margin-top:12px;">Políticas de campos por rol</h3>

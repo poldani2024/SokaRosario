@@ -7,9 +7,14 @@
   const state = {
     role: 'Usuario',
     personas: [],
+    personaFilter: '',
     nodes: {},
     rootId: 'root',
     selectedId: 'root',
+    memberUi: {
+      selectedIndex: -1,
+      mode: 'idle', // idle | editing | deleting
+    },
   };
 
   function uid() {
@@ -129,20 +134,43 @@
 
   function renderPersonas() {
     const sel = $('personaSelect');
+    const q = String(state.personaFilter || '').toLowerCase().trim();
     sel.innerHTML = '';
-    if (!state.personas.length) {
+    const filtered = state.personas.filter((p) => {
+      if (!q) return true;
+      const text = `${p.name || ''} ${p.email || ''}`.toLowerCase();
+      return text.includes(q);
+    });
+
+    if (!filtered.length) {
       const opt = document.createElement('option');
       opt.value = '';
-      opt.textContent = 'Sin acceso o sin personas cargadas';
+      opt.textContent = state.personas.length ? 'Sin resultados para la búsqueda' : 'Sin acceso o sin personas cargadas';
       sel.appendChild(opt);
       return;
     }
-    state.personas.forEach((p) => {
+    filtered.forEach((p) => {
       const opt = document.createElement('option');
       opt.value = p.id;
       opt.textContent = `${p.name} (${p.email || 'sin email'})`;
       sel.appendChild(opt);
     });
+  }
+
+  function divisionFlags(divisionRaw) {
+    const division = String(divisionRaw || '').toLowerCase();
+    return {
+      ds: division.includes('señor') || division.includes('senor') || division === 'ds',
+      dd: division.includes('dama') || division === 'dd',
+      djm: division.includes('juvenil masculina') || division.includes('joven masculina') || division === 'djm',
+      djs: division.includes('juvenil femenina') || division.includes('joven femenina') || division === 'djs',
+    };
+  }
+
+  function selectedPersona() {
+    const personId = $('personaSelect')?.value;
+    if (!personId) return null;
+    return state.personas.find((p) => p.id === personId) || null;
   }
 
   function renderMembers() {
@@ -155,29 +183,53 @@
       p.className = 'mini';
       p.textContent = 'Todavía no hay personas asignadas a este nodo.';
       host.appendChild(p);
+      renderMemberMode();
       return;
     }
 
-    node.members.forEach((m, idx) => {
-      const div = document.createElement('div');
-      div.className = 'member-item';
-      const label = document.createElement('span');
-      label.textContent = `${m.name} — ${m.role}`;
+    const table = document.createElement('table');
+    table.className = 'member-table';
 
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'secondary';
-      btn.textContent = 'Quitar';
-      btn.addEventListener('click', () => {
-        node.members.splice(idx, 1);
-        persistLocal();
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>Persona</th><th>Rol</th><th>DS</th><th>DD</th><th>DJM</th><th>DJS</th></tr>';
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    node.members.forEach((m, idx) => {
+      const tr = document.createElement('tr');
+      if (idx === state.memberUi.selectedIndex) tr.classList.add('selected');
+      tr.addEventListener('click', () => {
+        state.memberUi.selectedIndex = idx;
         renderMembers();
       });
-
-      div.appendChild(label);
-      div.appendChild(btn);
-      host.appendChild(div);
+      const flags = m.flags || divisionFlags(m.division);
+      [m.name || '-', m.role || '-', flags.ds ? '✓' : '', flags.dd ? '✓' : '', flags.djm ? '✓' : '', flags.djs ? '✓' : '']
+        .forEach((value) => {
+          const td = document.createElement('td');
+          td.textContent = value;
+          tr.appendChild(td);
+        });
+      tbody.appendChild(tr);
     });
+    table.appendChild(tbody);
+    host.appendChild(table);
+    renderMemberMode();
+  }
+
+  function renderMemberMode() {
+    const modeMsg = $('memberModeMsg');
+    if (!modeMsg) return;
+    if (state.memberUi.mode === 'editing') {
+      modeMsg.textContent = 'Modo modificación: editá persona/rol y confirmá o cancelá.';
+    } else if (state.memberUi.mode === 'deleting') {
+      modeMsg.textContent = 'Modo eliminación: confirmá para quitar la línea seleccionada o cancelá.';
+    } else {
+      modeMsg.textContent = 'Seleccioná una fila para modificar o eliminar.';
+    }
+    const confirmBtn = $('confirmMemberBtn');
+    const cancelBtn = $('cancelMemberBtn');
+    confirmBtn?.classList.toggle('hidden', state.memberUi.mode === 'idle');
+    cancelBtn?.classList.toggle('hidden', state.memberUi.mode === 'idle');
   }
 
   function policyPermissionSelect(value, onChange) {
@@ -308,41 +360,94 @@
     dump('Árbol guardado en securityConfig/piramidePermisos', state.nodes);
   }
 
-  function assignPersona() {
-    const node = currentNode();
-    const personIdFromSelect = $('personaSelect').value;
-    const manualId = String($('personaManualId')?.value || '').trim();
-    const manualName = String($('personaManualName')?.value || '').trim();
+  function buildMemberFromSelection() {
+    const person = selectedPersona();
     const role = $('personaRoleSelect').value;
-
     if (!ROLES.includes(role)) {
       alert('Rol inválido.');
-      return;
+      return null;
     }
-
-    let person = state.personas.find((p) => p.id === personIdFromSelect);
-    if (!person && manualName) {
-      person = {
-        id: manualId || `manual_${Date.now()}`,
-        name: manualName,
-        email: '',
-      };
-    }
-
     if (!person) {
-      alert('Seleccioná una persona de la lista o cargá nombre manual.');
-      return;
+      alert('Seleccioná una persona.');
+      return null;
     }
+    return {
+      personId: person.id,
+      role,
+      name: person.name,
+      email: person.email || '',
+      division: person.division || '',
+      flags: divisionFlags(person.division),
+    };
+  }
 
-    const exists = node.members.some((m) => m.personId === person.id && m.role === role);
+  function addMember() {
+    const node = currentNode();
+    const member = buildMemberFromSelection();
+    if (!member) return;
+
+    const exists = node.members.some((m) => m.personId === member.personId && m.role === member.role);
     if (exists) {
       alert('Esa persona ya está asignada con ese rol en este nodo.');
       return;
     }
 
-    node.members.push({ personId: person.id, role, name: person.name, email: person.email || '' });
-    if ($('personaManualId')) $('personaManualId').value = '';
-    if ($('personaManualName')) $('personaManualName').value = '';
+    node.members.push(member);
+    state.memberUi.selectedIndex = node.members.length - 1;
+    state.memberUi.mode = 'idle';
+    persistLocal();
+    renderMembers();
+  }
+
+  function beginEditMember() {
+    const node = currentNode();
+    const idx = state.memberUi.selectedIndex;
+    if (idx < 0 || idx >= node.members.length) {
+      alert('Seleccioná una línea para modificar.');
+      return;
+    }
+    const member = node.members[idx];
+    state.memberUi.mode = 'editing';
+    $('personaRoleSelect').value = member.role || ROLES[0];
+    state.personaFilter = member.name || '';
+    if ($('personaSearch')) $('personaSearch').value = state.personaFilter;
+    renderPersonas();
+    if ($('personaSelect')) $('personaSelect').value = member.personId || '';
+    renderMemberMode();
+  }
+
+  function beginDeleteMember() {
+    const node = currentNode();
+    const idx = state.memberUi.selectedIndex;
+    if (idx < 0 || idx >= node.members.length) {
+      alert('Seleccioná una línea para eliminar.');
+      return;
+    }
+    state.memberUi.mode = 'deleting';
+    renderMemberMode();
+  }
+
+  function cancelMemberAction() {
+    state.memberUi.mode = 'idle';
+    renderMemberMode();
+  }
+
+  function confirmMemberAction() {
+    const node = currentNode();
+    const idx = state.memberUi.selectedIndex;
+    if (idx < 0 || idx >= node.members.length) {
+      alert('Seleccioná una línea válida.');
+      return;
+    }
+    if (state.memberUi.mode === 'editing') {
+      const member = buildMemberFromSelection();
+      if (!member) return;
+      node.members[idx] = member;
+    } else if (state.memberUi.mode === 'deleting') {
+      node.members.splice(idx, 1);
+      state.memberUi.selectedIndex = Math.min(idx, node.members.length - 1);
+    }
+    state.memberUi.mode = 'idle';
     persistLocal();
     renderMembers();
   }
@@ -352,7 +457,16 @@
     $('renameNodeBtn').addEventListener('click', renameNode);
     $('deleteNodeBtn').addEventListener('click', deleteNode);
 
-    $('assignPersonaBtn').addEventListener('click', assignPersona);
+    $('personaSearch')?.addEventListener('input', (e) => {
+      state.personaFilter = String(e.target.value || '');
+      renderPersonas();
+    });
+
+    $('addMemberBtn').addEventListener('click', addMember);
+    $('editMemberBtn').addEventListener('click', beginEditMember);
+    $('deleteMemberBtn').addEventListener('click', beginDeleteMember);
+    $('confirmMemberBtn').addEventListener('click', confirmMemberAction);
+    $('cancelMemberBtn').addEventListener('click', cancelMemberAction);
 
     $('addPolicyBtn').addEventListener('click', () => {
       currentNode().policies.push(defaultPolicy());
@@ -392,7 +506,7 @@
       state.personas = snap.docs.map((doc) => {
         const d = doc.data() || {};
         const name = [d.firstName, d.lastName].filter(Boolean).join(' ').trim() || d.nombreCompleto || doc.id;
-        return { id: doc.id, name, email: d.email || '' };
+        return { id: doc.id, name, email: d.email || '', division: d.division || '' };
       });
       return { ok: true, count: state.personas.length };
     } catch (err) {
@@ -462,7 +576,7 @@
       $('mainPanel').classList.remove('hidden');
       const personasResult = await loadPersonas();
       if (!personasResult?.ok && personasResult?.reason === 'permission_denied') {
-        dump('No hay permisos para leer personas. Usá la carga manual de nombre/ID.', personasResult);
+        dump('No hay permisos para leer personas. No se podrán adicionar responsables hasta habilitar rules.', personasResult);
       } else if (!personasResult?.ok && personasResult?.reason !== 'db_unavailable') {
         dump('No se pudieron cargar personas automáticamente.', personasResult);
       }
@@ -471,6 +585,8 @@
   }
 
   function renderAll() {
+    state.memberUi.selectedIndex = -1;
+    state.memberUi.mode = 'idle';
     renderTree();
     renderNodeDetail();
     renderPersonas();
