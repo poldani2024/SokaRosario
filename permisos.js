@@ -133,7 +133,7 @@
     if (!state.personas.length) {
       const opt = document.createElement('option');
       opt.value = '';
-      opt.textContent = 'No hay personas disponibles';
+      opt.textContent = 'Sin acceso o sin personas cargadas';
       sel.appendChild(opt);
       return;
     }
@@ -310,23 +310,39 @@
 
   function assignPersona() {
     const node = currentNode();
-    const personId = $('personaSelect').value;
+    const personIdFromSelect = $('personaSelect').value;
+    const manualId = String($('personaManualId')?.value || '').trim();
+    const manualName = String($('personaManualName')?.value || '').trim();
     const role = $('personaRoleSelect').value;
+
     if (!ROLES.includes(role)) {
       alert('Rol inválido.');
       return;
     }
-    const person = state.personas.find((p) => p.id === personId);
+
+    let person = state.personas.find((p) => p.id === personIdFromSelect);
+    if (!person && manualName) {
+      person = {
+        id: manualId || `manual_${Date.now()}`,
+        name: manualName,
+        email: '',
+      };
+    }
+
     if (!person) {
-      alert('Seleccioná una persona válida.');
+      alert('Seleccioná una persona de la lista o cargá nombre manual.');
       return;
     }
-    const exists = node.members.some((m) => m.personId === personId && m.role === role);
+
+    const exists = node.members.some((m) => m.personId === person.id && m.role === role);
     if (exists) {
       alert('Esa persona ya está asignada con ese rol en este nodo.');
       return;
     }
-    node.members.push({ personId, role, name: person.name, email: person.email || '' });
+
+    node.members.push({ personId: person.id, role, name: person.name, email: person.email || '' });
+    if ($('personaManualId')) $('personaManualId').value = '';
+    if ($('personaManualName')) $('personaManualName').value = '';
     persistLocal();
     renderMembers();
   }
@@ -369,13 +385,21 @@
 
   async function loadPersonas() {
     state.personas = [];
-    if (!window.db) return;
-    const snap = await db.collection('personas').limit(300).get();
-    state.personas = snap.docs.map((doc) => {
-      const d = doc.data() || {};
-      const name = [d.firstName, d.lastName].filter(Boolean).join(' ').trim() || d.nombreCompleto || doc.id;
-      return { id: doc.id, name, email: d.email || '' };
-    });
+    if (!window.db) return { ok: false, reason: 'db_unavailable' };
+
+    try {
+      const snap = await db.collection('personas').limit(300).get();
+      state.personas = snap.docs.map((doc) => {
+        const d = doc.data() || {};
+        const name = [d.firstName, d.lastName].filter(Boolean).join(' ').trim() || d.nombreCompleto || doc.id;
+        return { id: doc.id, name, email: d.email || '' };
+      });
+      return { ok: true, count: state.personas.length };
+    } catch (err) {
+      const msg = String(err?.message || '').toLowerCase();
+      const permissionDenied = msg.includes('missing or insufficient permissions') || msg.includes('permission-denied');
+      return { ok: false, reason: permissionDenied ? 'permission_denied' : 'unknown', message: err?.message || String(err) };
+    }
   }
 
   async function resolveRole(user) {
@@ -436,10 +460,11 @@
 
       $('guardMsg').textContent = 'Acceso habilitado. Configurá nodos, responsables y políticas.';
       $('mainPanel').classList.remove('hidden');
-      try {
-        await loadPersonas();
-      } catch (err) {
-        dump('No se pudieron cargar personas', { message: err?.message || String(err) });
+      const personasResult = await loadPersonas();
+      if (!personasResult?.ok && personasResult?.reason === 'permission_denied') {
+        dump('No hay permisos para leer personas. Usá la carga manual de nombre/ID.', personasResult);
+      } else if (!personasResult?.ok && personasResult?.reason !== 'db_unavailable') {
+        dump('No se pudieron cargar personas automáticamente.', personasResult);
       }
       renderAll();
     });
