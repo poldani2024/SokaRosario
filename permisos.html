@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Permisos Piramidales — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .layout-permisos {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 14px;
+    }
+    .tree-box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      padding: 10px;
+      max-height: 60vh;
+      overflow: auto;
+    }
+    .tree-ul { list-style: none; margin: 0; padding-left: 16px; border-left: 1px dashed var(--border); }
+    .tree-li { margin: 6px 0; }
+    .node-btn {
+      width: auto;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 8px;
+      cursor: pointer;
+      text-align: left;
+      min-height: auto;
+    }
+    .node-btn.active {
+      border-color: #93c5fd;
+      background: #dbeafe;
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+    .inline-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .mini { font-size: .85rem; color: var(--muted); }
+    .member-list { display: grid; gap: 8px; margin-top: 8px; }
+    .member-table-wrap {
+      margin-top: 8px;
+      max-height: 190px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .member-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .member-table th, .member-table td {
+      border: 1px solid var(--border);
+      padding: 8px;
+      text-align: left;
+      font-size: .95rem;
+    }
+    .member-table tr.selected {
+      background: #dbeafe;
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+    .member-actions { display:flex; gap:8px; flex-wrap:nowrap; margin-top:8px; }
+    .member-actions button { flex: 1; min-width: 130px; width: auto; }
+    @media (max-width: 900px) {
+      .member-actions { flex-wrap: wrap; }
+    }
+    .policy-bulk-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin: 8px 0;
+      background: var(--bg);
+    }
+    .policy-bulk-layout {
+      display: grid;
+      grid-template-columns: minmax(220px, 320px) 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .policy-bulk-left label {
+      font-size: .92rem;
+    }
+    .policy-field-checklist {
+      max-height: 128px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px;
+      margin-top: 8px;
+      display: grid;
+      gap: 4px;
+      font-size: .92rem;
+      line-height: 1.2;
+    }
+    .policy-field-checklist label { font-size: .9rem; }
+    .policy-bulk-right .grid { margin-top: 0 !important; }
+    .policy-bulk-right button { width: 100%; }
+    @media (max-width: 900px) {
+      .policy-bulk-layout { grid-template-columns: 1fr; }
+    }
+    .matrix-table td select, .matrix-table td input { width: 100%; }
+    @media (max-width: 1000px) {
+      .layout-permisos { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Permisos Piramidales</h1>
+    <nav>
+      <a href="index.html">Inicio</a>
+      <a href="security.html">Seguridad</a>
+      <a href="admin.html">Administración</a>
+    </nav>
+    <div id="auth">
+      <div id="login-form">
+        <span>Iniciá sesión para administrar permisos.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" id="guardPanel">
+      <h2>Control de acceso</h2>
+      <p id="guardMsg" class="mini">Validando permisos...</p>
+    </section>
+
+    <section class="panel" id="mainPanel">
+      <h2>Árbol de niveles + políticas por nodo</h2>
+      <p class="mini">Roles disponibles en esta pantalla: <strong>Responsable</strong> y <strong>Vice-Responsable</strong>.</p>
+
+      <div class="layout-permisos">
+        <aside>
+          <div class="inline-tools" style="margin-bottom:8px;">
+            <button id="addChildBtn" type="button">+ Crear nivel hijo</button>
+            <button id="renameNodeBtn" type="button" class="secondary">Renombrar</button>
+          </div>
+          <div class="inline-tools" style="margin-bottom:8px;">
+            <button id="deleteNodeBtn" type="button" class="secondary">Eliminar</button>
+          </div>
+          <div class="tree-box" id="treeContainer"></div>
+        </aside>
+
+        <section>
+          <h3>Nodo seleccionado</h3>
+          <div class="grid">
+            <label>Nombre
+              <input id="nodeName" type="text" />
+            </label>
+            <label>Nodo padre
+              <input id="nodeParent" type="text" readonly />
+            </label>
+          </div>
+
+          <h3 style="margin-top:12px;">Responsables del nodo</h3>
+          <div class="grid">
+            <label>Buscar persona
+              <input id="personaSearch" type="text" placeholder="Nombre, apellido o email" />
+            </label>
+            <label>Persona (colección Personas)
+              <select id="personaSelect"></select>
+            </label>
+            <label>Rol
+              <select id="personaRoleSelect">
+                <option value="Responsable">Responsable</option>
+                <option value="Vice-Responsable">Vice-Responsable</option>
+              </select>
+            </label>
+          </div>
+          <p id="memberModeMsg" class="mini"></p>
+          <div id="memberList" class="member-list"></div>
+          <div class="member-actions">
+            <button id="addMemberBtn" type="button">Nuevo</button>
+            <button id="editMemberBtn" type="button" class="secondary">Modificar</button>
+            <button id="deleteMemberBtn" type="button" class="secondary">Eliminar</button>
+            <button id="confirmMemberBtn" type="button" class="secondary hidden">Confirmar</button>
+            <button id="cancelMemberBtn" type="button" class="secondary hidden">Cancelar</button>
+          </div>
+
+          <h3 style="margin-top:12px;">Políticas de campos por rol</h3>
+          <div class="policy-bulk-box">
+            <div class="policy-bulk-layout">
+              <div class="policy-bulk-left">
+                <div class="inline-tools">
+                  <label style="display:flex;align-items:center;gap:6px;">
+                    <input id="bulkSelectAllFields" type="checkbox" />
+                    Seleccionar todos
+                  </label>
+                </div>
+                <div id="policyFieldChecklist" class="policy-field-checklist"></div>
+              </div>
+              <div class="policy-bulk-right">
+                <div class="grid" style="margin-top:8px;">
+                  <label>Responsable
+                    <select id="bulkResPolicy">
+                      <option value="ver_editar">Ver / Editar</option>
+                      <option value="solo_ver">Solo ver</option>
+                      <option value="sin_acceso">Sin acceso</option>
+                    </select>
+                  </label>
+                  <label>Vice-Responsable
+                    <select id="bulkVicePolicy">
+                      <option value="ver_editar">Ver / Editar</option>
+                      <option value="solo_ver" selected>Solo ver</option>
+                      <option value="sin_acceso">Sin acceso</option>
+                    </select>
+                  </label>
+                  <label>Herencia
+                    <select id="bulkInheritance">
+                      <option value="local" selected>Local</option>
+                      <option value="heredado">Heredado</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="inline-tools" style="margin-top:8px;">
+                  <button id="applyBulkPolicyBtn" type="button">Aplicar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="matrix-table" id="policyTable">
+              <thead>
+                <tr>
+                  <th>Campo</th>
+                  <th>Responsable</th>
+                  <th>Vice-Responsable</th>
+                  <th>Herencia</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="inline-tools" style="margin-top:8px;">
+            <button id="addPolicyBtn" type="button" class="secondary">+ Agregar política</button>
+            <button id="saveNodeBtn" type="button">Guardar nodo</button>
+            <button id="saveAllBtn" type="button">Guardar árbol completo</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Estado</h2>
+      <pre id="resultBox" style="white-space:pre-wrap;"></pre>
+    </section>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase.js"></script>
+  <script src="auth-ui.js"></script>
+  <script src="permisos.js"></script>
+</body>
+</html>
