@@ -46,7 +46,8 @@ service cloud.firestore {
     function isLiderHan()    { return role() == 'LiderHan'; }
 
     function hasAnyRole() {
-      return role() in ['Admin', 'SubRegion', 'LiderCiudad', 'LiderSector', 'LiderHan', 'Usuario+', 'Usuario'];
+      return hasAuth()
+          && role() in ['Admin', 'SubRegion', 'LiderCiudad', 'LiderSector', 'LiderHan', 'Usuario+', 'Usuario'];
     }
 
     // Compatibilidad: scope anidado nuevo + campos legacy planos
@@ -122,8 +123,9 @@ service cloud.firestore {
        Personas
        ========================= */
     match /personas/{personaId} {
-      // Mantiene comportamiento actual: usuarios autenticados con rol válido pueden leer
-      allow read: if hasAnyRole();
+      // Permite lectura a cualquier usuario autenticado.
+      // Evita bloquear el listado si existe un desfasaje temporal entre claims y roles/{uid}.
+      allow read: if hasAuth();
 
       // Escritura: Admin o dueño por uid almacenado en el documento
       allow create, update: if isAdmin()
@@ -167,6 +169,13 @@ service cloud.firestore {
       // El front de seguridad (admin) necesita leer/escribir
       allow read: if isAdmin();
       allow write: if isAdmin();
+    }
+
+    /* =========================
+       Configuración de seguridad (árbol de permisos)
+       ========================= */
+    match /securityConfig/{docId} {
+      allow read, write: if isAdmin();
     }
 
     /* =========================
