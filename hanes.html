@@ -7,6 +7,32 @@
   <title>Hanes — Soka Gakkai Tracker</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles.mobile.v3.css">
+  <style>
+    #hanesTable tbody tr.selected {
+      background: #dbeafe;
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+    .han-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .han-actions button {
+      flex: 1;
+      min-width: 120px;
+    }
+    #hanes-list .table-wrap {
+      max-height: 470px; /* aprox. header + 10 filas */
+      overflow-y: auto;
+    }
+    #hanes-list #hanesTable thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--bg, #fff);
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -50,7 +76,6 @@
               <th>Domicilio</th>
               <th>Teléfono</th>
               <th>Líder</th>
-              <th>Acciones</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -82,9 +107,13 @@
           <input id="hanLeaderInput" type="text">
         </label>
       </div>
-      <div class="actions">
-        <button id="hanSaveBtn">Guardar Han</button>
-        <button id="hanCancelBtn" class="secondary">Cancelar edición</button>
+      <p id="hanModeMsg" class="muted">Seleccioná un Han de la grilla para editar o eliminar.</p>
+      <div class="actions han-actions">
+        <button id="hanNewBtn">Nuevo</button>
+        <button id="hanEditBtn" class="secondary">Editar</button>
+        <button id="hanDeleteBtn" class="secondary">Eliminar</button>
+        <button id="hanConfirmBtn" class="hidden">Confirmar</button>
+        <button id="hanCancelBtn" class="secondary hidden">Cancelar</button>
       </div>
     </section>
   </main>
