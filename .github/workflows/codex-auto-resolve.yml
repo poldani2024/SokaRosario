@@ -1,0 +1,44 @@
+name: Codex Auto Resolve and Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  resolve-and-merge:
+    if: contains(github.event.pull_request.title, 'codex') || contains(github.event.pull_request.head.ref, 'codex')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 0
+
+      - name: Fetch PR head branch
+        run: |
+          git fetch origin "${{ github.event.pull_request.head.ref }}:${{ github.event.pull_request.head.ref }}"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge PR branch preferring PR changes on conflicts
+        run: |
+          git merge -X theirs --no-edit "${{ github.event.pull_request.head.ref }}"
+
+      - name: Push resolved base branch
+        run: |
+          git push origin HEAD:${{ github.event.pull_request.base.ref }}
+
+      - name: Enable auto-merge on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" --merge --auto
