@@ -43,6 +43,35 @@
     </div>
   </section>
 
+  <section id="controlBoard" class="control-board hidden" aria-label="Tablero de control">
+    <article class="kpi-card">
+      <h3>Cantidad de Hanes</h3>
+      <p id="kpiHanes" class="kpi-value">0</p>
+    </article>
+    <article class="kpi-card">
+      <h3>Cantidad de Miembros</h3>
+      <p id="kpiMiembros" class="kpi-value">0</p>
+      <p id="kpiPeriodoActivo" class="muted"></p>
+    </article>
+    <article class="chart-card">
+      <h3>Miembros por división (Aro)</h3>
+      <canvas id="divisionDonut" height="210" aria-label="Gráfico de miembros por división"></canvas>
+    </article>
+    <article class="table-card">
+      <h3>Total vs Activos por división</h3>
+      <table id="divisionSummaryTable">
+        <thead>
+          <tr>
+            <th>División</th>
+            <th>Total</th>
+            <th>Activos</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </article>
+  </section>
+
   <main class="dashboard" aria-label="Menú principal moderno">
     <a class="menu-card" href="personas.html" data-feature="personas">
       <h2>Personas</h2>
