@@ -53,10 +53,11 @@ body {
 .control-board {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 4px 16px 8px;
+  padding: 10px 16px 16px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: minmax(380px, 1fr) minmax(420px, 1.2fr);
   gap: 14px;
+  align-items: start;
 }
 
 .kpi-card, .chart-card, .table-card {
@@ -71,15 +72,35 @@ body {
   font-size: .95rem;
 }
 
+.left-board-col {
+  display: grid;
+  gap: 14px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 10px;
+}
+
 .kpi-value {
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.9rem;
   font-weight: 700;
   color: #1d4ed8;
 }
 
-.chart-card { grid-column: span 2; }
-.table-card { grid-column: span 2; }
+.chart-card {
+  min-height: 390px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+#divisionDonut {
+  max-height: 300px;
+  width: 100% !important;
+}
 
 #divisionSummaryTable {
   width: 100%;
@@ -173,5 +194,7 @@ body {
   .hdr { align-items: flex-start; flex-direction: column; }
   .card { flex-direction: column; align-items: flex-start; }
   .btn { width: 100%; }
-  .chart-card, .table-card { grid-column: span 1; }
+  .control-board { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .chart-card { min-height: auto; }
 }

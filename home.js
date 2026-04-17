@@ -132,7 +132,7 @@
     const data = summary.rows.map((row) => row.total);
     if (divisionDonutChart) divisionDonutChart.destroy();
     divisionDonutChart = new window.Chart(canvas, {
-      type: 'doughnut',
+      type: 'pie',
       data: {
         labels,
         datasets: [{
@@ -142,6 +142,8 @@
       },
       options: {
         responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1.25,
         plugins: {
           legend: { position: 'bottom' },
         },
