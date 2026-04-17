@@ -75,7 +75,7 @@
               <th>Sector</th>
               <th>Domicilio</th>
               <th>Teléfono</th>
-              <th>Líder</th>
+              <th>Líderes</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -103,8 +103,63 @@
         <label>Teléfono de contacto
           <input id="hanPhoneInput" type="tel">
         </label>
-        <label>Líder del Han (miembro)
-          <input id="hanLeaderInput" type="text">
+        <label>Día de reunión
+          <select id="hanMeetingDayInput">
+            <option value="">Seleccionar...</option>
+            <option>Lunes</option>
+            <option>Martes</option>
+            <option>Miércoles</option>
+            <option>Jueves</option>
+            <option>Viernes</option>
+            <option>Sábado</option>
+            <option>Domingo</option>
+          </select>
+        </label>
+        <label>Horario de reunión
+          <input id="hanMeetingTimeInput" type="time">
+        </label>
+        <label>Día de Zadankai
+          <select id="hanZadankaiDayInput">
+            <option value="">Seleccionar...</option>
+            <option>Lunes</option>
+            <option>Martes</option>
+            <option>Miércoles</option>
+            <option>Jueves</option>
+            <option>Viernes</option>
+            <option>Sábado</option>
+            <option>Domingo</option>
+          </select>
+        </label>
+        <label>Horario de Zadankai
+          <input id="hanZadankaiTimeInput" type="time">
+        </label>
+        <label>Líder DS
+          <input id="hanLeaderDSInput" type="text" list="hanLeaderDSSuggestions" placeholder="Escribí nombre o apellido">
+          <datalist id="hanLeaderDSSuggestions"></datalist>
+        </label>
+        <label>Líder DD
+          <input id="hanLeaderDDInput" type="text" list="hanLeaderDDSuggestions" placeholder="Escribí nombre o apellido">
+          <datalist id="hanLeaderDDSuggestions"></datalist>
+        </label>
+        <label>Líder DJM
+          <input id="hanLeaderDJMInput" type="text" list="hanLeaderDJMSuggestions" placeholder="Escribí nombre o apellido">
+          <datalist id="hanLeaderDJMSuggestions"></datalist>
+        </label>
+        <label>Líder DJF
+          <input id="hanLeaderDJFInput" type="text" list="hanLeaderDJFSuggestions" placeholder="Escribí nombre o apellido">
+          <datalist id="hanLeaderDJFSuggestions"></datalist>
+        </label>
+        <label>Dueño/a de la casa
+          <input id="hanHomeOwnerInput" type="text" list="hanHomeOwnerSuggestions" placeholder="Escribí nombre o apellido">
+          <datalist id="hanHomeOwnerSuggestions"></datalist>
+        </label>
+        <label>Responsable Humanismo Soka
+          <input id="hanHumanismoResponsableInput" type="text" list="hanHumanismoResponsableSuggestions" placeholder="Escribí nombre o apellido">
+          <datalist id="hanHumanismoResponsableSuggestions"></datalist>
+        </label>
+        <label>Responsable Estadística
+          <input id="hanEstadisticaResponsableInput" type="text" list="hanEstadisticaResponsableSuggestions" placeholder="Escribí nombre o apellido">
+          <datalist id="hanEstadisticaResponsableSuggestions"></datalist>
         </label>
       </div>
       <p id="hanModeMsg" class="muted">Seleccioná un Han de la grilla para editar o eliminar.</p>
