@@ -152,6 +152,17 @@ service cloud.firestore {
     }
 
     /* =========================
+       Estadísticas mensuales por Han
+       ========================= */
+    match /monthlyStats/{snapshotId} {
+      // Lectura para usuarios autenticados con rol del sistema
+      allow read: if hasAnyRole();
+
+      // Escritura para roles de conducción (mismo criterio que visitas)
+      allow create, update, delete: if isAdmin() || isSubRegion() || isLiderCiudad() || isLiderSector() || isLiderHan();
+    }
+
+    /* =========================
        Roles
        ========================= */
     match /roles/{uid} {
