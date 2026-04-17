@@ -1,6 +1,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const ADMIN_EMAILS = new Set(['pedro.l.oldani@gmail.com', 'pedro.loldani@gmail.com']);
+  const INVITES_COLLECTION = 'userInvites';
 
   const PERSONA_FIELDS = [
     { key: 'firstName', label: 'Nombre' },
@@ -81,7 +82,7 @@
       invitedByEmail: (auth.currentUser?.email || '').toLowerCase(),
     };
 
-    const ref = await db.collection('userInvites').add(payload);
+    const ref = await db.collection(INVITES_COLLECTION).add(payload);
     const inviteLink = buildInviteUrl(ref.id, email);
     await ref.set({ inviteLink }, { merge: true });
 
@@ -107,7 +108,7 @@
     const box = $('pendingInvitesList');
     if (!box) return;
 
-    const snap = await db.collection('userInvites').where('status', '==', 'pending').get().catch(() => ({ docs: [] }));
+    const snap = await db.collection(INVITES_COLLECTION).where('status', '==', 'pending').get().catch(() => ({ docs: [] }));
     const items = snap.docs
       .map((doc) => ({ id: doc.id, ...(doc.data() || {}) }))
       .sort((a, b) => {
