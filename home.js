@@ -2,6 +2,7 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const ADMIN_EMAILS = new Set(['pedro.l.oldani@gmail.com', 'pedro.loldani@gmail.com']);
+  const INVITES_COLLECTION = 'UserInvites';
 
   function setHidden(el, hidden) {
     if (!el) return;
@@ -86,7 +87,6 @@
   async function processInviteAcceptance(user) {
     if (!window.db || !user) return;
     const { inviteId, inviteEmail } = readPendingInvite();
-    if (!inviteId) return;
 
     const signedEmail = (user.email || '').toLowerCase();
     const invitedEmail = inviteEmail;
@@ -95,9 +95,24 @@
       return;
     }
 
-    const ref = db.collection('userInvites').doc(inviteId);
-    const snap = await ref.get();
-    if (!snap.exists) return;
+    let ref = null;
+    let snap = null;
+    if (inviteId) {
+      ref = db.collection(INVITES_COLLECTION).doc(inviteId);
+      snap = await ref.get();
+    }
+
+    if (!snap?.exists) {
+      const emailSnap = await db.collection(INVITES_COLLECTION)
+        .where('email', '==', signedEmail)
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get()
+        .catch(() => ({ docs: [] }));
+      if (!emailSnap.docs?.length) return;
+      snap = emailSnap.docs[0];
+      ref = db.collection(INVITES_COLLECTION).doc(snap.id);
+    }
     const data = snap.data() || {};
     if ((data.email || '').toLowerCase() !== signedEmail) return;
 
