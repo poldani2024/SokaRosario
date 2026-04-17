@@ -17,6 +17,7 @@
       <a href="visitas.html" data-feature="visitas">Visitas</a>
       <a href="hanes.html" data-feature="hanes" class="admin-only">Hanes</a>
       <a href="grupos.html" data-feature="grupos" class="admin-only">Grupos</a>
+      <a href="estadisticas.html" data-feature="estadisticas">Estadísticas</a>
       <a href="reportes.html" data-feature="reportes">Reportes</a>
       <a href="security.html" data-feature="security" class="admin-only">Seguridad</a>
       <a href="permisos.html" data-feature="permisos" class="admin-only">Permisos</a>
@@ -42,6 +43,35 @@
     </div>
   </section>
 
+  <section id="controlBoard" class="control-board hidden" aria-label="Tablero de control">
+    <article class="kpi-card">
+      <h3>Cantidad de Hanes</h3>
+      <p id="kpiHanes" class="kpi-value">0</p>
+    </article>
+    <article class="kpi-card">
+      <h3>Cantidad de Miembros</h3>
+      <p id="kpiMiembros" class="kpi-value">0</p>
+      <p id="kpiPeriodoActivo" class="muted"></p>
+    </article>
+    <article class="chart-card">
+      <h3>Miembros por división (Aro)</h3>
+      <canvas id="divisionDonut" height="210" aria-label="Gráfico de miembros por división"></canvas>
+    </article>
+    <article class="table-card">
+      <h3>Total vs Activos por división</h3>
+      <table id="divisionSummaryTable">
+        <thead>
+          <tr>
+            <th>División</th>
+            <th>Total</th>
+            <th>Activos</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </article>
+  </section>
+
   <main class="dashboard" aria-label="Menú principal moderno">
     <a class="menu-card" href="personas.html" data-feature="personas">
       <h2>Personas</h2>
@@ -61,6 +91,11 @@
     <a class="menu-card admin-only" href="grupos.html" data-feature="grupos">
       <h2>Grupos</h2>
       <p>Gestión de grupos de capacitación.</p>
+    </a>
+
+    <a class="menu-card" href="estadisticas.html" data-feature="estadisticas">
+      <h2>Estadísticas</h2>
+      <p>Carga y cierre mensual por Han con control y trazabilidad.</p>
     </a>
 
     <a class="menu-card" href="reportes.html" data-feature="reportes">
@@ -86,6 +121,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="firebase.js"></script>
   <script src="home.js"></script>
 </body>
