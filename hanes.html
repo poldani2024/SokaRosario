@@ -103,8 +103,39 @@
         <label>Teléfono de contacto
           <input id="hanPhoneInput" type="tel">
         </label>
+        <label>Día de reunión
+          <select id="hanMeetingDayInput">
+            <option value="">Seleccionar...</option>
+            <option>Lunes</option>
+            <option>Martes</option>
+            <option>Miércoles</option>
+            <option>Jueves</option>
+            <option>Viernes</option>
+            <option>Sábado</option>
+            <option>Domingo</option>
+          </select>
+        </label>
+        <label>Horario de reunión
+          <input id="hanMeetingTimeInput" type="time">
+        </label>
+        <label>Día de Zadankai
+          <select id="hanZadankaiDayInput">
+            <option value="">Seleccionar...</option>
+            <option>Lunes</option>
+            <option>Martes</option>
+            <option>Miércoles</option>
+            <option>Jueves</option>
+            <option>Viernes</option>
+            <option>Sábado</option>
+            <option>Domingo</option>
+          </select>
+        </label>
+        <label>Horario de Zadankai
+          <input id="hanZadankaiTimeInput" type="time">
+        </label>
         <label>Líder del Han (miembro)
-          <input id="hanLeaderInput" type="text">
+          <input id="hanLeaderInput" type="text" list="hanLeaderSuggestions" placeholder="Escribí nombre o apellido">
+          <datalist id="hanLeaderSuggestions"></datalist>
         </label>
       </div>
       <p id="hanModeMsg" class="muted">Seleccioná un Han de la grilla para editar o eliminar.</p>

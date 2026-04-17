@@ -2,20 +2,25 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const STORAGE_KEYS = { hanes: 'soka_hanes' };
+  const PERSONAS_STORAGE_KEY = 'soka_personas';
   const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
   let hanes = [];
+  let personas = [];
   let selectedHanId = null;
   let actionMode = 'idle'; // idle | create | edit | delete
 
   function loadHanesLS() { try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.hanes) ?? '[]'); } catch { return []; } }
   function saveHanesLS(list) { localStorage.setItem(STORAGE_KEYS.hanes, JSON.stringify(list ?? [])); }
+  function loadPersonasLS() { try { return JSON.parse(localStorage.getItem(PERSONAS_STORAGE_KEY) ?? '[]'); } catch { return []; } }
 
   async function loadHanesFS() { if (!window.db) return null; const snap = await db.collection('hanes').get(); return snap.docs.map(d => ({ id: d.id, ...d.data() })); }
-  async function saveHanFS({ id, name, city, sector, address, phone, leader }) {
+  async function loadPersonasFS() { if (!window.db) return null; const snap = await db.collection('personas').get(); return snap.docs.map(d => ({ id: d.id, ...d.data() })); }
+  async function saveHanFS({ id, name, city, sector, address, phone, leader, meetingDay, meetingTime, zadankaiDay, zadankaiTime, leaderId }) {
     if (!window.db) return null; const coll = db.collection('hanes');
-    if (id) { await coll.doc(id).set({ name, city, sector, address, phone, leader }, { merge: true }); return id; }
-    const docRef = await coll.add({ name, city, sector, address, phone, leader }); return docRef.id;
+    const payload = { name, city, sector, address, phone, leader, meetingDay, meetingTime, zadankaiDay, zadankaiTime, leaderId };
+    if (id) { await coll.doc(id).set(payload, { merge: true }); return id; }
+    const docRef = await coll.add(payload); return docRef.id;
   }
   async function deleteHanFS(id) { if (!window.db) return null; await db.collection('hanes').doc(id).delete(); return true; }
 
@@ -30,6 +35,56 @@
     try { const fsList = await loadHanesFS(); hanes = Array.isArray(fsList) ? fsList : loadHanesLS(); if (Array.isArray(fsList)) saveHanesLS(hanes); }
     catch (err) { console.warn('[hanes] Firestore no disponible, usando localStorage.', err); hanes = loadHanesLS(); }
     renderHanesTable();
+  }
+  async function loadPersonasForSuggestions() {
+    try { const fsList = await loadPersonasFS(); personas = Array.isArray(fsList) ? fsList : loadPersonasLS(); }
+    catch (err) { console.warn('[hanes] Personas en Firestore no disponibles, usando localStorage.', err); personas = loadPersonasLS(); }
+    renderLeaderSuggestions();
+  }
+
+  function normalizeText(v) {
+    return String(v ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  function personaLabel(persona) {
+    const name = [persona?.firstName, persona?.lastName].filter(Boolean).join(' ').trim();
+    return name || String(persona?.displayName ?? persona?.name ?? persona?.email ?? '').trim();
+  }
+
+  function filterLeaderMatches(rawQuery) {
+    const query = normalizeText(rawQuery);
+    const source = Array.isArray(personas) ? personas : [];
+    if (!query) {
+      return source.map((p) => ({ id: p.id, label: personaLabel(p) })).filter((p) => !!p.label).slice(0, 80);
+    }
+    return source
+      .map((p) => ({ id: p.id, label: personaLabel(p), searchable: normalizeText([p?.firstName, p?.lastName, p?.email].filter(Boolean).join(' ')) }))
+      .filter((p) => p.label && p.searchable.includes(query))
+      .slice(0, 20);
+  }
+
+  function renderLeaderSuggestions(query = '') {
+    const datalist = $('hanLeaderSuggestions');
+    if (!datalist) return;
+    const matches = filterLeaderMatches(query);
+    datalist.innerHTML = '';
+    matches.forEach((match) => {
+      const option = document.createElement('option');
+      option.value = match.label;
+      option.dataset.id = match.id ?? '';
+      datalist.appendChild(option);
+    });
+  }
+
+  function resolveLeaderSelection(rawValue) {
+    const value = String(rawValue ?? '').trim();
+    if (!value) return { leader: '', leaderId: '' };
+    const exact = (personas ?? []).find((p) => personaLabel(p) === value);
+    return { leader: value, leaderId: exact?.id ?? '' };
   }
 
   function renderHanesTable() {
@@ -60,12 +115,17 @@
       sector: $('hanSectorInput')?.value?.trim() ?? '',
       address:$('hanAddressInput')?.value?.trim()?? '',
       phone:  $('hanPhoneInput')?.value?.trim()  ?? '',
-      leader: $('hanLeaderInput')?.value?.trim() ?? '',
+      meetingDay: $('hanMeetingDayInput')?.value ?? '',
+      meetingTime: $('hanMeetingTimeInput')?.value ?? '',
+      zadankaiDay: $('hanZadankaiDayInput')?.value ?? '',
+      zadankaiTime: $('hanZadankaiTimeInput')?.value ?? '',
+      ...resolveLeaderSelection($('hanLeaderInput')?.value),
     };
   }
   function clearForm() {
-    ['hanNameInput','hanCityInput','hanSectorInput','hanAddressInput','hanPhoneInput','hanLeaderInput']
+    ['hanNameInput','hanCityInput','hanSectorInput','hanAddressInput','hanPhoneInput','hanMeetingDayInput','hanMeetingTimeInput','hanZadankaiDayInput','hanZadankaiTimeInput','hanLeaderInput']
       .forEach(id => { const el = $(id); if (el) el.value = ''; });
+    renderLeaderSuggestions('');
   }
 
   function renderActionMode() {
@@ -109,7 +169,12 @@
     $('hanSectorInput').value = h.sector ?? '';
     $('hanAddressInput').value= h.address?? '';
     $('hanPhoneInput').value  = h.phone  ?? '';
+    $('hanMeetingDayInput').value = h.meetingDay ?? '';
+    $('hanMeetingTimeInput').value = h.meetingTime ?? '';
+    $('hanZadankaiDayInput').value = h.zadankaiDay ?? '';
+    $('hanZadankaiTimeInput').value = h.zadankaiTime ?? '';
     $('hanLeaderInput').value = h.leader ?? '';
+    renderLeaderSuggestions(h.leader ?? '');
     renderHanesTable();
   }
 
@@ -167,12 +232,15 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     loadAndRenderHanes(); $('hanSearch')?.addEventListener('input', renderHanesTable);
+    loadPersonasForSuggestions();
     renderActionMode();
     $('hanNewBtn')?.addEventListener('click', beginCreate);
     $('hanEditBtn')?.addEventListener('click', beginEdit);
     $('hanDeleteBtn')?.addEventListener('click', beginDelete);
     $('hanConfirmBtn')?.addEventListener('click', confirmAction);
     $('hanCancelBtn')?.addEventListener('click', cancelAction);
+    $('hanLeaderInput')?.addEventListener('input', (e) => renderLeaderSuggestions(e.target.value));
+    $('hanLeaderInput')?.addEventListener('focus', (e) => renderLeaderSuggestions(e.target.value));
 
     const tbody = $('hanesTable')?.querySelector('tbody');
     if (tbody) {
