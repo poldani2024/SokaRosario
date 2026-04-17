@@ -2,6 +2,8 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const ADMIN_EMAILS = new Set(['pedro.l.oldani@gmail.com', 'pedro.loldani@gmail.com']);
+  const INVITES_COLLECTION = 'User_Invites';
+  const LEGACY_INVITES_COLLECTION = 'userInvites';
 
   function setHidden(el, hidden) {
     if (!el) return;
@@ -95,9 +97,13 @@
       return;
     }
 
-    const ref = db.collection('userInvites').doc(inviteId);
-    const snap = await ref.get();
-    if (!snap.exists) return;
+    let ref = db.collection(INVITES_COLLECTION).doc(inviteId);
+    let snap = await ref.get();
+    if (!snap.exists) {
+      ref = db.collection(LEGACY_INVITES_COLLECTION).doc(inviteId);
+      snap = await ref.get();
+      if (!snap.exists) return;
+    }
     const data = snap.data() || {};
     if ((data.email || '').toLowerCase() !== signedEmail) return;
 
