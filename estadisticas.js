@@ -85,6 +85,12 @@
     };
   }
 
+  function isFirestorePermissionError(err) {
+    const code = String(err?.code || '');
+    const message = String(err?.message || '').toLowerCase();
+    return code === 'permission-denied' || message.includes('missing or insufficient permissions');
+  }
+
   async function loadHanes() {
     if (window.db) {
       try {
@@ -220,25 +226,52 @@
     currentDocId = getDocId({ month, year, hanId });
 
     if (window.db) {
-      const ref = db.collection('monthlyStats').doc(currentDocId);
-      const snap = await ref.get();
-      if (snap.exists) {
-        currentSnapshot = { id: snap.id, ...snap.data() };
-      } else {
-        const entries = buildSnapshotEntriesForHan(hanId);
-        currentSnapshot = {
-          id: currentDocId,
-          month,
-          year,
-          hanId,
-          hanName: resolveHanName(hanId),
-          status: 'open',
-          entries,
-          createdBy: window.auth?.currentUser?.email || '',
-          createdAt: new Date().toISOString(),
-          audit: [buildAuditEvent('created')],
-        };
-        await ref.set(currentSnapshot, { merge: true });
+      try {
+        const ref = db.collection('monthlyStats').doc(currentDocId);
+        const snap = await ref.get();
+        if (snap.exists) {
+          currentSnapshot = { id: snap.id, ...snap.data() };
+        } else {
+          const entries = buildSnapshotEntriesForHan(hanId);
+          currentSnapshot = {
+            id: currentDocId,
+            month,
+            year,
+            hanId,
+            hanName: resolveHanName(hanId),
+            status: 'open',
+            entries,
+            createdBy: window.auth?.currentUser?.email || '',
+            createdAt: new Date().toISOString(),
+            audit: [buildAuditEvent('created')],
+          };
+          await ref.set(currentSnapshot, { merge: true });
+        }
+      } catch (err) {
+        if (!isFirestorePermissionError(err)) throw err;
+        console.warn('[estadisticas] sin permisos en Firestore monthlyStats, usando localStorage.', err);
+        const store = loadLs(STORAGE_KEYS.stats, {});
+        if (store[currentDocId]) {
+          currentSnapshot = store[currentDocId];
+        } else {
+          currentSnapshot = {
+            id: currentDocId,
+            month,
+            year,
+            hanId,
+            hanName: resolveHanName(hanId),
+            status: 'open',
+            entries: buildSnapshotEntriesForHan(hanId),
+            createdBy: window.auth?.currentUser?.email || '',
+            createdAt: new Date().toISOString(),
+            audit: [buildAuditEvent('created')],
+          };
+          store[currentDocId] = currentSnapshot;
+          saveStatsLs(store);
+        }
+        $('statsStatusMsg').textContent = `Mostrando ${MONTHS[month - 1]} ${year} para ${resolveHanName(hanId)} (modo local por permisos).`;
+        renderTable();
+        return;
       }
     } else {
       const store = loadLs(STORAGE_KEYS.stats, {});
@@ -274,7 +307,16 @@
     }
 
     if (window.db) {
-      await db.collection('monthlyStats').doc(currentDocId).set(currentSnapshot, { merge: true });
+      try {
+        await db.collection('monthlyStats').doc(currentDocId).set(currentSnapshot, { merge: true });
+      } catch (err) {
+        if (!isFirestorePermissionError(err)) throw err;
+        const store = loadLs(STORAGE_KEYS.stats, {});
+        store[currentDocId] = currentSnapshot;
+        saveStatsLs(store);
+        $('statsStatusMsg').textContent = 'Cambios guardados en modo local (sin permisos Firestore) ✅';
+        return;
+      }
     } else {
       const store = loadLs(STORAGE_KEYS.stats, {});
       store[currentDocId] = currentSnapshot;
@@ -290,10 +332,20 @@
     currentSnapshot.audit = (currentSnapshot.audit || []).concat(buildAuditEvent(action));
 
     if (window.db) {
-      await db.collection('monthlyStats').doc(currentDocId).set({
-        status: currentSnapshot.status,
-        audit: currentSnapshot.audit,
-      }, { merge: true });
+      try {
+        await db.collection('monthlyStats').doc(currentDocId).set({
+          status: currentSnapshot.status,
+          audit: currentSnapshot.audit,
+        }, { merge: true });
+      } catch (err) {
+        if (!isFirestorePermissionError(err)) throw err;
+        const store = loadLs(STORAGE_KEYS.stats, {});
+        store[currentDocId] = currentSnapshot;
+        saveStatsLs(store);
+        $('statsStatusMsg').textContent = 'Estado actualizado en modo local (sin permisos Firestore).';
+        renderTable();
+        return;
+      }
     } else {
       const store = loadLs(STORAGE_KEYS.stats, {});
       store[currentDocId] = currentSnapshot;
