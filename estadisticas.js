@@ -138,8 +138,19 @@
   function fillHanSelect() {
     const sel = $('statsHan');
     if (!sel) return;
+    const selectedSector = String($('statsSector')?.value || '').trim();
+    const filteredHanes = (hanes || []).filter((h) => !selectedSector || String(h?.sector || '').trim() === selectedSector);
     const options = ['<option value="">Seleccionar Han...</option>']
-      .concat((hanes || []).map((h) => `<option value="${h.id}">${h.name || h.id}</option>`));
+      .concat(filteredHanes.map((h) => `<option value="${h.id}">${h.name || h.id}</option>`));
+    sel.innerHTML = options.join('');
+  }
+
+  function fillSectorSelect() {
+    const sel = $('statsSector');
+    if (!sel) return;
+    const sectors = Array.from(new Set((hanes || []).map((h) => String(h?.sector || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es'));
+    const options = ['<option value="">Todos los sectores</option>']
+      .concat(sectors.map((sector) => `<option value="${sector}">${sector}</option>`));
     sel.innerHTML = options.join('');
   }
 
@@ -386,8 +397,14 @@
   async function init() {
     await Promise.all([loadHanes(), loadPersonas()]);
     fillMonthAndYear();
+    fillSectorSelect();
     fillHanSelect();
     wireTableEvents();
+
+    $('statsSector')?.addEventListener('change', () => {
+      fillHanSelect();
+      $('statsStatusMsg').textContent = 'Sector aplicado. Seleccioná un Han para continuar.';
+    });
 
     $('statsLoadBtn')?.addEventListener('click', async () => {
       try {
