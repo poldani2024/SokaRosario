@@ -152,6 +152,18 @@ service cloud.firestore {
     }
 
     /* =========================
+       Estadísticas mensuales por Han
+       ========================= */
+    match /monthlyStats/{snapshotId} {
+      // Lectura para cualquier usuario autenticado
+      allow read: if hasAuth();
+
+      // Escritura para cualquier usuario autenticado.
+      // Esto evita bloqueos por diferencias de nomenclatura de roles en claims/documentos.
+      allow create, update, delete: if hasAuth();
+    }
+
+    /* =========================
        Roles
        ========================= */
     match /roles/{uid} {
@@ -213,6 +225,27 @@ service cloud.firestore {
                      && request.resource.data.status in ['confirmed','accepted']);
 
       // Lectura: Admin o usuario autenticado cuyo email coincide con la invitación
+      allow read: if isAdmin()
+               || (hasAuth()
+                   && resource.data.email is string
+                   && request.auth.token.email is string
+                   && resource.data.email.lower() == request.auth.token.email.lower());
+    }
+
+    /* =========================
+       Invitaciones de usuarios (nuevo nombre)
+       ========================= */
+    match /User_Invites/{inviteId} {
+      allow create, delete: if isAdmin();
+
+      allow update: if isAdmin()
+                 || (hasAuth()
+                     && resource.data.email is string
+                     && request.auth.token.email is string
+                     && resource.data.email.lower() == request.auth.token.email.lower()
+                     && request.resource.data.email == resource.data.email
+                     && request.resource.data.status in ['confirmed','accepted']);
+
       allow read: if isAdmin()
                || (hasAuth()
                    && resource.data.email is string
