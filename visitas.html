@@ -7,6 +7,39 @@
   <title>Visitas — Soka Gakkai Tracker</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles.mobile.v3.css">
+  <style>
+    #visitaForm.visita-form {
+      display: block;
+    }
+    #visitaForm .visita-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(240px, 1fr));
+      gap: 12px;
+      align-items: start;
+    }
+    #visitaForm .visita-grid label {
+      margin: 0;
+    }
+    #visitaForm .visita-grid .full-row {
+      grid-column: 1 / -1;
+    }
+    #visitaForm .visita-grid textarea {
+      min-height: 92px;
+    }
+    #visitaSubmitBtn {
+      grid-column: 1 / -1;
+      width: 100%;
+      margin-top: 4px;
+    }
+    @media (max-width: 760px) {
+      #visitaForm .visita-grid {
+        grid-template-columns: 1fr;
+      }
+      #visitaForm .visita-grid .full-row {
+        grid-column: 1;
+      }
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -14,6 +47,7 @@
     <nav>
       <a href="index.html">Inicio</a>
       <a href="personas.html">Personas</a>
+      <a href="estadisticas.html">Estadísticas</a>
       <a href="reportes.html">Reportes</a>
     </nav>
     <section class="auth">
@@ -31,17 +65,34 @@
   <main class="container">
     <section id="visitas" class="panel">
       <h2>Visitas</h2>
-      <form id="visitaForm" class="card">
-        <label>Persona
-          <select id="visitaPersonaSelect"></select>
-        </label>
-        <label>Fecha de visita
-          <input id="visitaFecha" type="date">
-        </label>
-        <label>Observaciones
-          <textarea id="visitaObs" rows="3"></textarea>
-        </label>
-        <button type="submit">Registrar visita</button>
+      <form id="visitaForm" class="card visita-form">
+        <div class="visita-grid">
+          <label>Persona
+            <input id="visitaPersonaInput" type="text" list="visitaPersonaSuggestions" placeholder="Escribí nombre o apellido">
+            <datalist id="visitaPersonaSuggestions"></datalist>
+            <input id="visitaPersonaId" type="hidden">
+          </label>
+          <label>Tipo de contacto
+            <select id="visitaTipoContacto">
+              <option value="">Seleccionar...</option>
+              <option>Visita</option>
+              <option>Dmk Contacto</option>
+              <option>WhatsApp</option>
+              <option>Actividad</option>
+              <option>Otro</option>
+            </select>
+          </label>
+          <label id="visitaTipoOtroWrap" class="hidden">Detalle de “Otro”
+            <input id="visitaTipoOtro" type="text" placeholder="Especificar tipo de contacto">
+          </label>
+          <label>Fecha de visita
+            <input id="visitaFecha" type="text" inputmode="numeric" placeholder="DD/MM/YYYY">
+          </label>
+          <label class="full-row">Observaciones
+            <textarea id="visitaObs" rows="3"></textarea>
+          </label>
+          <button id="visitaSubmitBtn" type="submit">Registrar visita</button>
+        </div>
       </form>
 
       <div class="table-wrap">
@@ -49,6 +100,7 @@
           <thead>
             <tr>
               <th>Persona</th>
+              <th>Tipo de contacto</th>
               <th>Fecha</th>
               <th>Observaciones</th>
             </tr>

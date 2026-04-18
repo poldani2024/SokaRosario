@@ -517,13 +517,13 @@ function populateDatosPersonales(p, opts = {}) {
   const mapText = {
     firstName: p.firstName ?? '',
     lastName: p.lastName ?? '',
-    birthDate: p.birthDate ?? '',
+    birthDate: formatDateToDdMmYyyy(p.birthDate),
     address: p.address ?? '',
     city: p.city ?? '',
     phone: p.phone ?? '',
     phoneFixed: p.phoneFixed ?? '',
     email: p.email ?? '',
-    fechaIngreso: p.fechaIngreso ?? ''
+    fechaIngreso: formatDateToDdMmYyyy(p.fechaIngreso)
   };
   Object.entries(mapText).forEach(([id, val]) => {
     const el = document.getElementById(id);
@@ -609,6 +609,8 @@ auth.onAuthStateChanged((user) => { if (user) applySignedInUser(user); else appl
 
 /* ===== Init ===== */
 document.addEventListener("DOMContentLoaded", async () => {
+  attachDateMask('birthDate');
+  attachDateMask('fechaIngreso');
   loadData(); ensureSeedData();
   initHeatMap();
   renderCatalogsToSelects(); renderPersonas(); renderVisitas();
@@ -721,6 +723,43 @@ function normalizeTextKey(v) {
   return String(v ?? "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
 }
 
+function formatDateToDdMmYyyy(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const ddmmyyyy = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (ddmmyyyy) return raw;
+  const ymd = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) return `${ymd[3]}/${ymd[2]}/${ymd[1]}`;
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = String(d.getFullYear());
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function normalizeDateInput(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const ddmmyyyy = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (ddmmyyyy) return `${ddmmyyyy[1]}/${ddmmyyyy[2]}/${ddmmyyyy[3]}`;
+  const ymd = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) return `${ymd[3]}/${ymd[2]}/${ymd[1]}`;
+  return '';
+}
+
+function attachDateMask(inputId) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    const digits = el.value.replace(/\D/g, '').slice(0, 8);
+    const p1 = digits.slice(0, 2);
+    const p2 = digits.slice(2, 4);
+    const p3 = digits.slice(4, 8);
+    el.value = [p1, p2, p3].filter(Boolean).join('/');
+  });
+}
+
 /* ===== Persona (form) ===== */
 function clearDatosPersonales() {
   ["firstName","lastName","birthDate","address","city","phone","phoneFixed","email","fechaIngreso"].forEach(id => { const el = $(id); if (el) el.value = ""; });
@@ -751,13 +790,13 @@ $("miPerfilForm")?.addEventListener("submit", (e) => {
   const hanId   = $("hanSelect").value ?? "";  const hanObj  = hanes.find(h => h.id === hanId);
   const grupoId = $("grupoSelect").value ?? "";const grupoObj= grupos.find(g => g.id === grupoId);
   const base = {
-    firstName: $("firstName").value.trim(), lastName:  $("lastName").value.trim(), birthDate: $("birthDate").value ?? "",
+    firstName: $("firstName").value.trim(), lastName:  $("lastName").value.trim(), birthDate: normalizeDateInput($("birthDate").value),
     address:   $("address").value.trim(),   city:      $("city").value ?? "",     phone:     $("phone").value.trim(),
     phoneFixed: $("phoneFixed").value.trim(),
     email:     $("email").value.trim(),     status:    $("status").value ?? "Miembro",
     division:  $("division").value ?? "",
     nivelExamen: $("nivelExamen").value ?? "",
-    fechaIngreso: $("fechaIngreso").value ?? "",
+    fechaIngreso: normalizeDateInput($("fechaIngreso").value),
     cargo: $("cargo").value ?? "",
     gohonzo: $("gohonzo").value ?? "",
     hanId, hanName: hanObj?.name ?? "", hanCity: $("hanLocalidad").value ?? hanObj?.city ?? "", hanSector: hanObj?.sector ?? "",
@@ -1174,9 +1213,9 @@ function parseCsvDate(v) {
   if (m) {
     const d = m[1].padStart(2, '0'); const mo = m[2].padStart(2, '0');
     const y = m[3].length === 2 ? `19${m[3]}` : m[3];
-    return `${y}-${mo}-${d}`;
+    return `${d}/${mo}/${y}`;
   }
-  return s;
+  return formatDateToDdMmYyyy(s);
 }
 function mapCsvToPersona(row) {
   const firstName = csvPick(row, ['nombres','nombre']);
