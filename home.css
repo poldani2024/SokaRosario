@@ -50,6 +50,70 @@ body {
   padding: 14px 16px;
 }
 
+.control-board {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 10px 16px 16px;
+  display: grid;
+  grid-template-columns: minmax(380px, 1fr) minmax(420px, 1.2fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.kpi-card, .chart-card, .table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.kpi-card h3, .chart-card h3, .table-card h3 {
+  margin: 0 0 8px;
+  font-size: .95rem;
+}
+
+.left-board-col {
+  display: grid;
+  gap: 14px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.kpi-value {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.chart-card {
+  min-height: 390px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+#divisionDonut {
+  max-height: 300px;
+  width: 100% !important;
+}
+
+#divisionSummaryTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#divisionSummaryTable th, #divisionSummaryTable td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 6px;
+  text-align: left;
+  font-size: .9rem;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -130,4 +194,7 @@ body {
   .hdr { align-items: flex-start; flex-direction: column; }
   .card { flex-direction: column; align-items: flex-start; }
   .btn { width: 100%; }
+  .control-board { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: 1fr; }
+  .chart-card { min-height: auto; }
 }
