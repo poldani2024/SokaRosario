@@ -14,6 +14,7 @@
     <nav>
       <a href="index.html">Inicio</a>
       <a href="personas.html">Personas</a>
+      <a href="estadisticas.html">Estadísticas</a>
       <a href="reportes.html">Reportes</a>
     </nav>
     <section class="auth">
@@ -33,7 +34,22 @@
       <h2>Visitas</h2>
       <form id="visitaForm" class="card">
         <label>Persona
-          <select id="visitaPersonaSelect"></select>
+          <input id="visitaPersonaInput" type="text" list="visitaPersonaSuggestions" placeholder="Escribí nombre o apellido">
+          <datalist id="visitaPersonaSuggestions"></datalist>
+          <input id="visitaPersonaId" type="hidden">
+        </label>
+        <label>Tipo de contacto
+          <select id="visitaTipoContacto">
+            <option value="">Seleccionar...</option>
+            <option>Visita</option>
+            <option>Dmk Contacto</option>
+            <option>WhatsApp</option>
+            <option>Actividad</option>
+            <option>Otro</option>
+          </select>
+        </label>
+        <label id="visitaTipoOtroWrap" class="hidden">Detalle de “Otro”
+          <input id="visitaTipoOtro" type="text" placeholder="Especificar tipo de contacto">
         </label>
         <label>Fecha de visita
           <input id="visitaFecha" type="date">
@@ -49,6 +65,7 @@
           <thead>
             <tr>
               <th>Persona</th>
+              <th>Tipo de contacto</th>
               <th>Fecha</th>
               <th>Observaciones</th>
             </tr>
