@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estadísticas — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.mobile.v3.css">
+  <style>
+    #estadisticasTable tbody tr.locked { opacity: .7; }
+    #estadisticasTable input[type="checkbox"] { width: auto; transform: scale(1.1); }
+    #estadisticasTable input[type="text"] { min-width: 220px; }
+    .table-wrap { max-height: 58vh; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+    #estadisticasTable thead th { position: sticky; top: 0; z-index: 1; background: var(--panel); }
+    .status-chip { display: inline-block; border-radius: 999px; padding: 4px 10px; font-size: .86rem; border: 1px solid var(--border); }
+    .status-open { background: #dcfce7; color: #166534; }
+    .status-closed { background: #fee2e2; color: #991b1b; }
+    @media (prefers-color-scheme: dark) {
+      .status-open { background: #052e16; color: #bbf7d0; }
+      .status-closed { background: #3b0a0a; color: #fecaca; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Estadísticas Mensuales</h1>
+    <nav>
+      <a href="home.html">Inicio</a>
+      <a href="personas.html">Personas</a>
+      <a href="hanes.html">Hanes</a>
+      <a href="reportes.html">Reportes</a>
+    </nav>
+    <div id="auth">
+      <div id="login-form">
+        <span>Acceso restringido. Iniciá sesión con Google.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h2>Filtro mensual por Han</h2>
+      <div class="grid">
+        <label>Mes
+          <select id="statsMonth"></select>
+        </label>
+        <label>Año
+          <select id="statsYear"></select>
+        </label>
+        <label>Sector
+          <select id="statsSector"></select>
+        </label>
+        <label>Han
+          <select id="statsHan"></select>
+        </label>
+      </div>
+      <div class="actions">
+        <button id="statsLoadBtn">Cargar / Crear foto mensual</button>
+        <button id="statsSaveBtn" class="secondary" disabled>Guardar cambios</button>
+        <button id="statsExportPdfBtn" class="secondary">Exportar resumen PDF (todos los Hanes)</button>
+        <button id="statsCloseBtn" class="secondary hidden" disabled>Cerrar estadística</button>
+        <button id="statsOpenBtn" class="secondary hidden" disabled>Abrir estadística</button>
+      </div>
+      <p id="statsStatusMsg" class="muted">Seleccioná mes, año y han para comenzar.</p>
+      <p id="statsLockState" class="status-chip hidden"></p>
+      <p id="statsAuditMsg" class="muted"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Personas del Han para el período seleccionado</h2>
+      <div class="table-wrap">
+        <table id="estadisticasTable">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Han</th>
+              <th>Zadankai</th>
+              <th>Filosofía en Acción</th>
+              <th>Humanismo Soka</th>
+              <th>Zaimu</th>
+              <th>Comentario</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="statsEmpty" class="muted hidden">No hay personas para mostrar en esta foto mensual.</p>
+    </section>
+  </main>
+
+  <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <script src="firebase.js"></script>
+  <script src="auth-ui.js"></script>
+  <script src="estadisticas.js"></script>
+</body>
+</html>
