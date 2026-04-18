@@ -33,10 +33,14 @@
 
   function formatDateTime(value) {
     if (!value) return '';
-    if (typeof value?.toDate === 'function') return value.toDate().toLocaleString();
+    const formatter = new Intl.DateTimeFormat('es-AR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+    if (typeof value?.toDate === 'function') return formatter.format(value.toDate());
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return String(value);
-    return d.toLocaleString();
+    return formatter.format(d);
   }
 
   function personLabel(person) {

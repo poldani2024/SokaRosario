@@ -34,6 +34,33 @@
   function saveVisitas(list){ localStorage.setItem(STORAGE_KEYS.visitas, JSON.stringify(list ?? [])); }
   function normalizeText(value){ return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
   function personaLabel(p){ return `${p.lastName ?? ''}, ${p.firstName ?? ''}`.replace(/^,\s*/, '').trim(); }
+  function formatDateDdMmYyyy(value){
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = String(d.getFullYear());
+    return `${dd}/${mm}/${yyyy}`;
+  }
+  function parseDateInputToIso(raw){
+    const value = String(raw ?? '').trim();
+    if (!value) return null;
+    const isoLike = /^(\d{4})-(\d{2})-(\d{2})$/;
+    const arLike = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    let y; let m; let d;
+    if (isoLike.test(value)) {
+      const parts = value.match(isoLike);
+      y = Number(parts[1]); m = Number(parts[2]); d = Number(parts[3]);
+    } else if (arLike.test(value)) {
+      const parts = value.match(arLike);
+      d = Number(parts[1]); m = Number(parts[2]); y = Number(parts[3]);
+    } else {
+      return null;
+    }
+    const date = new Date(y, m - 1, d);
+    if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+    return date.toISOString();
+  }
 
   function filterVisibles(visitas){
     if (!canSeeVisitas(currentRole)) return [];
@@ -110,7 +137,7 @@
     tbody.innerHTML = '';
     filterVisibles(visitas).forEach(v => {
       const tr = document.createElement('tr');
-      const fecha = v.fecha ? new Date(v.fecha).toISOString().slice(0,10) : '';
+      const fecha = v.fecha ? formatDateDdMmYyyy(v.fecha) : '';
       const tipo = v.contactType === 'Otro' ? (v.contactTypeOther || 'Otro') : (v.contactType || '-');
       tr.innerHTML = `<td>${idx[v.personaId] ?? v.personaNombre ?? '-'}</td><td>${tipo}</td><td>${fecha}</td><td>${(v.obs ?? '').replace(/\n/g,'<br/>')}</td>`;
       tbody.appendChild(tr);
@@ -169,10 +196,11 @@
         const resolvedPersona = resolvePersonaByInput($('visitaPersonaInput').value);
         const personaId = resolvedPersona?.id || $('visitaPersonaId').value;
         const fechaStr = $('visitaFecha').value;
+        const fechaIso = parseDateInputToIso(fechaStr);
         const contactType = $('visitaTipoContacto').value;
         const contactTypeOther = $('visitaTipoOtro').value.trim();
         const obs = $('visitaObs').value.trim();
-        if (!personaId || !fechaStr || !contactType) return;
+        if (!personaId || !fechaIso || !contactType) return alert('Ingresá una fecha válida en formato DD/MM/YYYY.');
         if (contactType === 'Otro' && !contactTypeOther) return alert('Especificá el detalle del tipo de contacto.');
         const visitas = loadVisitas();
         const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -182,7 +210,7 @@
           personaNombre: personaLabel(resolvedPersona || {}),
           contactType,
           contactTypeOther,
-          fecha: new Date(fechaStr).toISOString(),
+          fecha: fechaIso,
           obs,
           createdAt: Date.now()
         });
