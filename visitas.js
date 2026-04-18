@@ -62,6 +62,17 @@
     return date.toISOString();
   }
 
+  function applyDateMaskToInput(el) {
+    if (!el) return;
+    el.addEventListener('input', () => {
+      const digits = el.value.replace(/\D/g, '').slice(0, 8);
+      const p1 = digits.slice(0, 2);
+      const p2 = digits.slice(2, 4);
+      const p3 = digits.slice(4, 8);
+      el.value = [p1, p2, p3].filter(Boolean).join('/');
+    });
+  }
+
   function filterVisibles(visitas){
     if (!canSeeVisitas(currentRole)) return [];
     const personas = loadPersonas();
@@ -186,6 +197,7 @@
       $('visitaPersonaId').value = resolved?.id || '';
     });
     $('visitaTipoContacto')?.addEventListener('change', updateTipoOtroVisibility);
+    applyDateMaskToInput($('visitaFecha'));
     updateTipoOtroVisibility();
 
     const form = $('visitaForm');
