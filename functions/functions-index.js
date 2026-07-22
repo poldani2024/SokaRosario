@@ -12,7 +12,7 @@ const admin = require('firebase-admin');
 // Initialize Admin SDK
 try { admin.initializeApp(); } catch (e) {}
 
-const ALLOWED_ROLES = new Set(['Admin','SubRegion','LiderCiudad','LiderSector','LiderHan','Usuario+','Usuario']);
+const ALLOWED_ROLES = new Set(['Admin','SubRegion','LiderCiudad','LiderSector','LiderHan','Canillita','Usuario+','Usuario']);
 const MEMBER_COLLECTION = 'miembros';
 const ROLE_POLICY_COLLECTION = 'fieldPolicies';
 

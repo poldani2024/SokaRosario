@@ -44,6 +44,7 @@ service cloud.firestore {
     function isLiderCiudad() { return role() == 'LiderCiudad'; }
     function isLiderSector() { return role() == 'LiderSector'; }
     function isLiderHan()    { return role() == 'LiderHan'; }
+    function isCanillita()   { return role() == 'Canillita'; }
 
     function hasAnyRole() {
       return hasAuth()
@@ -149,6 +150,48 @@ service cloud.firestore {
     match /visitas/{visitaId} {
       allow read: if hasAnyRole();
       allow write: if isAdmin() || isSubRegion() || isLiderCiudad() || isLiderSector() || isLiderHan();
+    }
+
+    /* =========================
+       Suscripciones a revistas (Argentina de mis Sueños / Humanismo Soka)
+       ========================= */
+    match /subscriptionConfig/{docId} {
+      // Cualquier usuario autenticado puede ver el mes de inicio del ciclo y los costos.
+      allow read: if hasAuth();
+      // Solo Admin configura el ciclo y los costos mensuales.
+      allow write: if isAdmin();
+    }
+
+    match /subscriptionMonths/{monthId} {
+      allow read: if hasAuth();
+      allow write: if isAdmin();
+    }
+
+    match /subscriptions/{subId} {
+      // Admin y roles jerárquicos superiores pueden ver todo.
+      // LiderHan y Canillita solo ven los Hanes dentro de su alcance (scope.hanIds).
+      allow read: if isAdmin()
+               || isSubRegion()
+               || isLiderCiudad()
+               || isLiderSector()
+               || ((isLiderHan() || isCanillita())
+                   && resource.data.hanId is string
+                   && resource.data.hanId in scopeHanIds());
+
+      // Solo Admin o Canillita (dentro de su alcance) registran/editan pagos.
+      // LiderHan puede ver pero no puede crear ni modificar.
+      allow create: if isAdmin()
+                 || (isCanillita()
+                     && request.resource.data.hanId is string
+                     && request.resource.data.hanId in scopeHanIds());
+
+      allow update: if isAdmin()
+                 || (isCanillita()
+                     && resource.data.hanId is string
+                     && resource.data.hanId in scopeHanIds()
+                     && request.resource.data.hanId == resource.data.hanId);
+
+      allow delete: if isAdmin();
     }
 
     /* =========================

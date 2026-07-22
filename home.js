@@ -184,6 +184,7 @@
   function applyRoleUi(role) {
     const isAdmin = role === 'Admin';
     const canVisitas = ['Admin', 'LiderCiudad', 'LiderSector', 'LiderHan'].includes(role);
+    const canSuscripciones = ['Admin', 'SubRegion', 'LiderCiudad', 'LiderSector', 'LiderHan', 'Canillita'].includes(role);
 
     document.querySelectorAll('[data-feature="hanes"], [data-feature="grupos"], .admin-only').forEach((el) => {
       setHidden(el, !isAdmin);
@@ -192,21 +193,42 @@
     document.querySelectorAll('[data-feature="visitas"]').forEach((el) => {
       setHidden(el, !canVisitas);
     });
+
+    document.querySelectorAll('[data-feature="suscripciones"]').forEach((el) => {
+      setHidden(el, !canSuscripciones);
+    });
   }
 
   async function resolveRole(user) {
     if (!user) return 'Usuario';
 
+    const email = (user.email || '').toLowerCase();
+    let role = ADMIN_EMAILS.has(email) ? 'Admin' : 'Usuario';
+
     try {
       const token = await user.getIdTokenResult();
       const claimRole = String(token?.claims?.role || '').trim();
-      if (claimRole) return claimRole;
+      if (claimRole) role = claimRole;
     } catch (err) {
       console.warn('[home] no se pudo leer claims:', err?.message || err);
     }
 
-    const email = (user.email || '').toLowerCase();
-    return ADMIN_EMAILS.has(email) ? 'Admin' : 'Usuario';
+    // El panel de Seguridad guarda el rol en roles/{uid} (no en custom claims),
+    // así que ese documento manda si existe.
+    try {
+      if (window.db) {
+        const snap = await window.db.collection('roles').doc(user.uid).get();
+        if (snap.exists) {
+          const docRole = String(snap.data()?.role || '').trim();
+          if (docRole) role = docRole;
+        }
+      }
+    } catch (err) {
+      console.warn('[home] no se pudo leer roles/{uid}:', err?.message || err);
+    }
+
+    if (ADMIN_EMAILS.has(email)) role = 'Admin';
+    return role;
   }
 
 
