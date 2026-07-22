@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Config. Suscripciones — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.mobile.v3.css">
+</head>
+<body>
+  <header>
+    <h1>Configuración de Suscripciones</h1>
+    <nav>
+      <a href="home.html">Inicio</a>
+      <a href="personas.html">Personas</a>
+      <a href="suscripciones.html">Suscripciones</a>
+    </nav>
+    <div id="auth">
+      <div id="login-form">
+        <span>Acceso restringido. Iniciá sesión con Google.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p id="adminGuard" class="panel hidden">Necesitás el rol <strong>Admin</strong> para ver y editar esta pantalla.</p>
+
+    <section id="cicloPanel" class="panel hidden">
+      <h2>Ciclo trimestral</h2>
+      <p class="muted">
+        La revista <strong>Argentina de mis Sueños</strong> se paga todos los meses. Cada 3 meses consecutivos desde el
+        mes de inicio forman un trimestre; quien sostuvo el pago los 3 meses recibe además, en el tercer mes,
+        la revista <strong>Humanismo Soka</strong>.
+      </p>
+      <div class="grid">
+        <label>Mes de inicio del ciclo
+          <input id="anchorMonthInput" type="month">
+        </label>
+      </div>
+      <div class="actions">
+        <button id="saveAnchorBtn">Guardar mes de inicio</button>
+        <span id="anchorMsg" class="muted"></span>
+      </div>
+    </section>
+
+    <section id="mesesPanel" class="panel hidden">
+      <h2>Meses y costo mensual</h2>
+      <p class="muted">El costo se define mes a mes por si llegara a cambiar dentro del mismo trimestre. Al agregar un mes nuevo se copia el costo del último mes cargado.</p>
+
+      <div class="table-wrap">
+        <table id="mesesTable">
+          <thead>
+            <tr>
+              <th>Mes</th>
+              <th>Posición en el trimestre</th>
+              <th>Costo mensual</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="mesesEmpty" class="muted hidden">Todavía no hay meses configurados. Guardá primero el mes de inicio del ciclo.</p>
+
+      <div class="actions">
+        <button id="addMonthBtn">Agregar próximo mes</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
+
+  <!-- SDKs v8 (CDN gstatic) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase.js"></script>
+  <script src="suscripciones-config.js"></script>
+</body>
+</html>

@@ -19,6 +19,7 @@ const ROLE_ALIASES = {
   'LiderHan': 'LiderHan',
   'Líder Han': 'LiderHan',
   'Responsable Han': 'LiderHan',
+  'Canillita': 'Canillita',
   'Usuario+': 'Usuario+',
   'Usuario': 'Usuario'
 };
@@ -29,6 +30,7 @@ const ROLE_LABELS = {
   'LiderCiudad': 'Líder Ciudad',
   'LiderSector': 'Líder Sector',
   'LiderHan': 'Responsable Han',
+  'Canillita': 'Canillita',
   'Usuario+': 'Usuario+',
   'Usuario': 'Usuario'
 };

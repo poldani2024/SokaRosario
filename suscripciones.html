@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Suscripciones — Soka Gakkai Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.mobile.v3.css">
+</head>
+<body>
+  <header>
+    <h1>Suscripción a la Revista</h1>
+    <nav>
+      <a href="home.html">Inicio</a>
+      <a href="personas.html">Personas</a>
+      <a href="hanes.html">Hanes</a>
+    </nav>
+    <div id="auth">
+      <div id="login-form">
+        <span>Acceso restringido. Iniciá sesión con Google.</span>
+        <button id="googleLoginBtn">Ingresar con Google</button>
+      </div>
+      <div id="user-info" class="hidden">
+        <span id="user-email"></span>
+        <span id="role-badge" class="badge"></span>
+        <button id="logoutBtn" class="secondary">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <p id="accessGuard" class="panel hidden">Tu rol no tiene acceso a esta pantalla.</p>
+
+    <section id="suscripcionesPanel" class="panel hidden">
+      <h2>Registro por Han / Trimestre</h2>
+      <p class="muted">
+        Cada mes pagado da derecho a la revista <strong>Argentina de mis Sueños</strong>. Si se sostienen los 3 meses
+        del trimestre, el tercer mes se suma la revista <strong>Humanismo Soka</strong>.
+      </p>
+
+      <div class="grid">
+        <label>Han
+          <select id="hanSelect"></select>
+        </label>
+        <label>Trimestre
+          <select id="trimestreSelect"></select>
+        </label>
+        <label>Buscar persona
+          <input id="personaSearch" type="text" placeholder="Nombre o apellido">
+        </label>
+        <label>Estado
+          <select id="estadoFilter">
+            <option value="">Todos</option>
+            <option>Miembro</option>
+            <option>Amigo Soka</option>
+            <option>Sakubuku</option>
+          </select>
+        </label>
+      </div>
+
+      <p id="readOnlyNote" class="muted hidden">Tu rol puede ver esta información pero no puede registrar ni modificar pagos.</p>
+
+      <div class="table-wrap">
+        <table id="suscripcionesTable">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Estado</th>
+              <th id="mes1Header">Mes 1</th>
+              <th id="mes2Header">Mes 2</th>
+              <th id="mes3Header">Mes 3</th>
+              <th>Humanismo Soka</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="suscripcionesEmpty" class="muted hidden">No hay personas para mostrar con los filtros actuales.</p>
+    </section>
+  </main>
+
+  <footer>Hecho con ❤️ — Soka Gakkai Tracker</footer>
+
+  <!-- SDKs v8 (CDN gstatic) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="firebase.js"></script>
+  <script src="suscripciones.js"></script>
+</body>
+</html>
