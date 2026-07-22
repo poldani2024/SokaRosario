@@ -15,7 +15,7 @@
   let monthsById = {}; // { 'YYYY-MM': price }
   let trimesters = []; // [{ index, slots: ['YYYY-MM'|null, ...] }]
   let personas = [];
-  let subsMap = {}; // { personaId: { 'YYYY-MM': { paid, amount } } }
+  let subsMap = {}; // { personaId: { 'YYYY-MM': { quantity, unitPrice, amount } } }
 
   function isValidMonthKey(key) { return /^\d{4}-\d{2}$/.test(String(key ?? '')); }
 
@@ -178,7 +178,11 @@
         const personaId = data.personaId;
         if (!personaId) return;
         if (!map[personaId]) map[personaId] = {};
-        map[personaId][data.month] = { paid: !!data.paid, amount: Number(data.amount ?? 0) };
+        map[personaId][data.month] = {
+          quantity: Number(data.quantity ?? (data.paid ? 1 : 0)),
+          unitPrice: Number(data.unitPrice ?? data.amount ?? 0),
+          amount: Number(data.amount ?? 0)
+        };
       });
     });
     return map;
@@ -245,18 +249,21 @@
       const cells = t.slots.map((month) => {
         const td = document.createElement('td');
         if (!month) { td.textContent = '—'; return td; }
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.dataset.month = month;
-        checkbox.checked = !!personaSubs[month]?.paid;
-        checkbox.disabled = !editable;
-        td.appendChild(checkbox);
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.step = '1';
+        input.dataset.month = month;
+        input.value = String(personaSubs[month]?.quantity ?? 0);
+        input.disabled = !editable;
+        input.title = 'Cantidad de suscripciones ese mes (0 = no suscribió)';
+        td.appendChild(input);
         return td;
       });
 
       const tdBonus = document.createElement('td');
       const allSlotsConfigured = t.slots.every(Boolean);
-      const allPaid = allSlotsConfigured && t.slots.every((m) => !!personaSubs[m]?.paid);
+      const allPaid = allSlotsConfigured && t.slots.every((m) => (personaSubs[m]?.quantity ?? 0) > 0);
       tdBonus.textContent = allSlotsConfigured ? (allPaid ? 'Sí' : 'No') : '—';
       if (allPaid) tdBonus.style.fontWeight = 'bold';
 
@@ -265,18 +272,21 @@
     });
   }
 
-  async function togglePago(personaId, month, paid) {
+  async function updateCantidad(personaId, month, rawQuantity) {
     const hanId = $('hanSelect')?.value ?? '';
     if (!hanId || !month) return;
     if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede registrar pagos para este Han.');
-    const amount = Number(monthsById[month] ?? 0);
+    const quantity = Math.max(0, Math.floor(Number(rawQuantity) || 0));
+    const unitPrice = Number(monthsById[month] ?? 0);
+    const amount = quantity * unitPrice;
     const user = auth.currentUser;
     try {
       await db.collection('subscriptions').doc(`${personaId}__${month}`).set({
         personaId,
         hanId,
         month,
-        paid,
+        quantity,
+        unitPrice,
         amount,
         registeredBy: user?.uid || '',
         registeredByEmail: (user?.email || '').toLowerCase(),
@@ -284,11 +294,11 @@
       }, { merge: true });
 
       if (!subsMap[personaId]) subsMap[personaId] = {};
-      subsMap[personaId][month] = { paid, amount };
+      subsMap[personaId][month] = { quantity, unitPrice, amount };
       renderTable();
     } catch (err) {
-      console.error('[suscripciones] guardar pago', err);
-      alert('No se pudo guardar el pago. Probá de nuevo.');
+      console.error('[suscripciones] guardar cantidad', err);
+      alert('No se pudo guardar el registro. Probá de nuevo.');
     }
   }
 
@@ -352,12 +362,12 @@
     $('estadoFilter')?.addEventListener('change', renderTable);
 
     $('suscripcionesTable')?.querySelector('tbody')?.addEventListener('change', (e) => {
-      const checkbox = e.target.closest('input[type="checkbox"][data-month]');
-      if (!checkbox) return;
-      const tr = checkbox.closest('tr[data-persona-id]');
+      const input = e.target.closest('input[type="number"][data-month]');
+      if (!input) return;
+      const tr = input.closest('tr[data-persona-id]');
       const personaId = tr?.dataset.personaId;
       if (!personaId) return;
-      togglePago(personaId, checkbox.dataset.month, checkbox.checked);
+      updateCantidad(personaId, input.dataset.month, input.value);
     });
   });
 })();
