@@ -7,6 +7,13 @@
   <title>Suscripciones — Soka Gakkai Tracker</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="styles.mobile.v3.css">
+  <style>
+    .mes-cell { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
+    .mes-cell select { width: auto; flex: 0 0 auto; padding: 4px; }
+    .mes-cell input[type="number"] { width: 3.2em; min-width: 3.2em; flex: 0 0 auto; padding: 4px; text-align: right; }
+    .mes-cell .valor { white-space: nowrap; font-size: 0.85em; color: var(--muted); min-width: 4.5em; }
+    #suscripcionesTable tfoot td { font-weight: bold; border-top: 2px solid var(--border); }
+  </style>
 </head>
 <body>
   <header>
@@ -35,10 +42,11 @@
     <section id="suscripcionesPanel" class="panel hidden">
       <h2>Registro por Han / Trimestre</h2>
       <p class="muted">
-        Por cada mes, cargá la <strong>cantidad</strong> de suscripciones que esa persona pagó (0 = no suscribió ese
-        mes; lo normal es 1, pero puede ser 2 o más). Cada mes con cantidad mayor a 0 da derecho a la revista
-        <strong>Argentina de mis Sueños</strong>. Si se sostienen los 3 meses del trimestre (cantidad &gt; 0 en los
-        tres), el tercer mes se suma la revista <strong>Humanismo Soka</strong>.
+        Por cada mes elegí el pago (<strong>S</strong> = pagó la persona, <strong>N</strong> = no pagó,
+        <strong>C</strong> = lo pagó el Canillita) y la <strong>cantidad</strong> de suscripciones (lo normal es 1,
+        puede ser 2 o más). Un mes en N no da revista y cuenta como 0. Cada mes con S o C da derecho a la revista
+        <strong>Argentina de mis Sueños</strong>. Si se sostienen los 3 meses del trimestre en S o C, el tercer mes
+        se suma la revista <strong>Humanismo Soka</strong>.
       </p>
 
       <div class="grid">
@@ -76,6 +84,7 @@
             </tr>
           </thead>
           <tbody></tbody>
+          <tfoot></tfoot>
         </table>
       </div>
       <p id="suscripcionesEmpty" class="muted hidden">No hay personas para mostrar con los filtros actuales.</p>
