@@ -15,7 +15,11 @@
   let monthsById = {}; // { 'YYYY-MM': price }
   let trimesters = []; // [{ index, slots: ['YYYY-MM'|null, ...] }]
   let personas = [];
-  let subsMap = {}; // { personaId: { 'YYYY-MM': { quantity, unitPrice, amount } } }
+  let subsMap = {}; // { personaId: { 'YYYY-MM': { quantity, paymentStatus, unitPrice, amount } } }
+
+  function formatMoney(n) {
+    return `$${Number(n || 0).toLocaleString('es-AR')}`;
+  }
 
   function isValidMonthKey(key) { return /^\d{4}-\d{2}$/.test(String(key ?? '')); }
 
@@ -178,8 +182,10 @@
         const personaId = data.personaId;
         if (!personaId) return;
         if (!map[personaId]) map[personaId] = {};
+        const quantity = Number(data.quantity ?? (data.paid ? 1 : 0));
         map[personaId][data.month] = {
-          quantity: Number(data.quantity ?? (data.paid ? 1 : 0)),
+          quantity,
+          paymentStatus: ['S', 'N', 'C'].includes(data.paymentStatus) ? data.paymentStatus : (quantity > 0 ? 'S' : 'N'),
           unitPrice: Number(data.unitPrice ?? data.amount ?? 0),
           amount: Number(data.amount ?? 0)
         };
@@ -235,6 +241,8 @@
     $('suscripcionesEmpty')?.classList.toggle('hidden', filtered.length > 0);
     if (table) table.classList.toggle('hidden', filtered.length === 0);
 
+    const totals = [0, 0, 0];
+
     filtered.forEach((p) => {
       const tr = document.createElement('tr');
       tr.dataset.personaId = p.id;
@@ -246,37 +254,98 @@
       tdEstado.textContent = p.status || '';
 
       const personaSubs = subsMap[p.id] || {};
-      const cells = t.slots.map((month) => {
+      const cells = t.slots.map((month, slotIdx) => {
         const td = document.createElement('td');
         if (!month) { td.textContent = '—'; return td; }
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.min = '0';
-        input.step = '1';
-        input.dataset.month = month;
-        input.value = String(personaSubs[month]?.quantity ?? 0);
-        input.disabled = !editable;
-        input.title = 'Cantidad de suscripciones ese mes (0 = no suscribió)';
-        td.appendChild(input);
+        const entry = personaSubs[month] || { quantity: 0, paymentStatus: 'N', amount: 0 };
+        totals[slotIdx] += entry.amount;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'mes-cell';
+
+        const pagoSelect = document.createElement('select');
+        pagoSelect.dataset.month = month;
+        pagoSelect.dataset.field = 'pago';
+        [['S', 'S'], ['N', 'N'], ['C', 'C']].forEach(([value, label]) => {
+          const opt = document.createElement('option');
+          opt.value = value; opt.textContent = label;
+          if (entry.paymentStatus === value) opt.selected = true;
+          pagoSelect.appendChild(opt);
+        });
+        pagoSelect.disabled = !editable;
+        pagoSelect.title = 'S = pagó la persona, N = no pagó, C = lo pagó el Canillita';
+
+        const cantidadInput = document.createElement('input');
+        cantidadInput.type = 'number';
+        cantidadInput.min = '0';
+        cantidadInput.step = '1';
+        cantidadInput.dataset.month = month;
+        cantidadInput.dataset.field = 'cantidad';
+        cantidadInput.value = String(entry.quantity);
+        cantidadInput.disabled = !editable || entry.paymentStatus === 'N';
+        cantidadInput.title = 'Cantidad de suscripciones ese mes';
+
+        const valorSpan = document.createElement('span');
+        valorSpan.className = 'valor';
+        valorSpan.textContent = formatMoney(entry.amount);
+
+        wrap.append(pagoSelect, cantidadInput, valorSpan);
+        td.appendChild(wrap);
         return td;
       });
 
       const tdBonus = document.createElement('td');
       const allSlotsConfigured = t.slots.every(Boolean);
-      const allPaid = allSlotsConfigured && t.slots.every((m) => (personaSubs[m]?.quantity ?? 0) > 0);
+      const allPaid = allSlotsConfigured && t.slots.every((m) => (personaSubs[m]?.paymentStatus ?? 'N') !== 'N');
       tdBonus.textContent = allSlotsConfigured ? (allPaid ? 'Sí' : 'No') : '—';
       if (allPaid) tdBonus.style.fontWeight = 'bold';
 
       tr.append(tdName, tdEstado, ...cells, tdBonus);
       tbody.appendChild(tr);
     });
+
+    renderFooterTotals(t, totals);
   }
 
-  async function updateCantidad(personaId, month, rawQuantity) {
+  function renderFooterTotals(t, totals) {
+    const tfoot = $('suscripcionesTable')?.querySelector('tfoot');
+    if (!tfoot) return;
+    tfoot.innerHTML = '';
+    if (!t) return;
+    const tr = document.createElement('tr');
+    const tdLabel = document.createElement('td');
+    tdLabel.textContent = 'Total del Han';
+    tdLabel.colSpan = 2;
+    tr.appendChild(tdLabel);
+    t.slots.forEach((month, idx) => {
+      const td = document.createElement('td');
+      td.textContent = month ? formatMoney(totals[idx]) : '—';
+      tr.appendChild(td);
+    });
+    const tdEmpty = document.createElement('td');
+    tr.appendChild(tdEmpty);
+    tfoot.appendChild(tr);
+  }
+
+  async function updateCelda(personaId, month, field, rawValue) {
     const hanId = $('hanSelect')?.value ?? '';
     if (!hanId || !month) return;
     if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede registrar pagos para este Han.');
-    const quantity = Math.max(0, Math.floor(Number(rawQuantity) || 0));
+
+    const current = subsMap[personaId]?.[month] || { quantity: 0, paymentStatus: 'N' };
+    let quantity = current.quantity;
+    let paymentStatus = current.paymentStatus;
+
+    if (field === 'pago') {
+      paymentStatus = ['S', 'N', 'C'].includes(rawValue) ? rawValue : 'N';
+      if (paymentStatus === 'N') quantity = 0;
+      else if (quantity <= 0) quantity = 1;
+    } else {
+      quantity = Math.max(0, Math.floor(Number(rawValue) || 0));
+      if (quantity === 0) paymentStatus = 'N';
+      else if (paymentStatus === 'N') paymentStatus = 'S';
+    }
+
     const unitPrice = Number(monthsById[month] ?? 0);
     const amount = quantity * unitPrice;
     const user = auth.currentUser;
@@ -286,6 +355,7 @@
         hanId,
         month,
         quantity,
+        paymentStatus,
         unitPrice,
         amount,
         registeredBy: user?.uid || '',
@@ -294,10 +364,10 @@
       }, { merge: true });
 
       if (!subsMap[personaId]) subsMap[personaId] = {};
-      subsMap[personaId][month] = { quantity, unitPrice, amount };
+      subsMap[personaId][month] = { quantity, paymentStatus, unitPrice, amount };
       renderTable();
     } catch (err) {
-      console.error('[suscripciones] guardar cantidad', err);
+      console.error('[suscripciones] guardar celda', err);
       alert('No se pudo guardar el registro. Probá de nuevo.');
     }
   }
@@ -362,12 +432,12 @@
     $('estadoFilter')?.addEventListener('change', renderTable);
 
     $('suscripcionesTable')?.querySelector('tbody')?.addEventListener('change', (e) => {
-      const input = e.target.closest('input[type="number"][data-month]');
-      if (!input) return;
-      const tr = input.closest('tr[data-persona-id]');
+      const el = e.target.closest('[data-month][data-field]');
+      if (!el) return;
+      const tr = el.closest('tr[data-persona-id]');
       const personaId = tr?.dataset.personaId;
       if (!personaId) return;
-      updateCantidad(personaId, input.dataset.month, input.value);
+      updateCelda(personaId, el.dataset.month, el.dataset.field, el.value);
     });
   });
 })();
