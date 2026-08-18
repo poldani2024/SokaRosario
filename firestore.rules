@@ -92,6 +92,11 @@ service cloud.firestore {
         : [];
     }
 
+    function subscriptionMonthIsOpen(hanId, month) {
+      return !exists(/databases/$(database)/documents/subscriptionMonthLocks/$(hanId + '__' + month))
+          || get(/databases/$(database)/documents/subscriptionMonthLocks/$(hanId + '__' + month)).data.closed != true;
+    }
+
     /* =========================
        Catálogos base
        ========================= */
@@ -180,17 +185,44 @@ service cloud.firestore {
 
       // Solo Admin o Canillita (dentro de su alcance) registran/editan pagos.
       // LiderHan puede ver pero no puede crear ni modificar.
-      allow create: if isAdmin()
+      allow create: if request.resource.data.hanId is string
+                 && request.resource.data.month is string
+                 && subscriptionMonthIsOpen(request.resource.data.hanId, request.resource.data.month)
+                 && (isAdmin()
                  || (isCanillita()
                      && request.resource.data.hanId is string
-                     && request.resource.data.hanId in scopeHanIds());
+                     && request.resource.data.hanId in scopeHanIds()));
 
-      allow update: if isAdmin()
+      allow update: if resource.data.hanId is string
+                 && resource.data.month is string
+                 && request.resource.data.hanId == resource.data.hanId
+                 && request.resource.data.month == resource.data.month
+                 && subscriptionMonthIsOpen(resource.data.hanId, resource.data.month)
+                 && (isAdmin()
+                 || (isCanillita()
+                     && resource.data.hanId is string
+                     && resource.data.hanId in scopeHanIds()));
+
+      allow delete: if isAdmin();
+    }
+
+    match /subscriptionMonthLocks/{lockId} {
+      allow read: if hasAuth();
+      allow create: if request.resource.data.hanId is string
+                 && request.resource.data.month is string
+                 && lockId == request.resource.data.hanId + '__' + request.resource.data.month
+                 && (isAdmin()
+                 || (isCanillita()
+                     && request.resource.data.hanId is string
+                     && request.resource.data.hanId in scopeHanIds()));
+      allow update: if request.resource.data.hanId == resource.data.hanId
+                 && request.resource.data.month == resource.data.month
+                 && lockId == resource.data.hanId + '__' + resource.data.month
+                 && (isAdmin()
                  || (isCanillita()
                      && resource.data.hanId is string
                      && resource.data.hanId in scopeHanIds()
-                     && request.resource.data.hanId == resource.data.hanId);
-
+                     && request.resource.data.hanId == resource.data.hanId));
       allow delete: if isAdmin();
     }
 

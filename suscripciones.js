@@ -16,6 +16,7 @@
   let trimesters = []; // [{ index, slots: ['YYYY-MM'|null, ...] }]
   let personas = [];
   let subsMap = {}; // { personaId: { 'YYYY-MM': { quantity, paymentStatus, unitPrice, amount } } }
+  let monthLocks = {}; // { 'YYYY-MM': true si el mes del Han está cerrado }
 
   function formatMoney(n) {
     return `$${Number(n || 0).toLocaleString('es-AR')}`;
@@ -123,10 +124,11 @@
   function populateHanSelect() {
     const sel = $('hanSelect');
     const current = sel.value;
-    sel.innerHTML = '';
+    sel.innerHTML = '<option value="">Seleccionar Han...</option>';
     if (!hanes.length) {
       const opt = document.createElement('option');
       opt.value = ''; opt.textContent = '(sin Hanes asignados)';
+      sel.innerHTML = '';
       sel.appendChild(opt);
       return;
     }
@@ -137,6 +139,42 @@
       sel.appendChild(opt);
     });
     if (current && hanes.some((h) => h.id === current)) sel.value = current;
+  }
+
+  function populateNewPersonaOptions() {
+    const hanSelect = $('nuevaPersonaHan');
+    const localidadSelect = $('nuevaPersonaLocalidad');
+    if (hanSelect) {
+      hanSelect.innerHTML = '<option value="">Seleccionar...</option>';
+      hanes.forEach((h) => hanSelect.add(new Option(h.name || h.id, h.id)));
+    }
+    if (localidadSelect) {
+      const localidades = new Set();
+      hanes.forEach((h) => { if (h.city) localidades.add(String(h.city).trim()); });
+      personas.forEach((p) => { if (p.city) localidades.add(String(p.city).trim()); });
+      localidadSelect.innerHTML = '<option value="">Seleccionar...</option>';
+      Array.from(localidades).filter(Boolean).sort((a, b) => a.localeCompare(b, 'es'))
+        .forEach((city) => localidadSelect.add(new Option(city, city)));
+    }
+  }
+
+  function toggleNewPersonaForm(show) {
+    const form = $('nuevaPersonaForm');
+    const modal = $('nuevaPersonaModal');
+    if (!form || !modal) return;
+    modal.classList.toggle('hidden', !show);
+    if (show) {
+      populateNewPersonaOptions();
+      const needsHan = !$('hanSelect')?.value;
+      $('nuevaPersonaHanField')?.classList.toggle('hidden', !needsHan);
+      if ($('nuevaPersonaHan')) $('nuevaPersonaHan').required = needsHan;
+      const selectedHan = hanes.find((h) => h.id === $('hanSelect')?.value);
+      if (selectedHan?.city && $('nuevaPersonaLocalidad')) $('nuevaPersonaLocalidad').value = selectedHan.city;
+      $('nuevaPersonaNombre')?.focus();
+    } else {
+      form.reset();
+      if ($('nuevaPersonaMensaje')) $('nuevaPersonaMensaje').textContent = '';
+    }
   }
 
   function populateTrimestreSelect() {
@@ -187,11 +225,57 @@
           quantity,
           paymentStatus: ['S', 'N', 'C'].includes(data.paymentStatus) ? data.paymentStatus : (quantity > 0 ? 'S' : 'N'),
           unitPrice: Number(data.unitPrice ?? data.amount ?? 0),
-          amount: Number(data.amount ?? 0)
+          amount: Number(data.amount ?? 0),
+          delivered: data.delivered === true,
+          comment: String(data.comment ?? '')
         };
       });
     });
     return map;
+  }
+
+  async function loadMonthLocks(hanId, monthKeys) {
+    const map = {};
+    const refs = monthKeys.filter(Boolean).map((month) =>
+      db.collection('subscriptionMonthLocks').doc(`${hanId}__${month}`).get()
+    );
+    let snapshots;
+    try {
+      snapshots = await Promise.all(refs);
+    } catch (err) {
+      // Mantener operativa la grilla si las reglas nuevas todavía no fueron desplegadas.
+      // Sin acceso a los cierres no se asume que un mes esté cerrado.
+      console.warn('[suscripciones] no se pudieron consultar los cierres mensuales', err?.message || err);
+      return map;
+    }
+    snapshots.forEach((snap) => {
+      if (snap.exists && snap.data()?.closed === true) map[snap.data().month] = true;
+    });
+    return map;
+  }
+
+  function renderMonthHeader(id, month, editable) {
+    const th = $(id);
+    if (!th) return;
+    th.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'mes-header';
+    const label = document.createElement('span');
+    label.textContent = month ? monthLabel(month) : 'Mes';
+    wrap.appendChild(label);
+    if (month) {
+      const closed = monthLocks[month] === true;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `mes-lock-btn${closed ? ' cerrado' : ''}`;
+      button.dataset.action = 'month-lock';
+      button.dataset.month = month;
+      button.textContent = closed ? '🔒 Cerrado' : '🔓 Abierto';
+      button.title = closed ? 'Abrir este mes para permitir modificaciones' : 'Cerrar este mes para evitar modificaciones';
+      button.disabled = !editable;
+      wrap.appendChild(button);
+    }
+    th.appendChild(wrap);
   }
 
   async function refreshTable() {
@@ -201,20 +285,79 @@
     const table = $('suscripcionesTable');
     if (!tbody) return;
 
-    $('mes1Header').textContent = t ? monthLabel(t.slots[0]) : 'Mes 1';
-    $('mes2Header').textContent = t ? monthLabel(t.slots[1]) : 'Mes 2';
-    $('mes3Header').textContent = t ? monthLabel(t.slots[2]) : 'Mes 3';
+    const canAdd = currentRole === 'Admin' || (currentRole === 'Canillita' && hanes.some((h) => canEditHan(currentRole, h.id)));
+    $('mostrarNuevaPersonaBtn')?.classList.toggle('hidden', !canAdd);
 
     if (!hanId || !t) {
+      monthLocks = {};
+      renderMonthHeader('mes1Header', t?.slots[0], false);
+      renderMonthHeader('mes2Header', t?.slots[1], false);
+      renderMonthHeader('mes3Header', t?.slots[2], false);
       tbody.innerHTML = '';
       $('suscripcionesEmpty')?.classList.remove('hidden');
       if (table) table.classList.add('hidden');
       return;
     }
 
-    personas = await loadPersonasForHan(hanId);
-    subsMap = await loadSubscriptions(hanId, t.slots);
+    [personas, subsMap, monthLocks] = await Promise.all([
+      loadPersonasForHan(hanId),
+      loadSubscriptions(hanId, t.slots),
+      loadMonthLocks(hanId, t.slots)
+    ]);
+    populateNewPersonaOptions();
     renderTable();
+  }
+
+  async function createPersona(e) {
+    e.preventDefault();
+    let hanId = $('hanSelect')?.value || '';
+    if (!hanId) hanId = $('nuevaPersonaHan')?.value || '';
+    if (!hanId) {
+      $('nuevaPersonaHanField')?.classList.remove('hidden');
+      if ($('nuevaPersonaHan')) $('nuevaPersonaHan').required = true;
+      return alert('Seleccioná el Han al que pertenece la persona.');
+    }
+    if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede agregar personas a este Han.');
+
+    const han = hanes.find((h) => h.id === hanId);
+    const firstName = $('nuevaPersonaNombre')?.value.trim() || '';
+    const lastName = $('nuevaPersonaApellido')?.value.trim() || '';
+    if (!firstName || !lastName) return alert('Completá el nombre y el apellido.');
+
+    const button = $('confirmarNuevaPersonaBtn');
+    const message = $('nuevaPersonaMensaje');
+    if (button) button.disabled = true;
+    if (message) message.textContent = 'Guardando persona...';
+    try {
+      const user = auth.currentUser;
+      const ref = db.collection('personas').doc();
+      const nueva = {
+        firstName,
+        lastName,
+        address: $('nuevaPersonaDomicilio')?.value.trim() || '',
+        city: $('nuevaPersonaLocalidad')?.value || '',
+        division: $('nuevaPersonaDivision')?.value || '',
+        status: $('nuevaPersonaEstado')?.value || 'Miembro',
+        hanId,
+        hanName: han?.name || '',
+        hanCity: han?.city || '',
+        hanSector: han?.sector || '',
+        uid: user?.uid || '',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      await ref.set(nueva);
+      if ($('hanSelect') && $('hanSelect').value !== hanId) $('hanSelect').value = hanId;
+      toggleNewPersonaForm(false);
+      await refreshTable();
+      alert('Persona agregada correctamente.');
+    } catch (err) {
+      console.error('[suscripciones] crear persona', err);
+      if (message) message.textContent = 'No se pudo guardar la persona.';
+      alert('No se pudo guardar la persona. Probá de nuevo.');
+    } finally {
+      if (button) button.disabled = false;
+    }
   }
 
   function renderTable() {
@@ -225,6 +368,9 @@
     if (!tbody || !t) return;
 
     const editable = canEditHan(currentRole, hanId);
+    renderMonthHeader('mes1Header', t.slots[0], editable);
+    renderMonthHeader('mes2Header', t.slots[1], editable);
+    renderMonthHeader('mes3Header', t.slots[2], editable);
     $('readOnlyNote')?.classList.toggle('hidden', editable);
 
     const q = normalizeText($('personaSearch')?.value ?? '');
@@ -257,8 +403,11 @@
       const cells = t.slots.map((month, slotIdx) => {
         const td = document.createElement('td');
         if (!month) { td.textContent = '—'; return td; }
-        const entry = personaSubs[month] || { quantity: 0, paymentStatus: 'N', amount: 0 };
+        const entry = personaSubs[month] || { quantity: 0, paymentStatus: 'N', amount: 0, delivered: false, comment: '' };
+        const monthClosed = monthLocks[month] === true;
         totals[slotIdx] += entry.amount;
+        td.classList.toggle('revista-entregada', entry.delivered);
+        td.classList.toggle('mes-cerrado', monthClosed);
 
         const wrap = document.createElement('div');
         wrap.className = 'mes-cell';
@@ -272,7 +421,7 @@
           if (entry.paymentStatus === value) opt.selected = true;
           pagoSelect.appendChild(opt);
         });
-        pagoSelect.disabled = !editable;
+        pagoSelect.disabled = !editable || monthClosed;
         pagoSelect.title = 'S = pagó la persona, N = no pagó, C = lo pagó el Canillita';
 
         const cantidadInput = document.createElement('input');
@@ -282,14 +431,34 @@
         cantidadInput.dataset.month = month;
         cantidadInput.dataset.field = 'cantidad';
         cantidadInput.value = String(entry.quantity);
-        cantidadInput.disabled = !editable || entry.paymentStatus === 'N';
+        cantidadInput.disabled = !editable || monthClosed || entry.paymentStatus === 'N';
         cantidadInput.title = 'Cantidad de suscripciones ese mes';
 
         const valorSpan = document.createElement('span');
         valorSpan.className = 'valor';
         valorSpan.textContent = formatMoney(entry.amount);
 
-        wrap.append(pagoSelect, cantidadInput, valorSpan);
+        const entregaBtn = document.createElement('button');
+        entregaBtn.type = 'button';
+        entregaBtn.className = 'entrega-btn';
+        entregaBtn.dataset.action = 'delivery';
+        entregaBtn.dataset.month = month;
+        entregaBtn.setAttribute('aria-pressed', String(entry.delivered));
+        entregaBtn.setAttribute('aria-label', entry.delivered ? 'Marcar revista como no entregada' : 'Marcar revista como entregada');
+        entregaBtn.title = entry.delivered ? 'Revista entregada. Presioná para desmarcar.' : 'Marcar revista como entregada';
+        entregaBtn.textContent = entry.delivered ? '✓📖' : '📖';
+        entregaBtn.disabled = !editable || monthClosed || entry.paymentStatus === 'N' || entry.quantity <= 0;
+
+        const comentarioBtn = document.createElement('button');
+        comentarioBtn.type = 'button';
+        comentarioBtn.className = `comentario-btn${entry.comment.trim() ? ' con-comentario' : ''}`;
+        comentarioBtn.dataset.action = 'comment';
+        comentarioBtn.dataset.month = month;
+        comentarioBtn.setAttribute('aria-label', entry.comment.trim() ? 'Ver o editar comentario' : 'Agregar comentario');
+        comentarioBtn.title = entry.comment.trim() ? `Comentario: ${entry.comment}` : 'Agregar comentario';
+        comentarioBtn.textContent = '💬';
+
+        wrap.append(pagoSelect, cantidadInput, valorSpan, entregaBtn, comentarioBtn);
         td.appendChild(wrap);
         return td;
       });
@@ -331,18 +500,21 @@
     const hanId = $('hanSelect')?.value ?? '';
     if (!hanId || !month) return;
     if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede registrar pagos para este Han.');
+    if (monthLocks[month]) return alert('Este mes está cerrado. Abrilo antes de realizar modificaciones.');
 
     const current = subsMap[personaId]?.[month] || { quantity: 0, paymentStatus: 'N' };
     let quantity = current.quantity;
     let paymentStatus = current.paymentStatus;
+    let delivered = current.delivered === true;
+    const comment = String(current.comment ?? '');
 
     if (field === 'pago') {
       paymentStatus = ['S', 'N', 'C'].includes(rawValue) ? rawValue : 'N';
-      if (paymentStatus === 'N') quantity = 0;
+      if (paymentStatus === 'N') { quantity = 0; delivered = false; }
       else if (quantity <= 0) quantity = 1;
     } else {
       quantity = Math.max(0, Math.floor(Number(rawValue) || 0));
-      if (quantity === 0) paymentStatus = 'N';
+      if (quantity === 0) { paymentStatus = 'N'; delivered = false; }
       else if (paymentStatus === 'N') paymentStatus = 'S';
     }
 
@@ -358,17 +530,119 @@
         paymentStatus,
         unitPrice,
         amount,
+        delivered,
         registeredBy: user?.uid || '',
         registeredByEmail: (user?.email || '').toLowerCase(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
 
       if (!subsMap[personaId]) subsMap[personaId] = {};
-      subsMap[personaId][month] = { quantity, paymentStatus, unitPrice, amount };
+      subsMap[personaId][month] = { quantity, paymentStatus, unitPrice, amount, delivered, comment };
       renderTable();
     } catch (err) {
       console.error('[suscripciones] guardar celda', err);
       alert('No se pudo guardar el registro. Probá de nuevo.');
+    }
+  }
+
+  async function toggleDelivery(personaId, month, button) {
+    const hanId = $('hanSelect')?.value ?? '';
+    if (!hanId || !month) return;
+    if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede registrar entregas para este Han.');
+    if (monthLocks[month]) return alert('Este mes está cerrado. Abrilo antes de modificar la entrega.');
+
+    const current = subsMap[personaId]?.[month];
+    if (!current || current.paymentStatus === 'N' || current.quantity <= 0) {
+      return alert('Primero registrá el pago y la cantidad de revistas de este mes.');
+    }
+
+    const delivered = current.delivered !== true;
+    const user = auth.currentUser;
+    if (button) button.disabled = true;
+    try {
+      await db.collection('subscriptions').doc(`${personaId}__${month}`).set({
+        personaId,
+        hanId,
+        month,
+        delivered,
+        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        deliveredBy: delivered ? (user?.uid || '') : '',
+        deliveredByEmail: delivered ? (user?.email || '').toLowerCase() : '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      current.delivered = delivered;
+      renderTable();
+    } catch (err) {
+      console.error('[suscripciones] registrar entrega', err);
+      alert('No se pudo actualizar la entrega. Probá de nuevo.');
+      if (button) button.disabled = false;
+    }
+  }
+
+  async function editComment(personaId, month) {
+    const hanId = $('hanSelect')?.value ?? '';
+    if (!hanId || !month) return;
+    const current = subsMap[personaId]?.[month] || { comment: '' };
+    const existing = String(current.comment ?? '');
+
+    if (!canEditHan(currentRole, hanId)) {
+      return alert(existing || 'Esta celda no tiene comentarios.');
+    }
+    if (monthLocks[month]) return alert(existing || 'Esta celda no tiene comentarios.');
+
+    const result = prompt('Comentario de la suscripción del mes (dejalo vacío para eliminarlo):', existing);
+    if (result === null) return;
+    const comment = result.trim();
+    if (comment.length > 1000) return alert('El comentario no puede superar los 1000 caracteres.');
+
+    const user = auth.currentUser;
+    try {
+      await db.collection('subscriptions').doc(`${personaId}__${month}`).set({
+        personaId,
+        hanId,
+        month,
+        comment,
+        commentUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        commentUpdatedBy: user?.uid || '',
+        commentUpdatedByEmail: (user?.email || '').toLowerCase(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      if (!subsMap[personaId]) subsMap[personaId] = {};
+      subsMap[personaId][month] = { ...(subsMap[personaId][month] || {}), comment };
+      renderTable();
+    } catch (err) {
+      console.error('[suscripciones] guardar comentario', err);
+      alert('No se pudo guardar el comentario. Probá de nuevo.');
+    }
+  }
+
+  async function toggleMonthLock(month, button) {
+    const hanId = $('hanSelect')?.value ?? '';
+    if (!hanId || !month) return;
+    if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede cerrar o abrir meses para este Han.');
+    const closed = monthLocks[month] !== true;
+    const action = closed ? 'cerrar' : 'abrir';
+    if (!confirm(`¿Querés ${action} ${monthLabel(month)} para este Han?`)) return;
+    if (button) button.disabled = true;
+    const user = auth.currentUser;
+    try {
+      await db.collection('subscriptionMonthLocks').doc(`${hanId}__${month}`).set({
+        hanId,
+        month,
+        closed,
+        updatedBy: user?.uid || '',
+        updatedByEmail: (user?.email || '').toLowerCase(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      monthLocks[month] = closed;
+      renderTable();
+    } catch (err) {
+      console.error('[suscripciones] cerrar/abrir mes', err);
+      const denied = err?.code === 'permission-denied';
+      alert(denied
+        ? 'No se pudo cambiar el estado del mes porque faltan permisos. Verificá que las reglas de Firestore estén publicadas.'
+        : 'No se pudo cambiar el estado del mes. Probá de nuevo.');
+      if (button) button.disabled = false;
     }
   }
 
@@ -412,6 +686,7 @@
         hanes = await loadHanes();
         populateHanSelect();
         populateTrimestreSelect();
+        populateNewPersonaOptions();
         await refreshTable();
       } catch (err) { console.error('[suscripciones] init', err); }
     });
@@ -430,6 +705,19 @@
     $('trimestreSelect')?.addEventListener('change', onHanOrTrimestreChange);
     $('personaSearch')?.addEventListener('input', renderTable);
     $('estadoFilter')?.addEventListener('change', renderTable);
+    $('mostrarNuevaPersonaBtn')?.addEventListener('click', () => toggleNewPersonaForm(true));
+    $('cancelarNuevaPersonaBtn')?.addEventListener('click', () => toggleNewPersonaForm(false));
+    $('nuevaPersonaForm')?.addEventListener('submit', createPersona);
+    $('nuevaPersonaHan')?.addEventListener('change', (e) => {
+      const han = hanes.find((h) => h.id === e.target.value);
+      if (han?.city && $('nuevaPersonaLocalidad')) $('nuevaPersonaLocalidad').value = han.city;
+    });
+    $('nuevaPersonaModal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) toggleNewPersonaForm(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !$('nuevaPersonaModal')?.classList.contains('hidden')) toggleNewPersonaForm(false);
+    });
 
     $('suscripcionesTable')?.querySelector('tbody')?.addEventListener('change', (e) => {
       const el = e.target.closest('[data-month][data-field]');
@@ -438,6 +726,18 @@
       const personaId = tr?.dataset.personaId;
       if (!personaId) return;
       updateCelda(personaId, el.dataset.month, el.dataset.field, el.value);
+    });
+    $('suscripcionesTable')?.querySelector('tbody')?.addEventListener('click', (e) => {
+      const button = e.target.closest('[data-action][data-month]');
+      if (!button) return;
+      const personaId = button.closest('tr[data-persona-id]')?.dataset.personaId;
+      if (!personaId) return;
+      if (button.dataset.action === 'delivery') toggleDelivery(personaId, button.dataset.month, button);
+      if (button.dataset.action === 'comment') editComment(personaId, button.dataset.month);
+    });
+    $('suscripcionesTable')?.querySelector('thead')?.addEventListener('click', (e) => {
+      const button = e.target.closest('[data-action="month-lock"][data-month]');
+      if (button) toggleMonthLock(button.dataset.month, button);
     });
   });
 })();
