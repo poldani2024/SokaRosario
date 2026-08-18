@@ -12,6 +12,17 @@
     .mes-cell select { width: auto; flex: 0 0 auto; padding: 4px; }
     .mes-cell input[type="number"] { width: 3.2em; min-width: 3.2em; flex: 0 0 auto; padding: 4px; text-align: right; }
     .mes-cell .valor { white-space: nowrap; font-size: 0.85em; color: var(--muted); min-width: 4.5em; }
+    #suscripcionesTable td.revista-entregada { background: #dcfce7; }
+    .entrega-btn {
+      width: 2.35rem; min-width: 2.35rem; height: 2.35rem; min-height: 2.35rem; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 1.05rem;
+      background: var(--secondary); color: var(--text); border: 1px solid var(--border);
+    }
+    .entrega-btn[aria-pressed="true"] { background: #15803d; color: #fff; border-color: #15803d; }
+    .entrega-btn:disabled { background: var(--secondary); color: var(--muted); }
+    @media (prefers-color-scheme: dark) {
+      #suscripcionesTable td.revista-entregada { background: #123b25; }
+    }
     #suscripcionesTable tfoot td { font-weight: bold; border-top: 2px solid var(--border); }
     #nuevaPersonaModal {
       position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;

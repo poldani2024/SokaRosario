@@ -224,7 +224,8 @@
           quantity,
           paymentStatus: ['S', 'N', 'C'].includes(data.paymentStatus) ? data.paymentStatus : (quantity > 0 ? 'S' : 'N'),
           unitPrice: Number(data.unitPrice ?? data.amount ?? 0),
-          amount: Number(data.amount ?? 0)
+          amount: Number(data.amount ?? 0),
+          delivered: data.delivered === true
         };
       });
     });
@@ -350,8 +351,9 @@
       const cells = t.slots.map((month, slotIdx) => {
         const td = document.createElement('td');
         if (!month) { td.textContent = '—'; return td; }
-        const entry = personaSubs[month] || { quantity: 0, paymentStatus: 'N', amount: 0 };
+        const entry = personaSubs[month] || { quantity: 0, paymentStatus: 'N', amount: 0, delivered: false };
         totals[slotIdx] += entry.amount;
+        td.classList.toggle('revista-entregada', entry.delivered);
 
         const wrap = document.createElement('div');
         wrap.className = 'mes-cell';
@@ -382,7 +384,18 @@
         valorSpan.className = 'valor';
         valorSpan.textContent = formatMoney(entry.amount);
 
-        wrap.append(pagoSelect, cantidadInput, valorSpan);
+        const entregaBtn = document.createElement('button');
+        entregaBtn.type = 'button';
+        entregaBtn.className = 'entrega-btn';
+        entregaBtn.dataset.action = 'delivery';
+        entregaBtn.dataset.month = month;
+        entregaBtn.setAttribute('aria-pressed', String(entry.delivered));
+        entregaBtn.setAttribute('aria-label', entry.delivered ? 'Marcar revista como no entregada' : 'Marcar revista como entregada');
+        entregaBtn.title = entry.delivered ? 'Revista entregada. Presioná para desmarcar.' : 'Marcar revista como entregada';
+        entregaBtn.textContent = entry.delivered ? '✓📖' : '📖';
+        entregaBtn.disabled = !editable || entry.paymentStatus === 'N' || entry.quantity <= 0;
+
+        wrap.append(pagoSelect, cantidadInput, valorSpan, entregaBtn);
         td.appendChild(wrap);
         return td;
       });
@@ -428,14 +441,15 @@
     const current = subsMap[personaId]?.[month] || { quantity: 0, paymentStatus: 'N' };
     let quantity = current.quantity;
     let paymentStatus = current.paymentStatus;
+    let delivered = current.delivered === true;
 
     if (field === 'pago') {
       paymentStatus = ['S', 'N', 'C'].includes(rawValue) ? rawValue : 'N';
-      if (paymentStatus === 'N') quantity = 0;
+      if (paymentStatus === 'N') { quantity = 0; delivered = false; }
       else if (quantity <= 0) quantity = 1;
     } else {
       quantity = Math.max(0, Math.floor(Number(rawValue) || 0));
-      if (quantity === 0) paymentStatus = 'N';
+      if (quantity === 0) { paymentStatus = 'N'; delivered = false; }
       else if (paymentStatus === 'N') paymentStatus = 'S';
     }
 
@@ -451,17 +465,51 @@
         paymentStatus,
         unitPrice,
         amount,
+        delivered,
         registeredBy: user?.uid || '',
         registeredByEmail: (user?.email || '').toLowerCase(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
 
       if (!subsMap[personaId]) subsMap[personaId] = {};
-      subsMap[personaId][month] = { quantity, paymentStatus, unitPrice, amount };
+      subsMap[personaId][month] = { quantity, paymentStatus, unitPrice, amount, delivered };
       renderTable();
     } catch (err) {
       console.error('[suscripciones] guardar celda', err);
       alert('No se pudo guardar el registro. Probá de nuevo.');
+    }
+  }
+
+  async function toggleDelivery(personaId, month, button) {
+    const hanId = $('hanSelect')?.value ?? '';
+    if (!hanId || !month) return;
+    if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede registrar entregas para este Han.');
+
+    const current = subsMap[personaId]?.[month];
+    if (!current || current.paymentStatus === 'N' || current.quantity <= 0) {
+      return alert('Primero registrá el pago y la cantidad de revistas de este mes.');
+    }
+
+    const delivered = current.delivered !== true;
+    const user = auth.currentUser;
+    if (button) button.disabled = true;
+    try {
+      await db.collection('subscriptions').doc(`${personaId}__${month}`).set({
+        personaId,
+        hanId,
+        month,
+        delivered,
+        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        deliveredBy: delivered ? (user?.uid || '') : '',
+        deliveredByEmail: delivered ? (user?.email || '').toLowerCase() : '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      current.delivered = delivered;
+      renderTable();
+    } catch (err) {
+      console.error('[suscripciones] registrar entrega', err);
+      alert('No se pudo actualizar la entrega. Probá de nuevo.');
+      if (button) button.disabled = false;
     }
   }
 
@@ -545,6 +593,13 @@
       const personaId = tr?.dataset.personaId;
       if (!personaId) return;
       updateCelda(personaId, el.dataset.month, el.dataset.field, el.value);
+    });
+    $('suscripcionesTable')?.querySelector('tbody')?.addEventListener('click', (e) => {
+      const button = e.target.closest('[data-action="delivery"][data-month]');
+      if (!button) return;
+      const personaId = button.closest('tr[data-persona-id]')?.dataset.personaId;
+      if (!personaId) return;
+      toggleDelivery(personaId, button.dataset.month, button);
     });
   });
 })();
