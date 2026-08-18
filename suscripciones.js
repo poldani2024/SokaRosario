@@ -123,10 +123,11 @@
   function populateHanSelect() {
     const sel = $('hanSelect');
     const current = sel.value;
-    sel.innerHTML = '';
+    sel.innerHTML = '<option value="">Seleccionar Han...</option>';
     if (!hanes.length) {
       const opt = document.createElement('option');
       opt.value = ''; opt.textContent = '(sin Hanes asignados)';
+      sel.innerHTML = '';
       sel.appendChild(opt);
       return;
     }
@@ -137,6 +138,41 @@
       sel.appendChild(opt);
     });
     if (current && hanes.some((h) => h.id === current)) sel.value = current;
+  }
+
+  function populateNewPersonaOptions() {
+    const hanSelect = $('nuevaPersonaHan');
+    const localidadSelect = $('nuevaPersonaLocalidad');
+    if (hanSelect) {
+      hanSelect.innerHTML = '<option value="">Seleccionar...</option>';
+      hanes.forEach((h) => hanSelect.add(new Option(h.name || h.id, h.id)));
+    }
+    if (localidadSelect) {
+      const localidades = new Set();
+      hanes.forEach((h) => { if (h.city) localidades.add(String(h.city).trim()); });
+      personas.forEach((p) => { if (p.city) localidades.add(String(p.city).trim()); });
+      localidadSelect.innerHTML = '<option value="">Seleccionar...</option>';
+      Array.from(localidades).filter(Boolean).sort((a, b) => a.localeCompare(b, 'es'))
+        .forEach((city) => localidadSelect.add(new Option(city, city)));
+    }
+  }
+
+  function toggleNewPersonaForm(show) {
+    const form = $('nuevaPersonaForm');
+    if (!form) return;
+    form.classList.toggle('hidden', !show);
+    if (show) {
+      populateNewPersonaOptions();
+      const needsHan = !$('hanSelect')?.value;
+      $('nuevaPersonaHanField')?.classList.toggle('hidden', !needsHan);
+      if ($('nuevaPersonaHan')) $('nuevaPersonaHan').required = needsHan;
+      const selectedHan = hanes.find((h) => h.id === $('hanSelect')?.value);
+      if (selectedHan?.city && $('nuevaPersonaLocalidad')) $('nuevaPersonaLocalidad').value = selectedHan.city;
+      $('nuevaPersonaNombre')?.focus();
+    } else {
+      form.reset();
+      if ($('nuevaPersonaMensaje')) $('nuevaPersonaMensaje').textContent = '';
+    }
   }
 
   function populateTrimestreSelect() {
@@ -201,6 +237,9 @@
     const table = $('suscripcionesTable');
     if (!tbody) return;
 
+    const canAdd = currentRole === 'Admin' || (currentRole === 'Canillita' && hanes.some((h) => canEditHan(currentRole, h.id)));
+    $('mostrarNuevaPersonaBtn')?.classList.toggle('hidden', !canAdd);
+
     $('mes1Header').textContent = t ? monthLabel(t.slots[0]) : 'Mes 1';
     $('mes2Header').textContent = t ? monthLabel(t.slots[1]) : 'Mes 2';
     $('mes3Header').textContent = t ? monthLabel(t.slots[2]) : 'Mes 3';
@@ -214,7 +253,60 @@
 
     personas = await loadPersonasForHan(hanId);
     subsMap = await loadSubscriptions(hanId, t.slots);
+    populateNewPersonaOptions();
     renderTable();
+  }
+
+  async function createPersona(e) {
+    e.preventDefault();
+    let hanId = $('hanSelect')?.value || '';
+    if (!hanId) hanId = $('nuevaPersonaHan')?.value || '';
+    if (!hanId) {
+      $('nuevaPersonaHanField')?.classList.remove('hidden');
+      if ($('nuevaPersonaHan')) $('nuevaPersonaHan').required = true;
+      return alert('Seleccioná el Han al que pertenece la persona.');
+    }
+    if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede agregar personas a este Han.');
+
+    const han = hanes.find((h) => h.id === hanId);
+    const firstName = $('nuevaPersonaNombre')?.value.trim() || '';
+    const lastName = $('nuevaPersonaApellido')?.value.trim() || '';
+    if (!firstName || !lastName) return alert('Completá el nombre y el apellido.');
+
+    const button = $('confirmarNuevaPersonaBtn');
+    const message = $('nuevaPersonaMensaje');
+    if (button) button.disabled = true;
+    if (message) message.textContent = 'Guardando persona...';
+    try {
+      const user = auth.currentUser;
+      const ref = db.collection('personas').doc();
+      const nueva = {
+        firstName,
+        lastName,
+        address: $('nuevaPersonaDomicilio')?.value.trim() || '',
+        city: $('nuevaPersonaLocalidad')?.value || '',
+        division: $('nuevaPersonaDivision')?.value || '',
+        status: $('nuevaPersonaEstado')?.value || 'Miembro',
+        hanId,
+        hanName: han?.name || '',
+        hanCity: han?.city || '',
+        hanSector: han?.sector || '',
+        uid: user?.uid || '',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      await ref.set(nueva);
+      if ($('hanSelect') && $('hanSelect').value !== hanId) $('hanSelect').value = hanId;
+      toggleNewPersonaForm(false);
+      await refreshTable();
+      alert('Persona agregada correctamente.');
+    } catch (err) {
+      console.error('[suscripciones] crear persona', err);
+      if (message) message.textContent = 'No se pudo guardar la persona.';
+      alert('No se pudo guardar la persona. Probá de nuevo.');
+    } finally {
+      if (button) button.disabled = false;
+    }
   }
 
   function renderTable() {
@@ -412,6 +504,7 @@
         hanes = await loadHanes();
         populateHanSelect();
         populateTrimestreSelect();
+        populateNewPersonaOptions();
         await refreshTable();
       } catch (err) { console.error('[suscripciones] init', err); }
     });
@@ -430,6 +523,13 @@
     $('trimestreSelect')?.addEventListener('change', onHanOrTrimestreChange);
     $('personaSearch')?.addEventListener('input', renderTable);
     $('estadoFilter')?.addEventListener('change', renderTable);
+    $('mostrarNuevaPersonaBtn')?.addEventListener('click', () => toggleNewPersonaForm(true));
+    $('cancelarNuevaPersonaBtn')?.addEventListener('click', () => toggleNewPersonaForm(false));
+    $('nuevaPersonaForm')?.addEventListener('submit', createPersona);
+    $('nuevaPersonaHan')?.addEventListener('change', (e) => {
+      const han = hanes.find((h) => h.id === e.target.value);
+      if (han?.city && $('nuevaPersonaLocalidad')) $('nuevaPersonaLocalidad').value = han.city;
+    });
 
     $('suscripcionesTable')?.querySelector('tbody')?.addEventListener('change', (e) => {
       const el = e.target.closest('[data-month][data-field]');
