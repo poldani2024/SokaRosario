@@ -123,10 +123,11 @@
   function populateHanSelect() {
     const sel = $('hanSelect');
     const current = sel.value;
-    sel.innerHTML = '';
+    sel.innerHTML = '<option value="">Seleccionar Han...</option>';
     if (!hanes.length) {
       const opt = document.createElement('option');
       opt.value = ''; opt.textContent = '(sin Hanes asignados)';
+      sel.innerHTML = '';
       sel.appendChild(opt);
       return;
     }
@@ -137,6 +138,42 @@
       sel.appendChild(opt);
     });
     if (current && hanes.some((h) => h.id === current)) sel.value = current;
+  }
+
+  function populateNewPersonaOptions() {
+    const hanSelect = $('nuevaPersonaHan');
+    const localidadSelect = $('nuevaPersonaLocalidad');
+    if (hanSelect) {
+      hanSelect.innerHTML = '<option value="">Seleccionar...</option>';
+      hanes.forEach((h) => hanSelect.add(new Option(h.name || h.id, h.id)));
+    }
+    if (localidadSelect) {
+      const localidades = new Set();
+      hanes.forEach((h) => { if (h.city) localidades.add(String(h.city).trim()); });
+      personas.forEach((p) => { if (p.city) localidades.add(String(p.city).trim()); });
+      localidadSelect.innerHTML = '<option value="">Seleccionar...</option>';
+      Array.from(localidades).filter(Boolean).sort((a, b) => a.localeCompare(b, 'es'))
+        .forEach((city) => localidadSelect.add(new Option(city, city)));
+    }
+  }
+
+  function toggleNewPersonaForm(show) {
+    const form = $('nuevaPersonaForm');
+    const modal = $('nuevaPersonaModal');
+    if (!form || !modal) return;
+    modal.classList.toggle('hidden', !show);
+    if (show) {
+      populateNewPersonaOptions();
+      const needsHan = !$('hanSelect')?.value;
+      $('nuevaPersonaHanField')?.classList.toggle('hidden', !needsHan);
+      if ($('nuevaPersonaHan')) $('nuevaPersonaHan').required = needsHan;
+      const selectedHan = hanes.find((h) => h.id === $('hanSelect')?.value);
+      if (selectedHan?.city && $('nuevaPersonaLocalidad')) $('nuevaPersonaLocalidad').value = selectedHan.city;
+      $('nuevaPersonaNombre')?.focus();
+    } else {
+      form.reset();
+      if ($('nuevaPersonaMensaje')) $('nuevaPersonaMensaje').textContent = '';
+    }
   }
 
   function populateTrimestreSelect() {
@@ -187,7 +224,8 @@
           quantity,
           paymentStatus: ['S', 'N', 'C'].includes(data.paymentStatus) ? data.paymentStatus : (quantity > 0 ? 'S' : 'N'),
           unitPrice: Number(data.unitPrice ?? data.amount ?? 0),
-          amount: Number(data.amount ?? 0)
+          amount: Number(data.amount ?? 0),
+          delivered: data.delivered === true
         };
       });
     });
@@ -200,6 +238,9 @@
     const tbody = $('suscripcionesTable')?.querySelector('tbody');
     const table = $('suscripcionesTable');
     if (!tbody) return;
+
+    const canAdd = currentRole === 'Admin' || (currentRole === 'Canillita' && hanes.some((h) => canEditHan(currentRole, h.id)));
+    $('mostrarNuevaPersonaBtn')?.classList.toggle('hidden', !canAdd);
 
     $('mes1Header').textContent = t ? monthLabel(t.slots[0]) : 'Mes 1';
     $('mes2Header').textContent = t ? monthLabel(t.slots[1]) : 'Mes 2';
@@ -214,7 +255,60 @@
 
     personas = await loadPersonasForHan(hanId);
     subsMap = await loadSubscriptions(hanId, t.slots);
+    populateNewPersonaOptions();
     renderTable();
+  }
+
+  async function createPersona(e) {
+    e.preventDefault();
+    let hanId = $('hanSelect')?.value || '';
+    if (!hanId) hanId = $('nuevaPersonaHan')?.value || '';
+    if (!hanId) {
+      $('nuevaPersonaHanField')?.classList.remove('hidden');
+      if ($('nuevaPersonaHan')) $('nuevaPersonaHan').required = true;
+      return alert('Seleccioná el Han al que pertenece la persona.');
+    }
+    if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede agregar personas a este Han.');
+
+    const han = hanes.find((h) => h.id === hanId);
+    const firstName = $('nuevaPersonaNombre')?.value.trim() || '';
+    const lastName = $('nuevaPersonaApellido')?.value.trim() || '';
+    if (!firstName || !lastName) return alert('Completá el nombre y el apellido.');
+
+    const button = $('confirmarNuevaPersonaBtn');
+    const message = $('nuevaPersonaMensaje');
+    if (button) button.disabled = true;
+    if (message) message.textContent = 'Guardando persona...';
+    try {
+      const user = auth.currentUser;
+      const ref = db.collection('personas').doc();
+      const nueva = {
+        firstName,
+        lastName,
+        address: $('nuevaPersonaDomicilio')?.value.trim() || '',
+        city: $('nuevaPersonaLocalidad')?.value || '',
+        division: $('nuevaPersonaDivision')?.value || '',
+        status: $('nuevaPersonaEstado')?.value || 'Miembro',
+        hanId,
+        hanName: han?.name || '',
+        hanCity: han?.city || '',
+        hanSector: han?.sector || '',
+        uid: user?.uid || '',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      await ref.set(nueva);
+      if ($('hanSelect') && $('hanSelect').value !== hanId) $('hanSelect').value = hanId;
+      toggleNewPersonaForm(false);
+      await refreshTable();
+      alert('Persona agregada correctamente.');
+    } catch (err) {
+      console.error('[suscripciones] crear persona', err);
+      if (message) message.textContent = 'No se pudo guardar la persona.';
+      alert('No se pudo guardar la persona. Probá de nuevo.');
+    } finally {
+      if (button) button.disabled = false;
+    }
   }
 
   function renderTable() {
@@ -257,8 +351,9 @@
       const cells = t.slots.map((month, slotIdx) => {
         const td = document.createElement('td');
         if (!month) { td.textContent = '—'; return td; }
-        const entry = personaSubs[month] || { quantity: 0, paymentStatus: 'N', amount: 0 };
+        const entry = personaSubs[month] || { quantity: 0, paymentStatus: 'N', amount: 0, delivered: false };
         totals[slotIdx] += entry.amount;
+        td.classList.toggle('revista-entregada', entry.delivered);
 
         const wrap = document.createElement('div');
         wrap.className = 'mes-cell';
@@ -289,7 +384,18 @@
         valorSpan.className = 'valor';
         valorSpan.textContent = formatMoney(entry.amount);
 
-        wrap.append(pagoSelect, cantidadInput, valorSpan);
+        const entregaBtn = document.createElement('button');
+        entregaBtn.type = 'button';
+        entregaBtn.className = 'entrega-btn';
+        entregaBtn.dataset.action = 'delivery';
+        entregaBtn.dataset.month = month;
+        entregaBtn.setAttribute('aria-pressed', String(entry.delivered));
+        entregaBtn.setAttribute('aria-label', entry.delivered ? 'Marcar revista como no entregada' : 'Marcar revista como entregada');
+        entregaBtn.title = entry.delivered ? 'Revista entregada. Presioná para desmarcar.' : 'Marcar revista como entregada';
+        entregaBtn.textContent = entry.delivered ? '✓📖' : '📖';
+        entregaBtn.disabled = !editable || entry.paymentStatus === 'N' || entry.quantity <= 0;
+
+        wrap.append(pagoSelect, cantidadInput, valorSpan, entregaBtn);
         td.appendChild(wrap);
         return td;
       });
@@ -335,14 +441,15 @@
     const current = subsMap[personaId]?.[month] || { quantity: 0, paymentStatus: 'N' };
     let quantity = current.quantity;
     let paymentStatus = current.paymentStatus;
+    let delivered = current.delivered === true;
 
     if (field === 'pago') {
       paymentStatus = ['S', 'N', 'C'].includes(rawValue) ? rawValue : 'N';
-      if (paymentStatus === 'N') quantity = 0;
+      if (paymentStatus === 'N') { quantity = 0; delivered = false; }
       else if (quantity <= 0) quantity = 1;
     } else {
       quantity = Math.max(0, Math.floor(Number(rawValue) || 0));
-      if (quantity === 0) paymentStatus = 'N';
+      if (quantity === 0) { paymentStatus = 'N'; delivered = false; }
       else if (paymentStatus === 'N') paymentStatus = 'S';
     }
 
@@ -358,17 +465,51 @@
         paymentStatus,
         unitPrice,
         amount,
+        delivered,
         registeredBy: user?.uid || '',
         registeredByEmail: (user?.email || '').toLowerCase(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
 
       if (!subsMap[personaId]) subsMap[personaId] = {};
-      subsMap[personaId][month] = { quantity, paymentStatus, unitPrice, amount };
+      subsMap[personaId][month] = { quantity, paymentStatus, unitPrice, amount, delivered };
       renderTable();
     } catch (err) {
       console.error('[suscripciones] guardar celda', err);
       alert('No se pudo guardar el registro. Probá de nuevo.');
+    }
+  }
+
+  async function toggleDelivery(personaId, month, button) {
+    const hanId = $('hanSelect')?.value ?? '';
+    if (!hanId || !month) return;
+    if (!canEditHan(currentRole, hanId)) return alert('Tu rol no puede registrar entregas para este Han.');
+
+    const current = subsMap[personaId]?.[month];
+    if (!current || current.paymentStatus === 'N' || current.quantity <= 0) {
+      return alert('Primero registrá el pago y la cantidad de revistas de este mes.');
+    }
+
+    const delivered = current.delivered !== true;
+    const user = auth.currentUser;
+    if (button) button.disabled = true;
+    try {
+      await db.collection('subscriptions').doc(`${personaId}__${month}`).set({
+        personaId,
+        hanId,
+        month,
+        delivered,
+        deliveredAt: delivered ? firebase.firestore.FieldValue.serverTimestamp() : null,
+        deliveredBy: delivered ? (user?.uid || '') : '',
+        deliveredByEmail: delivered ? (user?.email || '').toLowerCase() : '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      current.delivered = delivered;
+      renderTable();
+    } catch (err) {
+      console.error('[suscripciones] registrar entrega', err);
+      alert('No se pudo actualizar la entrega. Probá de nuevo.');
+      if (button) button.disabled = false;
     }
   }
 
@@ -412,6 +553,7 @@
         hanes = await loadHanes();
         populateHanSelect();
         populateTrimestreSelect();
+        populateNewPersonaOptions();
         await refreshTable();
       } catch (err) { console.error('[suscripciones] init', err); }
     });
@@ -430,6 +572,19 @@
     $('trimestreSelect')?.addEventListener('change', onHanOrTrimestreChange);
     $('personaSearch')?.addEventListener('input', renderTable);
     $('estadoFilter')?.addEventListener('change', renderTable);
+    $('mostrarNuevaPersonaBtn')?.addEventListener('click', () => toggleNewPersonaForm(true));
+    $('cancelarNuevaPersonaBtn')?.addEventListener('click', () => toggleNewPersonaForm(false));
+    $('nuevaPersonaForm')?.addEventListener('submit', createPersona);
+    $('nuevaPersonaHan')?.addEventListener('change', (e) => {
+      const han = hanes.find((h) => h.id === e.target.value);
+      if (han?.city && $('nuevaPersonaLocalidad')) $('nuevaPersonaLocalidad').value = han.city;
+    });
+    $('nuevaPersonaModal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) toggleNewPersonaForm(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !$('nuevaPersonaModal')?.classList.contains('hidden')) toggleNewPersonaForm(false);
+    });
 
     $('suscripcionesTable')?.querySelector('tbody')?.addEventListener('change', (e) => {
       const el = e.target.closest('[data-month][data-field]');
@@ -438,6 +593,13 @@
       const personaId = tr?.dataset.personaId;
       if (!personaId) return;
       updateCelda(personaId, el.dataset.month, el.dataset.field, el.value);
+    });
+    $('suscripcionesTable')?.querySelector('tbody')?.addEventListener('click', (e) => {
+      const button = e.target.closest('[data-action="delivery"][data-month]');
+      if (!button) return;
+      const personaId = button.closest('tr[data-persona-id]')?.dataset.personaId;
+      if (!personaId) return;
+      toggleDelivery(personaId, button.dataset.month, button);
     });
   });
 })();
