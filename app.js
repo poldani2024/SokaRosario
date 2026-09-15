@@ -594,7 +594,8 @@ function applySignedInUser(user) {
     text("user-email", email); text("role-badge", roleLabel(role));
     setHidden($("login-form"), true); setHidden($("user-info"), false); applyRoleVisibility(role); setSecureUiAccess(true);
       if (useDb) { await hydrateFromDb(); }
-  renderCatalogsToSelects(); renderPersonas(); renderVisitas(); loadMiPerfil(user.uid, email);
+  renderCatalogsToSelects(); renderPersonas(); renderVisitas();
+  if (!openPersonaFromUrl()) loadMiPerfil(user.uid, email);
   });
 }
 function applySignedOut() {
@@ -662,6 +663,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggleDatosPersonalesReadonly(false);
     renderPersonas();
   });
+  $("copyPersonaLinkBtn")?.addEventListener("click", async () => {
+    if (!editPersonaId) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("persona", editPersonaId);
+    try {
+      await navigator.clipboard.writeText(url.toString());
+      const button = $("copyPersonaLinkBtn");
+      button.textContent = "Link copiado";
+      window.setTimeout(() => { button.textContent = "Copiar link"; }, 1800);
+    } catch (_) {
+      window.prompt("Copiá este link para compartir la ficha:", url.toString());
+    }
+  });
   $("refreshHeatmapBtn")?.addEventListener("click", () => renderHeatMap(true));
   ["reportTypeSelect","reportCityFilter","reportHanFilter","reportShowHanes","reportShowPersonas"]
     .forEach((id) => $(id)?.addEventListener("input", () => renderHeatMap(true)));
@@ -669,8 +683,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // === EVENT DELEGATION en tbody de Personas ===
   const tbodyPersonas = $("personasTable")?.querySelector("tbody");
   if (tbodyPersonas) {
-    tbodyPersonas.addEventListener("click", (e) => {
-      const tr = e.target.closest("tr[data-id]");
+    const selectPersonaRow = (target) => {
+      const tr = target.closest("tr[data-id]");
       if (tr?.dataset?.id) {
         const id = tr.dataset.id; const p = personas.find(x => x.id === id); if (p) {
           editPersonaId = id;
@@ -679,9 +693,28 @@ document.addEventListener("DOMContentLoaded", async () => {
           renderPersonas();
         }
       }
+    };
+    tbodyPersonas.addEventListener("click", (e) => {
+      selectPersonaRow(e.target);
+    });
+    tbodyPersonas.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      selectPersonaRow(e.target);
     });
   }
 });
+
+function openPersonaFromUrl() {
+  const id = new URLSearchParams(window.location.search).get("persona");
+  const persona = id && personas.find(p => p.id === id);
+  if (!persona) return false;
+  editPersonaId = persona.id;
+  populateDatosPersonales(persona, { readonly: editableFieldIdsByRole.size === 0 });
+  renderPersonas();
+  window.requestAnimationFrame(() => $("miPerfilForm")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  return true;
+}
 
 /* ===== Catálogos → Selects ===== */
 function renderCatalogsToSelects() {
@@ -835,7 +868,8 @@ function applyFiltersBase(list) {
   const fDivision = $("filtroDivision")?.value ?? "";
   const fSem   = $("filtroFreqSemanal")?.value ?? "";
   const fZad   = $("filtroFreqZadankai")?.value ?? "";
-  const qText  = ($("buscarTexto")?.value ?? "").toLowerCase();
+  const normalizeSearch = (value) => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const qText  = normalizeSearch($("buscarTexto")?.value).trim();
   return (list ?? []).filter(p => {
     const okHan   = !fHan   || p.hanId === fHan;
     const okGrupo = !fGrupo || p.grupoId === fGrupo;
@@ -843,8 +877,8 @@ function applyFiltersBase(list) {
     const okDivision = !fDivision || (p.division ?? "") === fDivision;
     const okSem   = !fSem   || (p.frecuenciaSemanal   ?? "") === fSem;
     const okZad   = !fZad   || (p.frecuenciaZadankai ?? "") === fZad;
-    const txt = `${p.lastName ?? ""} ${p.firstName ?? ""} ${p.email ?? ""}`.toLowerCase();
-    const okText  = !qText  || txt.includes(qText);
+    const txt = normalizeSearch(Object.values(p || {}).filter(value => ["string", "number", "boolean"].includes(typeof value)).join(" "));
+    const okText = !qText || qText.split(/\s+/).every(term => txt.includes(term));
     return okHan && okGrupo && okEst && okDivision && okSem && okZad && okText;
   });
 }
@@ -925,28 +959,30 @@ function renderPersonas() {
   const table = $("personasTable"); if (!table) return; const tbody = table.querySelector("tbody"); if (!tbody) return;
   const base = applyFiltersBase(personas); const filtered = filterByRolePersonas(base);
   renderEmptyStatePersonas(filtered);
+  text("personasResultCount", `${filtered.length} ${filtered.length === 1 ? "persona" : "personas"}`);
   scheduleHeatMapRender(filtered);
   tbody.innerHTML = "";
   filtered.forEach(p => {
     const tr = document.createElement("tr"); tr.dataset.id = p.id;
     if (editPersonaId && p.id === editPersonaId) tr.classList.add('is-selected');
+    tr.tabIndex = 0;
+    tr.setAttribute("aria-label", `Abrir ficha de ${p.firstName || ""} ${p.lastName || ""}`.trim());
     tr.innerHTML = `
-  <td>${escapeHtml(p.firstName)}</td>
-  <td>${escapeHtml(p.lastName)}</td>
-  <td>${escapeHtml(p.address)}</td>
-  <td>${escapeHtml(p.city)}</td>
-  <td>${escapeHtml(p.division)}</td>
-  <td>${escapeHtml(p.status)}</td>
-  <td>${escapeHtml(p.cargo)}</td>
-  <td>${escapeHtml(p.gohonzo)}</td>
-  <td>${escapeHtml(p.hanName)}</td>
-  <td>${escapeHtml(p.grupoName)}</td>`;
+  <td>${escapeHtml(p.firstName || "—")}</td>
+  <td>${escapeHtml(p.lastName || "—")}</td>
+  <td><span class="division-pill">${escapeHtml(p.division || "Sin división")}</span></td>`;
     tbody.appendChild(tr);
   });
 
   // llenar select de visitas si existe en esta página
   const visitaSel = $("visitaPersonaSelect");
   if (visitaSel) { const items = personas.map(p => ({ id:p.id, name:`${p.lastName ?? ""}, ${p.firstName ?? ""}` })); fillSelect(visitaSel, items, "id","name", true); }
+
+  const selected = personas.find(p => p.id === editPersonaId);
+  text("personaFormTitle", selected ? `${selected.firstName || ""} ${selected.lastName || ""}`.trim() || "Persona sin nombre" : "Seleccioná una persona");
+  text("personaFormHint", selected ? "Revisá la información y guardá solo los cambios necesarios." : "Elegí un nombre de la lista para consultar o actualizar sus datos.");
+  const linkButton = $("copyPersonaLinkBtn");
+  if (linkButton) linkButton.disabled = !selected;
 }
 
 function initHeatMap() {

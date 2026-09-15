@@ -36,13 +36,26 @@
   <p id="accessGuardMsg" class="panel hidden">Iniciá sesión para acceder a Personas.</p>
 
   <main id="secureMain">
-    <section id="personas-panel" class="panel">
-      <h2>Personas registradas</h2>
+    <div class="personas-workspace">
+    <section id="personas-panel" class="panel personas-directory" aria-label="Directorio de personas">
+      <div class="personas-directory__header">
+        <div>
+          <p class="eyebrow">Directorio</p>
+          <h2>Personas</h2>
+        </div>
+        <button id="newPersonaBtn" class="admin-only compact-button" type="button" aria-label="Crear una nueva persona">+ Nueva</button>
+      </div>
 
-      <div class="grid">
-        <label>Búsqueda
-          <input id="buscarTexto" type="text" placeholder="Nombre, apellido o email" />
-        </label>
+      <label class="personas-search" for="buscarTexto">
+        <span class="sr-only">Buscar personas por cualquier dato</span>
+        <span class="personas-search__icon" aria-hidden="true">⌕</span>
+        <input id="buscarTexto" type="search" placeholder="Buscar por cualquier dato…" autocomplete="off" />
+      </label>
+      <p id="personasResultCount" class="personas-result-count" aria-live="polite"></p>
+
+      <details class="personas-filters">
+        <summary>Filtros avanzados</summary>
+        <div class="grid">
         <label>Han
           <select id="filtroHan"></select>
         </label>
@@ -83,30 +96,24 @@
             <option>Nunca</option>
           </select>
         </label>
-      </div>
+        </div>
+      </details>
 
-      <div class="actions">
+      <div class="actions directory-actions">
         <label class="file-label">
           <input id="importCSV" type="file" accept=".csv" />
           Importar CSV
         </label>
         <button id="exportCSVBtn" class="secondary">Exportar CSV (filtrado)</button>
-        <button id="newPersonaBtn" class="admin-only">Nueva persona</button>
       </div>
 
       <div class="table-wrap"><table id="personasTable">
+        <caption class="sr-only">Listado de personas. Seleccioná una fila para ver y editar sus datos.</caption>
         <thead>
           <tr>
             <th>Nombre</th>
             <th>Apellido</th>
-            <th>Domicilio</th>
-            <th>Localidad</th>
             <th>División</th>
-            <th>Estado</th>
-            <th>Cargo</th>
-            <th>Gohonzon</th>
-            <th>Han</th>
-            <th>Grupo</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -114,8 +121,15 @@
       <p id="personasEmpty" class="muted hidden">No hay personas cargadas aún.</p>
     </section>
 
-    <section class="panel">
-      <h2>Persona</h2>
+    <section class="panel persona-detail">
+      <div class="persona-detail__header">
+        <div>
+          <p class="eyebrow">Ficha personal</p>
+          <h2 id="personaFormTitle">Seleccioná una persona</h2>
+          <p id="personaFormHint" class="muted">Elegí un nombre de la lista para consultar o actualizar sus datos.</p>
+        </div>
+        <button id="copyPersonaLinkBtn" type="button" class="secondary compact-button" title="La persona deberá iniciar sesión para acceder" disabled>Copiar link</button>
+      </div>
       <form id="miPerfilForm">
         <div class="grid">
           <label>Nombre
@@ -247,6 +261,7 @@
         </div>
       </form>
     </section>
+    </div>
 
     <section class="panel secondary heatmap-panel">
       <h3>Mapa de hanes y personas</h3>
