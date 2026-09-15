@@ -33,6 +33,29 @@ function toArray(value) {
   return value.map((x) => String(x).trim()).filter(Boolean);
 }
 
+/**
+ * Every Firebase Authentication account starts with the least-privileged role.
+ * Administrators can promote it later from the security screen.
+ */
+exports.initializeNewUser = functions.auth.user().onCreate(async (user) => {
+  const db = admin.firestore();
+  const batch = db.batch();
+  batch.set(db.collection('roles').doc(user.uid), {
+    role: 'Usuario',
+    scope: { subregionIds: [], cityIds: [], sectorIds: [], hanIds: [] },
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: false });
+  batch.set(db.collection('users').doc(user.uid), {
+    uid: user.uid,
+    email: user.email || '',
+    displayName: user.displayName || '',
+    role: 'Usuario',
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: false });
+  await batch.commit();
+  return null;
+});
+
 function hasScopeAccess(callerClaims, memberData) {
   const role = normalizeRole(callerClaims.role);
   if (role === 'Admin' || callerClaims.admin === true) return true;

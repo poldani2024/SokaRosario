@@ -51,6 +51,15 @@ service cloud.firestore {
           && role() in ['Admin', 'SubRegion', 'LiderCiudad', 'LiderSector', 'LiderHan', 'Usuario+', 'Usuario'];
     }
 
+    function personaSelfServiceFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'firstName', 'lastName', 'birthDate', 'address', 'city', 'phone',
+        'phoneFixed', 'email', 'division', 'nivelExamen', 'fechaIngreso',
+        'gohonzo', 'frecuenciaSemanal', 'frecuenciaZadankai',
+        'suscriptoHumanismoSoka', 'updatedAt'
+      ]);
+    }
+
     // Compatibilidad: scope anidado nuevo + campos legacy planos
     function scopeSubregionIds() {
       return roleDoc() != null
@@ -129,15 +138,24 @@ service cloud.firestore {
        Personas
        ========================= */
     match /personas/{personaId} {
-      // Permite lectura a cualquier usuario autenticado.
-      // Evita bloquear el listado si existe un desfasaje temporal entre claims y roles/{uid}.
-      allow read: if hasAuth();
+      // Usuario puede abrir una ficha concreta desde su enlace, pero no enumerar
+      // el directorio completo. Los roles organizacionales conservan el listado.
+      allow get: if hasAuth();
+      allow list: if hasAuth()
+                  && (role() != 'Usuario' || resource.data.uid == request.auth.uid);
 
-      // Escritura: Admin o dueño por uid almacenado en el documento
-      allow create, update: if isAdmin()
-                         || (hasAuth()
-                             && request.resource.data.uid is string
-                             && request.resource.data.uid == request.auth.uid);
+      allow create: if isAdmin();
+
+      // El primer usuario que abre un enlace puede asociar la ficha a su cuenta.
+      allow update: if isAdmin()
+                    || (hasAuth()
+                        && (!resource.data.keys().hasAny(['uid']) || resource.data.uid == '')
+                        && request.resource.data.uid == request.auth.uid
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uid', 'updatedAt']))
+                    || (hasAuth()
+                        && resource.data.uid == request.auth.uid
+                        && request.resource.data.uid == request.auth.uid
+                        && (role() != 'Usuario' || personaSelfServiceFieldsOnly()));
 
       allow delete: if isAdmin();
     }
@@ -245,8 +263,19 @@ service cloud.firestore {
       // Self read + Admin read/list
       allow read: if (hasAuth() && request.auth.uid == uid) || isAdmin();
 
-      // Solo Admin crea/edita/elimina
-      allow write: if isAdmin();
+      // Alta automática mínima. El propio usuario solo puede crearse como Usuario,
+      // sin alcance organizacional; cualquier cambio posterior queda en manos de Admin.
+      allow create: if isAdmin()
+                    || (hasAuth()
+                        && request.auth.uid == uid
+                        && request.resource.data.keys().hasOnly(['role', 'scope', 'createdAt'])
+                        && request.resource.data.role == 'Usuario'
+                        && request.resource.data.scope.keys().hasOnly(['subregionIds', 'cityIds', 'sectorIds', 'hanIds'])
+                        && request.resource.data.scope.subregionIds == []
+                        && request.resource.data.scope.cityIds == []
+                        && request.resource.data.scope.sectorIds == []
+                        && request.resource.data.scope.hanIds == []);
+      allow update, delete: if isAdmin();
     }
 
     /* =========================
@@ -254,7 +283,7 @@ service cloud.firestore {
        ========================= */
     match /fieldPolicies/{roleId} {
       // El front de seguridad (admin) necesita leer/escribir
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (hasAuth() && roleId == role());
       allow write: if isAdmin();
     }
 
@@ -273,11 +302,18 @@ service cloud.firestore {
       allow read: if isAdmin() || (hasAuth() && request.auth.uid == uid);
 
       // Creación/edición: Admin o el propio usuario (alta por aceptación de invitación)
-      allow create, update: if isAdmin()
-                         || (hasAuth()
-                             && request.auth.uid == uid
-                             && request.resource.data.uid is string
-                             && request.resource.data.uid == uid);
+      allow create: if isAdmin()
+                    || (hasAuth()
+                        && request.auth.uid == uid
+                        && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'createdAt'])
+                        && request.resource.data.uid == uid
+                        && request.resource.data.role == 'Usuario');
+      allow update: if isAdmin()
+                    || (hasAuth()
+                        && request.auth.uid == uid
+                        && request.resource.data.uid == uid
+                        && request.resource.data.role == 'Usuario'
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email', 'displayName']));
 
       // No hay borrado físico
       allow delete: if false;
